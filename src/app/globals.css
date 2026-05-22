@@ -1,26 +1,117 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base palette — deep navy-black, not pure #000 */
+  --background: #050810;
+  --foreground: #E2E7F5;
+  --muted: #7880A2;
+  --dim: #444C6A;
+  --border: #191E2E;
+  --rule: #20263A;
+  --surface: #0B0E1A;
+  --surface-2: #101522;
+  --surface-3: #161D30;
+
+  /* Brand — institutional indigo-blue */
+  --accent: #4F74FF;
+  --accent-dim: rgba(79, 116, 255, 0.08);
+  --accent-border: rgba(79, 116, 255, 0.20);
+
+  /* Market signals */
+  --bull: #10B981;
+  --bear: #F43F5E;
+  --hold: #F59E0B;
+
+  /* Legacy aliases */
+  --accent-bull: var(--bull);
+  --accent-bear: var(--bear);
+  --accent-hold: var(--hold);
+  --accent-paper: #EDE8D8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-border: var(--border);
+  --color-rule: var(--rule);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-accent: var(--accent);
+  --color-bull: var(--bull);
+  --color-bear: var(--bear);
+  --color-hold: var(--hold);
+  --color-paper: var(--accent-paper);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+  --font-display: var(--font-display);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "kern";
+}
+
+.mono {
+  font-family: var(--font-mono), "JetBrains Mono", "SF Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.serif {
+  font-family: var(--font-serif), "Lora", Georgia, serif;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+.display {
+  font-family: var(--font-display), "DM Serif Display", Georgia, serif;
+  font-feature-settings: "kern", "liga";
+}
+
+/* Section label — editorial caps style */
+.caps {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Chat prose — smooth text rendering for long reads */
+.prose-text {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+/* Thin decorative rails */
+.rail-l { border-left: 1px solid var(--rule); }
+.rail-r { border-right: 1px solid var(--rule); }
+.rail-t { border-top: 1px solid var(--rule); }
+.rail-b { border-bottom: 1px solid var(--rule); }
+
+/* Live status dot */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+.pulse {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+/* Verdict conviction bar fill */
+@keyframes bar-in {
+  from { width: 0; }
+  to   { width: var(--bar-width, 50%); }
+}
+.bar-animate {
+  animation: bar-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
