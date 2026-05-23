@@ -1,32 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  /* Base palette — deep navy-black, not pure #000 */
-  --background: #050810;
-  --foreground: #E2E7F5;
-  --muted: #7880A2;
-  --dim: #444C6A;
-  --border: #191E2E;
-  --rule: #20263A;
-  --surface: #0B0E1A;
-  --surface-2: #101522;
-  --surface-3: #161D30;
+  /* Base palette — warm black, not navy */
+  --background: #090909;
+  --foreground: #E6E0D5;
+  --muted: #908878;
+  --dim: #504840;
+  --border: #1E1B17;
+  --rule: #252019;
+  --surface: #0D0C0B;
+  --surface-2: #141210;
+  --surface-3: #1C1914;
 
-  /* Brand — institutional indigo-blue */
-  --accent: #4F74FF;
-  --accent-dim: rgba(79, 116, 255, 0.08);
-  --accent-border: rgba(79, 116, 255, 0.20);
+  /* Brand — warm gold (replaces indigo-blue) */
+  --accent: #C4933F;
+  --accent-dim: rgba(196, 147, 63, 0.08);
+  --accent-border: rgba(196, 147, 63, 0.22);
 
   /* Market signals */
-  --bull: #10B981;
-  --bear: #F43F5E;
-  --hold: #F59E0B;
-
-  /* Legacy aliases */
-  --accent-bull: var(--bull);
-  --accent-bear: var(--bear);
-  --accent-hold: var(--hold);
-  --accent-paper: #EDE8D8;
+  --bull: #00A878;
+  --bear: #D64F58;
+  --hold: #E59330;
 }
 
 @theme inline {
@@ -43,7 +37,6 @@
   --color-bull: var(--bull);
   --color-bear: var(--bear);
   --color-hold: var(--hold);
-  --color-paper: var(--accent-paper);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
@@ -114,4 +107,30 @@ body {
 }
 .bar-animate {
   animation: bar-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Slide in from bottom — for card entrances */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up {
+  animation: slide-up 0.25s ease-out both;
+}
+
+/* Thin accent line — top border on institutional cards */
+.accent-top {
+  border-top: 2px solid var(--accent);
+}
+.bull-left {
+  border-left: 3px solid var(--bull);
+}
+.bear-left {
+  border-left: 3px solid var(--bear);
+}
+.hold-left {
+  border-left: 3px solid var(--hold);
+}
+.accent-left {
+  border-left: 2px solid var(--accent);
 }
