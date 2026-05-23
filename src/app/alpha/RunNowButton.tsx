@@ -31,15 +31,16 @@ export default function RunNowButton() {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="mono text-[11px] px-3 py-1 rounded transition-colors disabled:opacity-50"
-      style={{
-        background: status === "ok" ? "rgba(16,185,129,0.12)" : status === "error" ? "rgba(244,63,94,0.12)" : "var(--accent-dim)",
-        border: `1px solid ${status === "ok" ? "rgba(16,185,129,0.3)" : status === "error" ? "rgba(244,63,94,0.3)" : "var(--accent-border)"}`,
-        color: status === "ok" ? "var(--bull)" : status === "error" ? "var(--bear)" : "var(--accent)",
-        cursor: loading ? "wait" : "pointer",
-      }}
+      className="mono text-[10px] px-2.5 py-1 border border-rule text-dim hover:text-foreground transition-colors disabled:opacity-40"
+      style={
+        status === "ok"
+          ? { color: "var(--bull)", borderColor: "var(--bull)" }
+          : status === "error"
+          ? { color: "var(--bear)", borderColor: "var(--bear)" }
+          : {}
+      }
     >
-      {loading ? "Running…" : status === "ok" ? "Done ✓" : status === "error" ? "Error" : "Run Now"}
+      {loading ? "Running…" : status === "ok" ? "Done ✓" : status === "error" ? "Failed" : "Run Now"}
     </button>
   );
 }
