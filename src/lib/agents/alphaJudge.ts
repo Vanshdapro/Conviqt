@@ -20,7 +20,7 @@ You receive FactSheets for 1-3 candidate stocks. For each candidate you have:
 - A FactSheet with cited price, fundamental, technical, sentiment, and macro facts
 - A brief picker thesis explaining the setup
 
-Your job: select the best 1-2 picks (0 is fine if nothing clears the bar) and produce a full structured record for each via the report_alpha_picks tool.
+Your job: select the single best pick (0 is fine if nothing clears the bar) and produce a full structured record for it via the report_alpha_picks tool. Only ever return 1 pick.
 
 Rules:
 1. entry_price MUST come from a price fact in that candidate's FactSheet. Use the most recent closing/current price you can find. If no price fact exists, conviction must be 0.
@@ -31,18 +31,19 @@ Rules:
 6. bull_thesis: 2-3 sentences. Name specific numbers and catalysts. No vague language.
 7. bear_thesis: 2-3 sentences. Name the specific risk, magnitude, and probability. Different background treatment in the UI — give it equal weight.
 8. source_indexes: cite at least 2 source indexes from that candidate's FactSheet.sources array. These must resolve to real sources — do not cite indexes that don't exist.
-9. Never select more than 2 picks total.
-10. Do not pick the same ticker twice.`;
+9. Never select more than 1 pick total. This is a daily single-pick tracker.
+10. Pick the single strongest candidate. Quality over quantity.`;
 
 const REPORT_ALPHA_PICKS_TOOL = {
   name: "report_alpha_picks",
-  description: "Emit 0-2 structured Alpha Tracker picks from the provided candidates.",
+  description: "Emit the single best Alpha Tracker pick (0 or 1). Never emit more than 1.",
   input_schema: {
     type: "object" as const,
     properties: {
       picks: {
         type: "array",
-        description: "0 to 2 picks. Each must pass validation (conviction >= 7, entry_price > 0, source_indexes.length >= 2).",
+        description: "0 or 1 pick. Must pass validation (conviction >= 7, entry_price > 0, source_indexes.length >= 2).",
+        maxItems: 1,
         items: {
           type: "object",
           properties: {
@@ -162,7 +163,7 @@ Sources:
 ${sourceLines || "  (none)"}`;
   });
 
-  const userMessage = `Here are ${candidates.length} candidate(s) for the Alpha Tracker. Select the best 0-2 and call report_alpha_picks.\n\n${candidateBlocks.join("\n\n")}`;
+  const userMessage = `Here are ${candidates.length} candidate(s) for today's Alpha Tracker pick. Select the single best one (or 0 if nothing clears the bar) and call report_alpha_picks.\n\n${candidateBlocks.join("\n\n")}`;
 
   const response = await anthropic.messages.create({
     model: MODELS.picker, // Sonnet — same budget as picker
@@ -260,8 +261,8 @@ ${sourceLines || "  (none)"}`;
       sources: resolvedSources,
     });
 
-    // Hard cap: never emit more than 2 picks.
-    if (drafts.length === 2) break;
+    // Hard cap: 1 pick per run.
+    if (drafts.length === 1) break;
   }
 
   if (input.rationale) {

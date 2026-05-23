@@ -383,14 +383,6 @@ export default function Chat() {
       {bubbles.length === 0 && (
         <div className="flex-1 flex items-center justify-center px-5 py-16">
           <div className="w-full max-w-[660px]">
-            {/* Status badge */}
-            <div className="flex items-center gap-2 mb-7">
-              <span className="h-1.5 w-1.5 rounded-full bg-bull pulse" />
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                AI Equity Research · Live
-              </span>
-            </div>
-
             {/* Headline — DM Serif Display */}
             <h1 className="display text-[2.8rem] lg:text-[3.4rem] text-foreground leading-[1.06] mb-5">
               Research any stock.
@@ -407,22 +399,19 @@ export default function Chat() {
               evidence splits.
             </p>
 
-            {/* Example queries — 2 col grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Example queries — dense list */}
+            <div className="w-full">
               {EXAMPLES.map((ex) => (
                 <button
                   key={ex.label}
                   onClick={() => send(ex.label)}
                   disabled={busy}
-                  className="group flex items-center justify-between gap-3 border border-rule rounded-lg px-4 py-3 text-left transition-all hover:border-accent/40 disabled:opacity-40"
-                  style={{ background: "var(--surface)" }}
+                  className="w-full flex items-center justify-between gap-3 border-b border-rule py-3 text-left transition-colors hover:bg-surface-2 disabled:opacity-40 px-1 cursor-pointer disabled:cursor-default"
                 >
-                  <span className="serif text-[13.5px] text-foreground/80 group-hover:text-foreground transition-colors leading-snug">
+                  <span className="serif text-[14px] text-foreground/80 leading-snug">
                     {ex.label}
                   </span>
-                  <span
-                    className="mono text-[9px] text-dim group-hover:text-muted transition-colors flex-shrink-0 tracking-[0.1em] uppercase"
-                  >
+                  <span className="mono text-[10px] text-dim flex-shrink-0 tracking-[0.1em] uppercase">
                     {ex.hint}
                   </span>
                 </button>
@@ -430,22 +419,10 @@ export default function Chat() {
             </div>
 
             {/* Agent pipeline */}
-            <div className="flex flex-wrap gap-1.5 mt-10 pt-8 border-t border-rule">
-              {[
-                { label: "Sweep", num: "①" },
-                { label: "Fundamentals", num: "②" },
-                { label: "Technicals", num: "③" },
-                { label: "Sentiment", num: "④" },
-                { label: "Macro", num: "⑤" },
-                { label: "Judge", num: "⑥" },
-              ].map(({ label, num }) => (
-                <span
-                  key={label}
-                  className="mono text-[9.5px] text-dim border border-rule rounded-full px-2.5 py-1 tracking-[0.04em]"
-                >
-                  {num} {label}
-                </span>
-              ))}
+            <div className="border-t border-rule pt-6 mt-8">
+              <span className="mono text-[10px] text-dim tracking-[0.06em]">
+                01 · Sweep&nbsp;&nbsp;02 · Fundamentals&nbsp;&nbsp;03 · Technicals&nbsp;&nbsp;04 · Sentiment&nbsp;&nbsp;05 · Macro&nbsp;&nbsp;06 · Judge
+              </span>
             </div>
           </div>
         </div>
@@ -481,14 +458,12 @@ export default function Chat() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="analyze AAPL · explain the yield curve · what's driving gold…"
             disabled={busy}
-            className="flex-1 rounded-lg border border-rule px-4 py-3 text-[14px] text-foreground placeholder:text-dim bg-surface focus:outline-none transition-all disabled:opacity-50"
+            className="flex-1 rounded border border-rule px-4 py-2.5 text-[14px] text-foreground placeholder:text-dim bg-surface focus:outline-none transition-colors disabled:opacity-50"
             onFocus={(e) => {
               e.currentTarget.style.borderColor = "var(--accent-border)";
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(79,116,255,0.06)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = "var(--rule)";
-              e.currentTarget.style.boxShadow = "none";
             }}
             autoFocus
             suppressHydrationWarning
@@ -496,8 +471,8 @@ export default function Chat() {
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="flex items-center justify-center w-10 h-10 rounded-lg border border-rule transition-all disabled:opacity-30 flex-shrink-0"
-            style={{ background: input.trim() && !busy ? "var(--accent)" : "var(--surface)" }}
+            className="flex items-center justify-center w-9 h-9 rounded border border-rule transition-colors disabled:opacity-30 flex-shrink-0"
+            style={{ background: input.trim() && !busy ? "var(--accent)" : "var(--surface)", borderColor: input.trim() && !busy ? "var(--accent)" : "var(--rule)" }}
             aria-label="Send"
           >
             {busy ? (
@@ -819,11 +794,8 @@ function BubbleView({
     return (
       <div className="flex justify-end">
         <div
-          className="max-w-[72%] rounded-2xl rounded-tr-sm px-4 py-2.5 text-[14px] text-foreground/90 leading-relaxed"
-          style={{
-            background: "var(--surface-3)",
-            border: "1px solid rgba(79,116,255,0.12)",
-          }}
+          className="max-w-[72%] rounded px-4 py-2.5 text-[14px] text-foreground/90 leading-relaxed"
+          style={{ background: "var(--surface-3)", border: "1px solid var(--rule)" }}
         >
           {bubble.text}
         </div>
@@ -833,9 +805,9 @@ function BubbleView({
 
   if (bubble.kind === "loading") {
     return (
-      <div className="flex items-center gap-2.5 py-1 pl-1">
+      <div className="flex items-center gap-2.5 py-2">
         <span className="h-1.5 w-1.5 rounded-full pulse" style={{ background: "var(--accent)" }} />
-        <span className="mono text-[11px]" style={{ color: "var(--muted)" }}>{bubble.label}</span>
+        <span className="mono text-[11px] text-dim">{bubble.label}</span>
       </div>
     );
   }
@@ -850,61 +822,50 @@ function BubbleView({
 
   if (bubble.kind === "error") {
     return (
-      <div
-        className="rounded px-5 py-4"
-        style={{
-          borderLeft: "2px solid rgba(244, 63, 94, 0.5)",
-          background: "rgba(244, 63, 94, 0.04)",
-          paddingLeft: "18px",
-        }}
-      >
-        <div
-          className="mono text-[9px] tracking-[0.16em] uppercase mb-2"
-          style={{ color: "var(--bear)" }}
-        >
-          Error
-        </div>
-        <p className="serif text-[14px] text-foreground/85 leading-relaxed">
-          {bubble.error}
-        </p>
+      <div style={{ borderLeft: "2px solid var(--bear)", background: "rgba(214,79,88,0.04)", padding: "14px 18px" }}>
+        <div className="mono text-[9px] tracking-[0.16em] uppercase mb-2" style={{ color: "var(--bear)" }}>Error</div>
+        <p className="serif text-[14px] text-foreground/85 leading-relaxed">{bubble.error}</p>
       </div>
     );
   }
 
   if (bubble.kind === "text_streaming") {
     return (
-      <div
-        className="rounded-lg px-6 py-6"
+      <article
         style={{
+          borderTop: "2px solid var(--accent)",
+          borderRight: "1px solid var(--rule)",
+          borderBottom: "1px solid var(--rule)",
+          borderLeft: "1px solid var(--rule)",
           background: "var(--surface)",
-          border: "1px solid var(--rule)",
-          borderLeft: "2px solid var(--accent-border)",
         }}
       >
-        <MarkdownText content={bubble.text} />
-        <span
-          className="inline-block h-[15px] w-[2px] ml-0.5 align-middle pulse"
-          style={{ background: "var(--accent)", opacity: 0.7 }}
-        />
-      </div>
+        <div className="px-5 py-5">
+          <MarkdownText content={bubble.text} />
+          <span
+            className="inline-block h-[15px] w-[2px] ml-0.5 align-middle pulse"
+            style={{ background: "var(--accent)", opacity: 0.7 }}
+          />
+        </div>
+      </article>
     );
   }
 
   if (bubble.kind === "text") {
     return (
-      <div
-        className="rounded-lg px-6 py-6"
+      <article
         style={{
+          borderTop: "2px solid var(--accent)",
+          borderRight: "1px solid var(--rule)",
+          borderBottom: "1px solid var(--rule)",
+          borderLeft: "1px solid var(--rule)",
           background: "var(--surface)",
-          border: "1px solid var(--rule)",
-          borderLeft: "2px solid var(--accent-border)",
         }}
       >
-        <MarkdownText content={bubble.text} />
-        <div
-          className="flex items-center justify-between mt-5 pt-3"
-          style={{ borderTop: "1px solid var(--rule)" }}
-        >
+        <div className="px-5 py-5">
+          <MarkdownText content={bubble.text} />
+        </div>
+        <div className="px-5 py-2 border-t border-rule flex items-center justify-between">
           <span className="mono text-[9px] text-dim">
             {bubble.costUSD < 0.001
               ? `<0.1¢`
@@ -912,7 +873,7 @@ function BubbleView({
           </span>
           <CopyButton text={bubble.text} />
         </div>
-      </div>
+      </article>
     );
   }
 
@@ -948,12 +909,11 @@ function CouncilRunningCard({ progress }: { progress: CouncilProgress }) {
 
   return (
     <article
-      className="border border-rule rounded overflow-hidden"
+      className="border border-rule overflow-hidden"
       style={{ background: "var(--surface)" }}
     >
       <div
         className="px-5 py-4 border-b border-rule flex items-center justify-between gap-4"
-        style={{ background: "var(--surface-2)" }}
       >
         <div className="flex items-baseline gap-2.5">
           <span className="text-[22px] font-semibold text-foreground tracking-tight">
@@ -1025,7 +985,7 @@ function FocusedRunningCard({ progress }: { progress: FocusedProgress }) {
 
   return (
     <article
-      className="border border-rule rounded px-5 py-4"
+      className="border border-rule px-5 py-4"
       style={{ background: "var(--surface)" }}
     >
       <div className="flex items-center justify-between gap-4">
@@ -1061,10 +1021,10 @@ function FocusedReport({
 
   return (
     <article
-      className="border border-rule rounded overflow-hidden"
+      className="border border-rule overflow-hidden"
       style={{ background: "var(--surface)" }}
     >
-      <header className="border-b border-rule px-5 py-4" style={{ background: "var(--surface-2)" }}>
+      <header className="border-b border-rule px-5 py-4" style={{ background: "var(--surface)" }}>
         <div className="flex items-baseline gap-2.5 flex-wrap">
           <span className="text-[26px] font-semibold text-foreground tracking-tight">
             {result.ticker}

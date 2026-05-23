@@ -1,110 +1,47 @@
-import { getSupabaseAdmin } from "./supabase";
+import { getAlphaStore } from "./alphaStore";
 import { runSweep } from "./agents/sweep";
 import { runPicker } from "./agents/picker";
 import { runAlphaJudge, type AlphaJudgeCandidate } from "./agents/alphaJudge";
 import { runSellCheck } from "./agents/sellCheck";
 import type { AlphaPick, AlphaRunResult } from "./alphaTypes";
 
-// runId format: "YYYY-MM-DD-TUE" or "YYYY-MM-DD-THU"
+// runId format: "YYYY-MM-DD-MON", "YYYY-MM-DD-TUE", etc.
 export function buildRunId(date: Date = new Date()): string {
-  const day = date.getUTCDay();
-  const label = day === 2 ? "TUE" : day === 4 ? "THU" : ["SUN","MON","TUE","WED","THU","FRI","SAT"][day];
-  return `${date.toISOString().slice(0, 10)}-${label}`;
+  const days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  return `${date.toISOString().slice(0, 10)}-${days[date.getUTCDay()]}`;
 }
 
-// Compute the next scheduled run date from a given UTC Date.
-// Runs fire at 11:00 UTC (≈ 6 AM ET) on Tuesdays and Thursdays.
+// Next run fires at 11:00 UTC (≈ 6 AM ET) on weekdays (Mon–Fri).
+// Returns the next date on which the cron will fire.
 export function nextRunDate(from: Date = new Date()): string {
   const RUN_HOUR_UTC = 11;
-  const day = from.getUTCDay();  // 0=Sun … 6=Sat
-  const hour = from.getUTCHours();
-
-  let daysUntil: number;
-
-  if ((day === 2 || day === 4) && hour < RUN_HOUR_UTC) {
-    // Run day, but the window hasn't opened yet — next run is today.
-    daysUntil = 0;
-  } else if (day === 0) {
-    daysUntil = 2; // Sun → Tue
-  } else if (day === 1) {
-    daysUntil = 1; // Mon → Tue
-  } else if (day === 2) {
-    daysUntil = 2; // Tue post-run → Thu
-  } else if (day === 3) {
-    daysUntil = 1; // Wed → Thu
-  } else {
-    // Thu post-run (day=4,hour≥11), Fri (5), Sat (6) → next Tue
-    daysUntil = (2 - day + 7) % 7;
-    if (daysUntil === 0) daysUntil = 7; // safety net — should never happen here
-  }
-
   const next = new Date(from);
-  next.setUTCDate(next.getUTCDate() + daysUntil);
+  // If today is a weekday and the window hasn't opened yet, today is next.
+  // Otherwise advance day by day until we land on a weekday.
+  const todayIsWeekday = next.getUTCDay() >= 1 && next.getUTCDay() <= 5;
+  if (!todayIsWeekday || next.getUTCHours() >= RUN_HOUR_UTC) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
+  // Skip weekends
+  while (next.getUTCDay() === 0 || next.getUTCDay() === 6) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
   return next.toISOString().slice(0, 10);
 }
 
-async function fetchActivePicks(): Promise<AlphaPick[]> {
-  const db = getSupabaseAdmin();
-  const { data, error } = await db
-    .from("alpha_picks")
-    .select("*")
-    .eq("status", "ACTIVE");
-  if (error) throw new Error(`[alphaPipeline] fetchActivePicks: ${error.message}`);
-  return (data ?? []) as AlphaPick[];
-}
-
-async function markSold(
-  id: string,
-  currentPrice: number,
-  reason: string
-): Promise<void> {
-  const db = getSupabaseAdmin();
-  const today = new Date().toISOString().slice(0, 10);
-  const { error } = await db
-    .from("alpha_picks")
-    .update({
-      status: "SOLD",
-      exit_date: today,
-      exit_price: currentPrice > 0 ? currentPrice : null,
-      exit_reason: reason,
-    })
-    .eq("id", id);
-  if (error) throw new Error(`[alphaPipeline] markSold ${id}: ${error.message}`);
-}
-
-async function insertPick(pick: Omit<AlphaPick, "id" | "created_at">): Promise<void> {
-  const db = getSupabaseAdmin();
-  const { error } = await db.from("alpha_picks").insert(pick);
-  if (error) throw new Error(`[alphaPipeline] insertPick ${pick.ticker}: ${error.message}`);
-}
-
-async function runIdAlreadyHasPicks(run_id: string): Promise<boolean> {
-  const db = getSupabaseAdmin();
-  const { data, error } = await db
-    .from("alpha_picks")
-    .select("id")
-    .eq("run_id", run_id)
-    .limit(1);
-  if (error) {
-    console.warn(`[alphaPipeline] idempotency check failed: ${error.message}`);
-    return false; // err on the side of running rather than silently skipping
-  }
-  return (data ?? []).length > 0;
-}
-
 // Full alpha pipeline run. Called by /api/alpha/run on the cron schedule
-// (Tue/Thu at 11 UTC) or on-demand via the admin trigger.
+// (every weekday at 11 UTC) or on-demand via the admin trigger.
 //
 // Steps:
-// A. Fetch active positions from Supabase.
-// B. Run sell checks in parallel (Haiku + 1 web_search each).
-// C. Mark exited positions SOLD in Supabase.
-// D. Idempotency check — skip new picks if this run_id already has entries.
-// E. Filter out tickers that are already in active positions.
-// F. Run picker to get new candidates (Sonnet + web_searches).
-// G. For each candidate, run sweep (Haiku + 2 web_searches).
-// H. Run alpha judge (Sonnet) — selects best ≤2 picks with structured fields.
-// I. Validate and write new picks to Supabase.
+// A. Fetch active positions.
+// B. Sell checks (parallel, Haiku + 1 web_search each).
+// C. Mark exited positions SOLD.
+// D. Idempotency guard — skip new picks if this run_id already has entries.
+// E. Filter tickers already in active positions.
+// F. Run picker to get candidates (Sonnet + web_searches).
+// G. Sweep candidates (parallel, Haiku + 2 web_searches each).
+// H. Alpha judge (Sonnet) — selects the single best pick.
+// I. Validate and write the pick.
 export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   const t0 = Date.now();
   const now = new Date();
@@ -115,16 +52,17 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   const new_picks: Array<{ ticker: string }> = [];
   let totalCost = 0;
 
+  const store = getAlphaStore();
+
   // === A. Fetch active picks ===
   let activePicks: AlphaPick[] = [];
   try {
-    activePicks = await fetchActivePicks();
+    activePicks = await store.fetchActive();
     console.log(`[alphaPipeline] ${activePicks.length} active pick(s)`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[alphaPipeline] fetchActivePicks failed:", msg);
+    console.error("[alphaPipeline] fetchActive failed:", msg);
     errors.push(msg);
-    // Cannot proceed safely without knowing current positions.
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
@@ -146,8 +84,7 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     if (res.value.shouldSell) {
       // === C. Mark SOLD ===
       try {
-        await markSold(pick.id!, res.value.currentPrice, res.value.reason);
-        // Remove from activePicks so we don't filter it as "still active" below.
+        await store.markSold(pick.id!, res.value.currentPrice, res.value.reason);
         activePicks[i] = { ...pick, status: "SOLD" };
         sells.push({ ticker: pick.ticker, reason: res.value.reason });
         console.log(`[alphaPipeline] sold ${pick.ticker}: ${res.value.reason}`);
@@ -160,20 +97,18 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   }
 
   // === D. Idempotency guard ===
-  // If this run_id already has picks (e.g. button clicked twice), skip new picks.
   try {
-    const alreadyRan = await runIdAlreadyHasPicks(run_id);
+    const alreadyRan = await store.hasPicksForRunId(run_id);
     if (alreadyRan) {
-      console.log(`[alphaPipeline] run_id=${run_id} already has picks — skipping new picks step`);
+      console.log(`[alphaPipeline] run_id=${run_id} already has a pick — skipping`);
       return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[alphaPipeline] idempotency check threw:", msg);
-    // Don't abort — continue with new picks
+    console.error("[alphaPipeline] idempotency check threw:", err instanceof Error ? err.message : err);
+    // Continue — don't let a failed check block the run
   }
 
-  // === E. Run picker to get candidates ===
+  // === E. Run picker ===
   let pickerResult;
   try {
     pickerResult = await runPicker();
@@ -187,12 +122,11 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   }
 
   if (pickerResult.picks.length === 0) {
-    console.log("[alphaPipeline] picker returned 0 candidates — no new picks this run");
+    console.log("[alphaPipeline] picker returned 0 candidates — no new pick this run");
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === F. Filter out tickers already in active positions ===
-  // Prevents inserting a duplicate entry for a stock we're already holding.
+  // === F. Filter already-active tickers ===
   const stillActiveTickers = new Set(
     activePicks
       .filter((p) => p.status === "ACTIVE")
@@ -200,10 +134,10 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   );
   const topCandidates = pickerResult.picks
     .filter((p) => !stillActiveTickers.has(p.ticker.toUpperCase()))
-    .slice(0, 3);
+    .slice(0, 2); // 2 gives the judge a choice; 1 final pick comes out
 
   if (topCandidates.length === 0) {
-    console.log("[alphaPipeline] all candidates are already in active positions — skipping");
+    console.log("[alphaPipeline] all candidates already in active positions — skipping");
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
@@ -236,7 +170,7 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === H. Alpha judge — picks the best ≤2 ===
+  // === H. Alpha judge ===
   let judgeResult;
   try {
     judgeResult = await runAlphaJudge(validCandidates);
@@ -249,10 +183,8 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === I. Validate and write picks to Supabase ===
+  // === I. Validate and write ===
   for (const draft of judgeResult.drafts) {
-    // Final validation gate (belt-and-suspenders — the judge already filters,
-    // but we re-check before writing to the database).
     if (draft.sources.length < 2) {
       const msg = `skipping ${draft.ticker}: only ${draft.sources.length} source(s) — need ≥2`;
       console.error("[alphaPipeline]", msg);
@@ -292,26 +224,19 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     };
 
     try {
-      await insertPick(row);
+      await store.insert(row);
       new_picks.push({ ticker: draft.ticker });
-      console.log(`[alphaPipeline] inserted pick: ${draft.ticker} @$${draft.entryPrice}`);
+      console.log(`[alphaPipeline] saved pick: ${draft.ticker} @$${draft.entryPrice}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("[alphaPipeline] insertPick failed:", msg);
+      console.error("[alphaPipeline] insert failed:", msg);
       errors.push(msg);
     }
   }
 
   if (totalCost > 0.35) {
-    console.warn(`[alphaPipeline] cost ceiling exceeded: $${totalCost.toFixed(4)} > $0.35`);
+    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $0.35`);
   }
 
-  return {
-    run_id,
-    sells,
-    new_picks,
-    errors,
-    costUSD: totalCost,
-    durationMs: Date.now() - t0,
-  };
+  return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
 }
