@@ -63,81 +63,42 @@ const PRINCIPLES = [
 export default function MethodologyPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Brand accent stripe */}
-      <div
-        className="h-px flex-shrink-0"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent 0%, var(--accent) 40%, var(--accent) 60%, transparent 100%)",
-          opacity: 0.7,
-        }}
-      />
-
       {/* Utility bar */}
       <div className="border-b border-rule flex-shrink-0" style={{ background: "var(--surface)" }}>
-        <div className="mx-auto max-w-[1400px] px-5 lg:px-10 h-8 flex items-center justify-between">
-          <Link
-            href="/"
-            className="mono text-[10px] text-dim hover:text-muted transition-colors flex items-center gap-1.5"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path
-                d="M7 2L3 5L7 8"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Chat
+        <div className="mx-auto max-w-[1400px] px-5 lg:px-10 h-7 flex items-center justify-between">
+          <Link href="/" className="mono text-[10px] font-bold tracking-[0.2em] text-foreground">
+            CONVIQT
           </Link>
-          <span className="mono text-[10px] text-dim">v0.2</span>
+          <span className="mono text-[10px] text-dim">Methodology</span>
         </div>
       </div>
 
       {/* Header */}
       <header className="border-b border-rule flex-shrink-0">
-        <div className="mx-auto max-w-[1400px] px-5 lg:px-10 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div
-              className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
-              style={{
-                background: "var(--accent-dim)",
-                border: "1px solid var(--accent-border)",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M2 6 L5 3 L10 3 M5 9 L10 9 M7 6 L10 6"
-                  stroke="var(--accent)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <span className="text-[15px] font-semibold text-foreground tracking-tight">
-              Conviqt
-            </span>
+        <div className="mx-auto max-w-[1400px] px-5 lg:px-10 h-12 flex items-center justify-between">
+          <Link
+            href="/"
+            className="mono text-[14px] font-bold tracking-[0.2em] text-foreground hover:text-muted transition-colors"
+          >
+            CONVIQT
           </Link>
-
-          <nav className="hidden md:flex items-center gap-0.5">
+          <nav className="hidden md:flex items-center gap-5">
             <Link
               href="/"
-              className="px-3 py-1.5 text-[13px] text-muted hover:text-foreground hover:bg-surface-2 rounded transition-colors"
+              className="mono text-[12px] text-dim hover:text-foreground transition-colors px-0 py-1.5"
             >
               Chat
             </Link>
             <Link
               href="/alpha"
-              className="px-3 py-1.5 text-[13px] text-muted hover:text-foreground hover:bg-surface-2 rounded transition-colors"
+              className="mono text-[12px] text-dim hover:text-foreground transition-colors px-0 py-1.5"
             >
               Alpha Tracker
             </Link>
             <Link
               href="/methodology"
-              className="px-3 py-1.5 text-[13px] font-medium text-foreground rounded"
-              style={{ background: "var(--surface-3)" }}
+              className="mono text-[12px] text-foreground px-0 py-1.5 border-b-2"
+              style={{ borderColor: "var(--accent)" }}
             >
               Methodology
             </Link>
@@ -149,21 +110,20 @@ export default function MethodologyPage() {
       <main className="flex-1">
         {/* Hero */}
         <section className="border-b border-rule">
-          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-16 lg:py-20">
-            <div className="max-w-[760px]">
-              <div className="caps text-dim mb-5">How it works</div>
-              <h1 className="text-[2.4rem] lg:text-[3rem] font-semibold text-foreground leading-[1.08] tracking-[-0.02em] mb-5">
-                One sweep.
+          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-12 lg:py-16">
+            <div className="max-w-[720px]">
+              <div className="caps text-[9px] text-accent mb-6">How it works</div>
+              <h1 className="display text-[2.4rem] lg:text-[3rem] text-foreground leading-[1.08] tracking-[-0.02em] mb-5">
+                One sweep.{" "}
+                <span className="display italic text-muted font-normal">Four specialists.</span>
                 <br />
-                Four specialists.
-                <br />
-                <span className="text-muted font-light">One judge. Every dissent published.</span>
+                One judge.{" "}
+                <span className="display italic text-muted font-normal">Every dissent published.</span>
               </h1>
-              <p className="text-[15px] text-muted leading-relaxed max-w-[560px]">
-                When you ask Conviqt to analyze a stock, six agents run
-                sequentially. Each one only sees facts that carry a source URL.
-                The final report is a synthesis of four independent verdicts —
-                agreements and disagreements alike.
+              <p className="serif text-[15px] text-muted leading-relaxed max-w-[540px]">
+                When you ask Conviqt to analyze a stock, six agents run sequentially. Each one only
+                sees facts that carry a source URL. The final report is a synthesis of four
+                independent verdicts — agreements and disagreements alike.
               </p>
             </div>
           </div>
@@ -171,26 +131,23 @@ export default function MethodologyPage() {
 
         {/* Pipeline */}
         <section className="border-b border-rule">
-          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-14">
-            <div className="caps text-dim mb-8">Pipeline</div>
-            <div className="space-y-0 divide-y divide-rule">
+          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-10">
+            <div className="caps text-[9px] text-accent mb-6">Pipeline</div>
+            <div className="divide-y divide-rule">
               {PIPELINE.map((p) => (
                 <div
                   key={p.step}
-                  className="py-5 grid grid-cols-12 gap-5 items-start"
+                  className="accent-left pl-4 py-5 grid grid-cols-12 gap-5 items-start"
+                  style={{ borderLeftColor: "var(--accent)" }}
                 >
-                  {/* Step number */}
-                  <div className="col-span-1">
-                    <span className="mono text-[13px] text-dim">{p.step}</span>
-                  </div>
-
                   {/* Name + model */}
-                  <div className="col-span-11 md:col-span-2">
-                    <div className="text-[15px] font-semibold text-foreground">
-                      {p.name}
+                  <div className="col-span-12 md:col-span-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="mono text-[11px] text-dim">{p.step}</span>
+                      <span className="text-[15px] font-semibold text-foreground">{p.name}</span>
                     </div>
-                    <div
-                      className="mono text-[10px] mt-1 rounded-full px-2 py-0.5 inline-block border border-rule"
+                    <span
+                      className="mono text-[10px] rounded px-2 py-0.5 inline-block border"
                       style={{
                         color: "var(--accent)",
                         background: "var(--accent-dim)",
@@ -198,21 +155,17 @@ export default function MethodologyPage() {
                       }}
                     >
                       {p.model}
-                    </div>
+                    </span>
                   </div>
 
                   {/* Description */}
-                  <div className="col-span-11 md:col-span-5 col-start-2 md:col-start-auto">
-                    <p className="text-[14px] text-muted leading-relaxed">
-                      {p.desc}
-                    </p>
+                  <div className="col-span-12 md:col-span-5">
+                    <p className="serif text-[14px] text-muted leading-relaxed">{p.desc}</p>
                   </div>
 
-                  {/* Detail tags */}
-                  <div className="col-span-11 md:col-span-4 col-start-2 md:col-start-auto">
-                    <p className="mono text-[10px] text-dim leading-relaxed">
-                      {p.detail}
-                    </p>
+                  {/* Detail */}
+                  <div className="col-span-12 md:col-span-4">
+                    <p className="mono text-[10px] text-dim leading-relaxed">{p.detail}</p>
                   </div>
                 </div>
               ))}
@@ -222,67 +175,60 @@ export default function MethodologyPage() {
 
         {/* Principles */}
         <section className="border-b border-rule">
-          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-14">
-            <div className="caps text-dim mb-8">Principles</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-10">
+            <div className="caps text-[9px] text-accent mb-6">Principles</div>
+            <div className="divide-y divide-rule">
               {PRINCIPLES.map((pr) => (
-                <div
-                  key={pr.label}
-                  className="border border-rule rounded p-5"
-                  style={{ background: "var(--surface)" }}
-                >
-                  <div className="text-[14px] font-semibold text-foreground mb-3">
-                    {pr.label}
+                <div key={pr.label} className="py-5 grid grid-cols-12 gap-5">
+                  <div className="col-span-12 md:col-span-4">
+                    <div className="text-[14px] font-semibold text-foreground">{pr.label}</div>
                   </div>
-                  <p className="text-[13px] text-muted leading-relaxed">
-                    {pr.body}
-                  </p>
+                  <div className="col-span-12 md:col-span-8">
+                    <p className="serif text-[14px] text-muted leading-relaxed">{pr.body}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Specs sidebar */}
+        {/* Specs */}
         <section>
-          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-14">
+          <div className="mx-auto max-w-[1400px] px-5 lg:px-10 py-10">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
-                <div className="caps text-dim mb-3">Data source</div>
-                <ul className="space-y-2 text-[13px] text-muted">
+                <div className="caps text-[9px] text-accent mb-3">Data source</div>
+                <ul className="space-y-2 serif text-[13px] text-muted">
                   <li>Claude web_search tool</li>
                   <li>No paid financial APIs</li>
                   <li>Every fact cites its URL</li>
                 </ul>
               </div>
               <div>
-                <div className="caps text-dim mb-3">Cost per query</div>
+                <div className="caps text-[9px] text-accent mb-3">Cost per query</div>
                 <ul className="space-y-2 text-[13px] text-muted">
                   <li>
-                    <span className="mono text-foreground/70">Analysis</span> ·
-                    3–7¢
+                    <span className="mono text-foreground/70">Analysis</span> · 3–7¢
                   </li>
                   <li>
-                    <span className="mono text-foreground/70">Stock pick</span>{" "}
-                    · 5–12¢
+                    <span className="mono text-foreground/70">Stock pick</span> · 5–12¢
                   </li>
                   <li>
-                    <span className="mono text-foreground/70">General chat</span>{" "}
-                    · &lt;1¢
+                    <span className="mono text-foreground/70">General chat</span> · &lt;1¢
                   </li>
                 </ul>
               </div>
               <div>
-                <div className="caps text-dim mb-3">Cadence</div>
-                <ul className="space-y-2 text-[13px] text-muted">
+                <div className="caps text-[9px] text-accent mb-3">Cadence</div>
+                <ul className="space-y-2 serif text-[13px] text-muted">
                   <li>On-demand chat · 24/7</li>
                   <li>Alpha picks · 2/wk max</li>
                   <li>Disagreement board · daily</li>
                 </ul>
               </div>
               <div>
-                <div className="caps text-dim mb-3">Stack</div>
-                <ul className="space-y-2 text-[13px] text-muted">
+                <div className="caps text-[9px] text-accent mb-3">Stack</div>
+                <ul className="space-y-2 serif text-[13px] text-muted">
                   <li>Next.js · App Router</li>
                   <li>Anthropic Claude API</li>
                   <li>Supabase · Vercel</li>
@@ -294,16 +240,11 @@ export default function MethodologyPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-rule">
-        <div className="mx-auto max-w-[1400px] px-5 lg:px-10 h-12 flex items-center justify-between">
-          <span className="mono text-[10px] text-dim">
-            Conviqt · v0.2 · Educational research only.
-          </span>
-          <Link
-            href="/"
-            className="mono text-[10px] text-dim hover:text-muted transition-colors"
-          >
-            ← Back to Chat
+      <footer className="border-t border-rule flex-shrink-0">
+        <div className="mx-auto max-w-[1400px] px-5 lg:px-10 h-10 flex items-center justify-between">
+          <span className="mono text-[10px] text-dim">CONVIQT · v0.3 · Educational research only.</span>
+          <Link href="/" className="mono text-[10px] text-dim hover:text-muted transition-colors">
+            ← Chat
           </Link>
         </div>
       </footer>

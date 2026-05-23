@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAnon } from "@/lib/supabase";
+import { getAlphaStore } from "@/lib/alphaStore";
 import { nextRunDate } from "@/lib/alphaPipeline";
 
 // GET /api/alpha/picks
@@ -12,39 +12,19 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const db = getSupabaseAnon();
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
+    const store = getAlphaStore();
 
-    const [activeRes, recentRes, lastRunRes] = await Promise.all([
-      db.from("alpha_picks").select("*").eq("status", "ACTIVE").order("created_at", { ascending: false }),
-      db
-        .from("alpha_picks")
-        .select("*")
-        .eq("status", "SOLD")
-        .gte("exit_date", thirtyDaysAgo)
-        .order("exit_date", { ascending: false }),
-      db
-        .from("alpha_picks")
-        .select("created_at")
-        .order("created_at", { ascending: false })
-        .limit(1),
+    const [active, recently_exited, last_run] = await Promise.all([
+      store.fetchActive(),
+      store.fetchRecentlySold(30),
+      store.lastRunDate(),
     ]);
 
-    if (activeRes.error) throw new Error(activeRes.error.message);
-    if (recentRes.error) throw new Error(recentRes.error.message);
-    if (lastRunRes.error) throw new Error(lastRunRes.error.message);
-
-    const lastRunRaw = lastRunRes.data?.[0]?.created_at;
-    const last_run = lastRunRaw ? lastRunRaw.slice(0, 10) : null;
-    const next_run = nextRunDate(new Date());
-
     return NextResponse.json({
-      active: activeRes.data ?? [],
-      recently_exited: recentRes.data ?? [],
+      active,
+      recently_exited,
       last_run,
-      next_run,
+      next_run: nextRunDate(new Date()),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
