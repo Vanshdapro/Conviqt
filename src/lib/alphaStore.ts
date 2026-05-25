@@ -18,6 +18,7 @@ import type { AlphaPick } from "./alphaTypes";
 export interface AlphaStore {
   fetchActive(): Promise<AlphaPick[]>;
   markSold(id: string, price: number, reason: string): Promise<void>;
+  updatePrice(id: string, currentPrice: number, changePct: number, date: string): Promise<void>;
   insert(pick: Omit<AlphaPick, "id" | "created_at">): Promise<void>;
   hasPicksForRunId(runId: string): Promise<boolean>;
   fetchRecentlySold(sinceDaysAgo: number): Promise<AlphaPick[]>;
@@ -45,7 +46,6 @@ function writeFile(picks: AlphaPick[]): void {
 }
 
 function makeId(): string {
-  // crypto.randomUUID is available in Node 14.17+
   return (crypto as { randomUUID?(): string }).randomUUID?.() ??
     `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -66,6 +66,19 @@ class FileAlphaStore implements AlphaStore {
       exit_date: today,
       exit_price: price > 0 ? price : null,
       exit_reason: reason,
+    };
+    writeFile(picks);
+  }
+
+  async updatePrice(id: string, currentPrice: number, changePct: number, date: string): Promise<void> {
+    const picks = readFile();
+    const idx = picks.findIndex((p) => p.id === id);
+    if (idx === -1) throw new Error(`FileAlphaStore: pick ${id} not found for price update`);
+    picks[idx] = {
+      ...picks[idx],
+      current_price: currentPrice,
+      price_change_pct: changePct,
+      price_last_updated: date,
     };
     writeFile(picks);
   }
@@ -139,6 +152,19 @@ class SupabaseAlphaStore implements AlphaStore {
     if (error) throw new Error(`SupabaseAlphaStore.markSold ${id}: ${error.message}`);
   }
 
+  async updatePrice(id: string, currentPrice: number, changePct: number, date: string): Promise<void> {
+    const db = await this.db();
+    const { error } = await db
+      .from("alpha_picks")
+      .update({
+        current_price: currentPrice,
+        price_change_pct: changePct,
+        price_last_updated: date,
+      })
+      .eq("id", id);
+    if (error) throw new Error(`SupabaseAlphaStore.updatePrice ${id}: ${error.message}`);
+  }
+
   async insert(pick: Omit<AlphaPick, "id" | "created_at">): Promise<void> {
     const db = await this.db();
     const { error } = await db.from("alpha_picks").insert(pick);
@@ -188,8 +214,6 @@ class SupabaseAlphaStore implements AlphaStore {
 // --------------------------------------------------------------------------
 
 function isSupabaseConfigured(): boolean {
-  // Check process.env first; then fall back to .env.local in development
-  // (same pattern used by supabase.ts to handle shadowed vars).
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (url && key) return true;

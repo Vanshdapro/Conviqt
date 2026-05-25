@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+
+export interface ChatHandle {
+  send: (prompt: string) => void;
+}
 import type {
   AgentOutput,
   CouncilResult,
@@ -94,11 +98,13 @@ function newId() {
 
 // ── Main component ────────────────────────────────────────────────────────
 
-export default function Chat() {
+const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
   const [input, setInput] = useState("");
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({ send }));
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -502,7 +508,9 @@ export default function Chat() {
       </div>
     </section>
   );
-}
+});
+
+export default Chat;
 
 // ── Progress helpers ──────────────────────────────────────────────────────
 
@@ -865,12 +873,7 @@ function BubbleView({
         <div className="px-5 py-5">
           <MarkdownText content={bubble.text} />
         </div>
-        <div className="px-5 py-2 border-t border-rule flex items-center justify-between">
-          <span className="mono text-[9px] text-dim">
-            {bubble.costUSD < 0.001
-              ? `<0.1¢`
-              : `${(bubble.costUSD * 100).toFixed(2)}¢`}
-          </span>
+        <div className="px-5 py-2 border-t border-rule flex items-center justify-end">
           <CopyButton text={bubble.text} />
         </div>
       </article>

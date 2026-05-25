@@ -32,7 +32,6 @@ export default function PicksReport({
         </div>
         <div className="mono text-[11px] text-muted text-right flex-shrink-0">
           <div>{result.picks.length} pick{result.picks.length === 1 ? "" : "s"}</div>
-          <div className="text-dim mt-0.5">${result.costUSD.toFixed(4)}</div>
         </div>
       </header>
 

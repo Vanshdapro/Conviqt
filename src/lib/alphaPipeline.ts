@@ -1,4 +1,5 @@
 import { getAlphaStore } from "./alphaStore";
+import { getAnthropic, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "./anthropic";
 import { runSweep } from "./agents/sweep";
 import { runPicker } from "./agents/picker";
 import { runAlphaJudge, type AlphaJudgeCandidate } from "./agents/alphaJudge";
@@ -12,28 +13,59 @@ export function buildRunId(date: Date = new Date()): string {
 }
 
 // Next run fires at 11:00 UTC (≈ 6 AM ET) on weekdays (Mon–Fri).
-// Returns the next date on which the cron will fire.
 export function nextRunDate(from: Date = new Date()): string {
   const RUN_HOUR_UTC = 11;
   const next = new Date(from);
-  // If today is a weekday and the window hasn't opened yet, today is next.
-  // Otherwise advance day by day until we land on a weekday.
   const todayIsWeekday = next.getUTCDay() >= 1 && next.getUTCDay() <= 5;
   if (!todayIsWeekday || next.getUTCHours() >= RUN_HOUR_UTC) {
     next.setUTCDate(next.getUTCDate() + 1);
   }
-  // Skip weekends
   while (next.getUTCDay() === 0 || next.getUTCDay() === 6) {
     next.setUTCDate(next.getUTCDate() + 1);
   }
   return next.toISOString().slice(0, 10);
 }
 
-// Full alpha pipeline run. Called by /api/alpha/run on the cron schedule
-// (every weekday at 11 UTC) or on-demand via the admin trigger.
+// Fetch current price for a ticker via a single web_search call.
+// Returns { price, costUSD } or null if the search failed.
+async function fetchCurrentPrice(ticker: string): Promise<{ price: number; costUSD: number } | null> {
+  const client = getAnthropic();
+  try {
+    const response = await client.messages.create({
+      model: MODELS.sweep,
+      max_tokens: 256,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tools: [WEB_SEARCH_TOOL as any],
+      system: `You are a stock price lookup agent. Use web_search to get the current stock price for the given ticker, then output ONLY a JSON object on a single line: {"price": <number>}. If you cannot find the price, output: {"price": null}. No other text.`,
+      messages: [{ role: "user", content: `What is the current stock price of ${ticker}?` }],
+    });
+
+    const costUSD = estimateCallCostUSD(MODELS.sweep, response.usage);
+
+    // Parse the price from the last text block
+    for (const block of response.content.reverse()) {
+      if (block.type === "text") {
+        const match = block.text.match(/\{"price"\s*:\s*([\d.]+|null)\}/);
+        if (match) {
+          const val = match[1];
+          if (val === "null") return { price: 0, costUSD };
+          const price = parseFloat(val);
+          if (!isNaN(price) && price > 0) return { price, costUSD };
+        }
+      }
+    }
+    return { price: 0, costUSD };
+  } catch (err) {
+    console.error(`[alphaPipeline] fetchCurrentPrice(${ticker}) failed:`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+// Full alpha pipeline run.
 //
 // Steps:
 // A. Fetch active positions.
+// A2. Update current prices of active positions (cheap: 1 search each).
 // B. Sell checks (parallel, Haiku + 1 web_search each).
 // C. Mark exited positions SOLD.
 // D. Idempotency guard — skip new picks if this run_id already has entries.
@@ -64,6 +96,30 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     console.error("[alphaPipeline] fetchActive failed:", msg);
     errors.push(msg);
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
+  }
+
+  // === A2. Update current prices of active positions ===
+  if (activePicks.length > 0) {
+    console.log(`[alphaPipeline] updating prices for ${activePicks.length} active pick(s)`);
+    const priceResults = await Promise.allSettled(
+      activePicks.map((p) => fetchCurrentPrice(p.ticker))
+    );
+    for (let i = 0; i < priceResults.length; i++) {
+      const res = priceResults[i];
+      const pick = activePicks[i];
+      if (res.status === "rejected" || !res.value) continue;
+      const { price, costUSD } = res.value;
+      totalCost += costUSD;
+      if (price > 0 && pick.entry_price > 0 && pick.id) {
+        const changePct = ((price - pick.entry_price) / pick.entry_price) * 100;
+        try {
+          await store.updatePrice(pick.id, price, changePct, entry_date);
+          console.log(`[alphaPipeline] price update ${pick.ticker}: $${price.toFixed(2)} (${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%)`);
+        } catch (err) {
+          console.error(`[alphaPipeline] updatePrice(${pick.ticker}) failed:`, err instanceof Error ? err.message : err);
+        }
+      }
+    }
   }
 
   // === B. Sell checks (parallel) ===
@@ -105,7 +161,6 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
   } catch (err) {
     console.error("[alphaPipeline] idempotency check threw:", err instanceof Error ? err.message : err);
-    // Continue — don't let a failed check block the run
   }
 
   // === E. Run picker ===
@@ -134,7 +189,7 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   );
   const topCandidates = pickerResult.picks
     .filter((p) => !stillActiveTickers.has(p.ticker.toUpperCase()))
-    .slice(0, 2); // 2 gives the judge a choice; 1 final pick comes out
+    .slice(0, 2);
 
   if (topCandidates.length === 0) {
     console.log("[alphaPipeline] all candidates already in active positions — skipping");
@@ -218,6 +273,9 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
       bear_thesis: draft.bearThesis,
       sources: draft.sources,
       status: "ACTIVE",
+      current_price: null,
+      price_change_pct: null,
+      price_last_updated: null,
       exit_date: null,
       exit_price: null,
       exit_reason: null,
@@ -234,8 +292,8 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
   }
 
-  if (totalCost > 0.35) {
-    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $0.35`);
+  if (totalCost > 0.45) {
+    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $0.45`);
   }
 
   return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
