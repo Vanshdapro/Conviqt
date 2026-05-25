@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* Base palette — warm black, not navy */
-  --background: #090909;
-  --foreground: #E6E0D5;
-  --muted: #908878;
-  --dim: #504840;
-  --border: #1E1B17;
-  --rule: #252019;
-  --surface: #0D0C0B;
-  --surface-2: #141210;
-  --surface-3: #1C1914;
+  /* Base palette — deep space navy matching logo */
+  --background: #050d1a;
+  --foreground: #e8edf8;
+  --muted: #7a92b8;
+  --dim: #3d5278;
+  --border: #0e1628;
+  --rule: #111d33;
+  --surface: #060c18;
+  --surface-2: #0a1323;
+  --surface-3: #0f1d35;
 
-  /* Brand — warm gold (replaces indigo-blue) */
-  --accent: #C4933F;
-  --accent-dim: rgba(196, 147, 63, 0.08);
-  --accent-border: rgba(196, 147, 63, 0.22);
+  /* Brand — electric blue from logo arrows */
+  --accent: #4f87f7;
+  --accent-dim: rgba(79, 135, 247, 0.08);
+  --accent-border: rgba(79, 135, 247, 0.22);
+
+  /* Logo navy for structural accents */
+  --navy: #1a3260;
+  --navy-light: #2a4d8f;
 
   /* Market signals */
-  --bull: #00A878;
-  --bear: #D64F58;
-  --hold: #E59330;
+  --bull: #22c55e;
+  --bear: #ef4444;
+  --hold: #f59e0b;
 }
 
 @theme inline {
@@ -41,6 +45,10 @@
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
   --font-display: var(--font-display);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -133,4 +141,59 @@ body {
 }
 .accent-left {
   border-left: 2px solid var(--accent);
+}
+
+/* Hero search input placeholder */
+.hero-search-input::placeholder {
+  color: rgba(122, 146, 184, 0.45);
+  font-weight: 400;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, #4f87f7 0%, #a0c0ff 50%, #e8edf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-accent {
+  box-shadow: 0 0 24px rgba(79, 135, 247, 0.35), 0 0 48px rgba(79, 135, 247, 0.12);
+}
+.glow-accent-sm {
+  box-shadow: 0 0 12px rgba(79, 135, 247, 0.25);
+}
+
+/* Glass card */
+.glass {
+  background: rgba(10, 19, 35, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(79, 135, 247, 0.12);
+}
+
+/* Scroll reveal animations */
+@keyframes fade-up-in {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  animation: fade-up-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Circuit line animation for methodology */
+@keyframes circuit-flow {
+  0%   { stroke-dashoffset: 200; }
+  100% { stroke-dashoffset: 0; }
+}
+.circuit-animate {
+  stroke-dasharray: 200;
+  animation: circuit-flow 1.5s ease-out forwards;
+}
+
+/* Nav active indicator */
+.nav-active {
+  color: var(--accent) !important;
+  border-bottom: 2px solid var(--accent);
 }

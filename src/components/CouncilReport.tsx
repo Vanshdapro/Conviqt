@@ -52,7 +52,7 @@ function AgentRow({ a }: { a: AgentOutput }) {
       : "var(--hold)";
 
   return (
-    <div className="py-3.5 border-b border-rule last:border-b-0">
+    <div className="py-3 border-b border-rule last:border-b-0">
       <div className="flex items-center justify-between gap-4 mb-1.5">
         <div className="flex items-center gap-3">
           <span
@@ -66,10 +66,9 @@ function AgentRow({ a }: { a: AgentOutput }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Conviction mini-bar */}
-          <div className="w-16 h-1 rounded-full bg-rule overflow-hidden">
+          <div className="w-16 h-[2px] bg-rule overflow-hidden">
             <div
-              className="h-full rounded-full transition-all"
+              className="h-full"
               style={{
                 width: `${(a.confidence / 10) * 100}%`,
                 background: color,
@@ -123,54 +122,45 @@ export default function CouncilReport({
 
   return (
     <article
-      className="border border-rule rounded overflow-hidden"
+      className="border border-rule overflow-hidden"
       style={{ background: "var(--surface)" }}
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
       <header
         className="border-b border-rule px-5 py-5"
-        style={{ background: "var(--surface-2)" }}
+        style={{
+          background: "var(--surface-2)",
+          borderLeft: `4px solid ${vc.dot}`,
+        }}
       >
         <div className="flex items-start justify-between gap-4">
-          {/* Ticker + company */}
+          {/* Ticker + company — left */}
           <div className="min-w-0">
-            <div className="caps text-[10px] text-dim mb-2">Council verdict</div>
+            <div className="caps text-[9px] text-dim mb-2">Council verdict</div>
             <div className="flex items-baseline gap-2.5 flex-wrap">
-              <span className="text-[32px] font-semibold text-foreground tracking-tight leading-none">
+              <span className="display text-[36px] text-foreground leading-none tracking-tight">
                 {ticker}
               </span>
-              <span className="text-[14px] text-muted font-normal">
+              <span className="serif text-[14px] text-muted font-normal">
                 {factSheet.companyName}
               </span>
             </div>
-            <div className="mono text-[11px] text-dim mt-1.5">
-              {factSheet.sector}
-            </div>
+            <div className="mono text-[10px] text-dim mt-1">{factSheet.sector}</div>
           </div>
 
-          {/* Verdict block */}
-          <div
-            className="flex-shrink-0 rounded px-4 py-3 text-right"
-            style={{ background: vc.bg, border: `1px solid ${vc.border}` }}
-          >
-            <div className="flex items-center justify-end gap-2 mb-2">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: vc.dot }}
-              />
-              <span
-                className="mono text-[20px] font-semibold tracking-[0.08em] leading-none"
-                style={{ color: vc.text }}
-              >
-                {vc.label}
-              </span>
+          {/* Verdict + bars — right */}
+          <div className="flex-shrink-0 text-right">
+            <div
+              className="mono text-[22px] font-bold tracking-[0.08em]"
+              style={{ color: vc.text }}
+            >
+              {vc.label}
             </div>
-
-            {/* Conviction bar */}
-            <div className="flex items-center gap-2 justify-end mb-1.5">
-              <div className="w-20 h-1 rounded-full bg-rule overflow-hidden">
+            {/* conviction bar */}
+            <div className="flex items-center gap-2 justify-end mt-2">
+              <div className="w-24 h-[3px] bg-rule overflow-hidden">
                 <div
-                  className="h-full rounded-full bar-animate"
+                  className="h-full bar-animate"
                   style={{
                     width: convictionPct,
                     background: vc.dot,
@@ -178,24 +168,23 @@ export default function CouncilReport({
                   }}
                 />
               </div>
-              <span className="mono text-[10px] text-muted w-16 text-left">
+              <span className="mono text-[10px] text-muted">
                 conviction {judge.conviction}/10
               </span>
             </div>
-
-            {/* Disagreement bar */}
+            {/* disagreement bar — only if > 0 */}
             {judge.disagreement > 0 && (
-              <div className="flex items-center gap-2 justify-end">
-                <div className="w-20 h-1 rounded-full bg-rule overflow-hidden">
+              <div className="flex items-center gap-2 justify-end mt-1.5">
+                <div className="w-24 h-[3px] bg-rule overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-muted bar-animate"
+                    className="h-full bar-animate bg-dim"
                     style={{
                       width: disagreementPct,
                       ["--bar-width" as string]: disagreementPct,
                     }}
                   />
                 </div>
-                <span className="mono text-[10px] text-dim w-16 text-left">
+                <span className="mono text-[10px] text-dim">
                   disagree {judge.disagreement}/10
                 </span>
               </div>
@@ -206,7 +195,7 @@ export default function CouncilReport({
 
       {/* ── Investment case ─────────────────────────────────────────── */}
       <section className="px-5 py-5 border-b border-rule">
-        <div className="caps text-dim mb-3">Investment case</div>
+        <div className="caps text-[9px] text-accent mb-3">Investment case</div>
         <p className="serif text-[15px] text-foreground/90 leading-[1.72]">
           {judge.investmentCase}
         </p>
@@ -215,23 +204,21 @@ export default function CouncilReport({
       {/* ── Key metrics ─────────────────────────────────────────────── */}
       {judge.keyMetrics && judge.keyMetrics.length > 0 && (
         <section className="px-5 py-5 border-b border-rule">
-          <div className="caps text-dim mb-3">Key metrics</div>
+          <div className="caps text-[9px] text-accent mb-3">Key metrics</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {judge.keyMetrics.map((m, idx) => {
               const sig = signalStyle(m.signal);
               return (
                 <div
                   key={idx}
-                  className="border border-rule rounded px-3 py-2.5"
+                  className="border border-rule px-3 py-2.5"
                   style={{ background: "var(--surface-2)" }}
                 >
+                  {/* NO rounded class */}
                   <div className="caps text-[9px] text-dim mb-1.5 leading-tight">
                     {m.label}
                   </div>
-                  <div
-                    className="mono text-[15px] font-medium mb-1.5"
-                    style={{ color: "var(--foreground)" }}
-                  >
+                  <div className="mono text-[15px] font-medium text-foreground mb-1.5">
                     {m.value}
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -253,43 +240,31 @@ export default function CouncilReport({
       {/* ── Bull / Bear cases ────────────────────────────────────────── */}
       <section className="border-b border-rule">
         <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-rule">
-          {/* Bear */}
+          {/* Bear — left accent */}
           <div
             className="px-5 py-5"
-            style={{ background: "rgba(244, 63, 94, 0.025)" }}
+            style={{
+              background: "var(--surface-2)",
+              borderLeft: "3px solid var(--bear)",
+            }}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className="h-2 w-2 rounded-full flex-shrink-0"
-                style={{ background: "var(--bear)" }}
-              />
-              <span
-                className="caps text-[10px]"
-                style={{ color: "var(--bear)" }}
-              >
-                Bear case
-              </span>
+            <div className="caps text-[9px] mb-3" style={{ color: "var(--bear)" }}>
+              Bear case
             </div>
             <p className="serif text-[14px] text-foreground/80 leading-[1.7]">
               {judge.bearCase}
             </p>
           </div>
-          {/* Bull */}
+          {/* Bull — left accent */}
           <div
             className="px-5 py-5"
-            style={{ background: "rgba(16, 185, 129, 0.025)" }}
+            style={{
+              background: "var(--surface-2)",
+              borderLeft: "3px solid var(--bull)",
+            }}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className="h-2 w-2 rounded-full flex-shrink-0"
-                style={{ background: "var(--bull)" }}
-              />
-              <span
-                className="caps text-[10px]"
-                style={{ color: "var(--bull)" }}
-              >
-                Bull case
-              </span>
+            <div className="caps text-[9px] mb-3" style={{ color: "var(--bull)" }}>
+              Bull case
             </div>
             <p className="serif text-[14px] text-foreground/80 leading-[1.7]">
               {judge.bullCase}
@@ -301,13 +276,10 @@ export default function CouncilReport({
       {/* ── Catalysts ───────────────────────────────────────────────── */}
       {judge.catalysts && judge.catalysts.length > 0 && (
         <section className="px-5 py-5 border-b border-rule">
-          <div className="caps text-dim mb-3">Catalysts to watch</div>
+          <div className="caps text-[9px] text-accent mb-3">Catalysts to watch</div>
           <ol className="space-y-2">
             {judge.catalysts.map((c, i) => (
-              <li
-                key={i}
-                className="flex gap-3 leading-[1.65]"
-              >
+              <li key={i} className="flex gap-3 leading-[1.65]">
                 <span className="mono text-[10px] text-dim flex-shrink-0 mt-[4px] w-4">
                   {i + 1}.
                 </span>
@@ -324,7 +296,7 @@ export default function CouncilReport({
           className="px-5 py-5 border-b border-rule"
           style={{ background: "var(--surface-2)" }}
         >
-          <div className="caps text-dim mb-3">Bottom line</div>
+          <div className="caps text-[9px] text-accent mb-3">Bottom line</div>
           <p className="serif italic text-[19px] text-foreground/95 leading-snug">
             &ldquo;{judge.bottomLine}&rdquo;
           </p>
@@ -339,7 +311,7 @@ export default function CouncilReport({
       {/* ── Sources ─────────────────────────────────────────────────── */}
       {citedSources.length > 0 && (
         <section className="px-5 py-4 border-b border-rule">
-          <div className="caps text-dim mb-3">Sources</div>
+          <div className="caps text-[9px] text-dim mb-3">Sources</div>
           <ol className="space-y-1.5">
             {citedSources.map(({ s, i }) => (
               <li
@@ -347,9 +319,7 @@ export default function CouncilReport({
                 id={`${runId}-src-${i}`}
                 className="flex gap-2 text-[12px] text-muted leading-relaxed"
               >
-                <span className="mono text-dim flex-shrink-0 w-5">
-                  {i + 1}.
-                </span>
+                <span className="mono text-dim flex-shrink-0 w-5">{i + 1}.</span>
                 <a
                   href={s.url}
                   target="_blank"
@@ -387,12 +357,10 @@ export default function CouncilReport({
               strokeLinejoin="round"
             />
           </svg>
-          {showBreakdown ? "Hide" : "Show"} agent breakdown
-          <span className="text-dim">·</span>
-          <span className="text-dim">{agents.length} agents</span>
+          {showBreakdown ? "Hide" : "Show"} agent breakdown · {agents.length} agents
         </button>
         {showBreakdown && (
-          <div className="mt-3 divide-y divide-rule">
+          <div className="mt-3">
             {agents.map((a) => (
               <AgentRow key={a.agent} a={a} />
             ))}
@@ -404,8 +372,6 @@ export default function CouncilReport({
       <footer className="px-5 py-3 flex flex-wrap items-center justify-between gap-3 mono text-[10px] text-dim">
         <div className="flex flex-wrap items-center gap-4">
           <span>asOf {new Date(result.asOf).toLocaleString()}</span>
-          <span>run {(result.totalDurationMs / 1000).toFixed(1)}s</span>
-          <span>cost ${(costUSD ?? result.estCostUSD).toFixed(4)}</span>
           {result.cached && (
             <span style={{ color: "var(--hold)" }}>cached</span>
           )}

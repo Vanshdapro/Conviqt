@@ -22,6 +22,10 @@ export interface AlphaPick {
   bear_thesis: string;
   sources: AlphaPickSource[];
   status: "ACTIVE" | "SOLD";
+  // Current price snapshot — updated each time the pipeline runs
+  current_price?: number | null;
+  price_change_pct?: number | null; // ((current - entry) / entry) * 100
+  price_last_updated?: string | null; // YYYY-MM-DD
   exit_date?: string | null;
   exit_price?: number | null;
   exit_reason?: string | null;
