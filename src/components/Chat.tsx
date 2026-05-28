@@ -99,10 +99,41 @@ function newId() {
 // ── Main component ────────────────────────────────────────────────────────
 
 const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
-  const [input, setInput] = useState("");
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [input,    setInput]    = useState("");
+  const [bubbles,  setBubbles]  = useState<Bubble[]>([]);
+  const [busy,     setBusy]     = useState(false);
+  const [email,    setEmail]    = useState<string>("");
+  const [credits,  setCredits]  = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load stored email and fetch credits on mount
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("conviqt_email") : null;
+    if (stored) {
+      setEmail(stored);
+      fetchCredits(stored);
+    }
+  }, []);
+
+  function fetchCredits(e: string) {
+    if (!e || !e.includes("@")) return;
+    fetch(`/api/credits?email=${encodeURIComponent(e)}`)
+      .then((r) => r.json())
+      .then((d) => { if (typeof d.credits === "number") setCredits(d.credits); })
+      .catch(() => null);
+  }
+
+  function handleEmailSave(newEmail: string) {
+    const trimmed = newEmail.trim().toLowerCase();
+    setEmail(trimmed);
+    if (trimmed) {
+      localStorage.setItem("conviqt_email", trimmed);
+      fetchCredits(trimmed);
+    } else {
+      localStorage.removeItem("conviqt_email");
+      setCredits(null);
+    }
+  }
 
   useImperativeHandle(ref, () => ({ send }));
 
@@ -175,13 +206,30 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: buildApiMessages(history) }),
+        body: JSON.stringify({
+          messages: buildApiMessages(history),
+          ...(email ? { email } : {}),
+        }),
       });
 
       const contentType = res.headers.get("content-type") ?? "";
 
       if (!contentType.includes("ndjson")) {
-        const data = (await res.json()) as ChatStreamEvent;
+        const data = (await res.json()) as ChatStreamEvent & { code?: string; credits?: number; needed?: number };
+        // Handle insufficient credits with a helpful upgrade prompt
+        if (res.status === 402 && data.code === "insufficient_credits") {
+          const have   = data.credits ?? 0;
+          const needed = data.needed  ?? 0;
+          setBubbles((prev) => [
+            ...prev.filter((b) => b.id !== loadingBubble.id),
+            {
+              id:    newId(),
+              kind:  "error" as const,
+              error: `You need ${needed} credits for this query but have ${have}. [Top up at /pricing](/pricing) — packs start at $5 and never expire.`,
+            },
+          ]);
+          return;
+        }
         applyEvent(data, loadingBubble.id);
         return;
       }
@@ -225,6 +273,8 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
       ]);
     } finally {
       setBusy(false);
+      // Refresh credit balance after every completed request
+      if (email) fetchCredits(email);
     }
   }
 
@@ -505,12 +555,143 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
             )}
           </button>
         </form>
+
+        {/* Credit bar */}
+        <div className="mx-auto max-w-[860px] w-full px-5 lg:px-10 pb-3">
+          <CreditBar
+            email={email}
+            credits={credits}
+            onEmailSave={handleEmailSave}
+          />
+        </div>
       </div>
     </section>
   );
 });
 
 export default Chat;
+
+// ── Credit bar ────────────────────────────────────────────────────────────
+
+interface CreditBarProps {
+  email:       string;
+  credits:     number | null;
+  onEmailSave: (email: string) => void;
+}
+
+function CreditBar({ email, credits, onEmailSave }: CreditBarProps) {
+  const [editing,    setEditing]    = useState(false);
+  const [draft,      setDraft]      = useState("");
+
+  function startEdit() {
+    setDraft(email);
+    setEditing(true);
+  }
+
+  function commitEdit() {
+    const trimmed = draft.trim();
+    if (trimmed && !trimmed.includes("@")) return; // not a valid email yet
+    onEmailSave(trimmed);
+    setEditing(false);
+  }
+
+  const isLow = credits !== null && credits < 10;
+
+  // No email set — show a soft prompt to enter email
+  if (!email && !editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="mono text-[10px] text-dim">
+          Free tier · rate limited
+        </span>
+        <span className="text-dim text-[10px]">·</span>
+        <button
+          onClick={startEdit}
+          className="mono text-[10px] transition-colors"
+          style={{ color: "var(--accent)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          enter email for paid credits →
+        </button>
+      </div>
+    );
+  }
+
+  // Email input open
+  if (editing) {
+    return (
+      <form
+        onSubmit={(e) => { e.preventDefault(); commitEdit(); }}
+        className="flex items-center gap-2"
+      >
+        <input
+          type="email"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="your@email.com"
+          autoFocus
+          className="mono text-[11px] bg-transparent border-b border-rule focus:outline-none focus:border-accent text-foreground/80 placeholder:text-dim w-44 pb-0.5 transition-colors"
+          style={{ borderColor: "var(--rule)" }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--rule)"; commitEdit(); }}
+          suppressHydrationWarning
+        />
+        <button
+          type="submit"
+          className="mono text-[10px] transition-colors"
+          style={{ color: "var(--accent)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          save
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="mono text-[10px] text-dim transition-colors hover:text-muted"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          cancel
+        </button>
+      </form>
+    );
+  }
+
+  // Email set — show balance
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: isLow ? "var(--bear)" : "var(--bull)" }}
+      />
+      <span
+        className="mono text-[11px]"
+        style={{ color: isLow ? "var(--bear)" : "var(--bull)" }}
+      >
+        {credits !== null ? credits.toLocaleString() : "—"} credits
+      </span>
+      <span className="text-dim text-[10px]">·</span>
+      <span className="mono text-[10px] text-dim truncate max-w-[140px]">{email}</span>
+      <span className="text-dim text-[10px]">·</span>
+      <button
+        onClick={startEdit}
+        className="mono text-[10px] text-dim hover:text-muted transition-colors"
+        style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+      >
+        change
+      </button>
+      {isLow && (
+        <>
+          <span className="text-dim text-[10px]">·</span>
+          <a
+            href="/pricing"
+            className="mono text-[10px] transition-colors"
+            style={{ color: "var(--bear)", textDecoration: "none" }}
+          >
+            top up →
+          </a>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── Progress helpers ──────────────────────────────────────────────────────
 

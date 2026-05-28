@@ -18,39 +18,36 @@ import {
   COUNCIL_CACHE_TTL_MS,
   councilCacheKey,
 } from "@/lib/cache";
+import {
+  deductCredits,
+  grantFreeCreditsIfDue,
+  getCredits,
+  CREDITS_PER_INTENT,
+  type Intent,
+} from "@/lib/credits";
 
 // POST /api/chat
-// Body: { messages: [{ role: "user" | "assistant", content: string }, ...] }
+// Body: { messages: [...], email?: string }
 //
-// Pipeline:
-//   1. Router (Haiku) classifies the LAST user message into:
-//      analyze | pick | general | reject
-//   2. analyze  → runCouncil(ticker, { focus }) streamed as NDJSON events
-//      pick     → runPicker() returned as a single event
-//      general  → cheap Sonnet response in plain text, post-processed with
-//                 stripLiveNumerics so we never ship a hallucinated price
-//      reject   → 400 with reason
+// Credit gating:
+//   If `email` is provided → credit-based path (db deduction before pipeline).
+//   If no email           → IP-based rate limiting (free tier, anonymous).
 //
-// Streaming wire format (newline-delimited JSON, one event per line):
-//   { type: "intent", action, ticker?, focus?, costUSD }
-//   { type: "council", event: CouncilEvent }   // multiple, in order
-//   { type: "council_done", result, costUSD }
-//   { type: "picks", result, costUSD }
-//   { type: "text", text, costUSD }
-//   { type: "error", error }
-//   { type: "done" }                           // always last on success
-//
-// The chat client parses one JSON object per newline. Errors during a
-// council run are emitted as the final event before { type: "done" }.
+// Intents and their credit costs:
+//   analyze  → 15 credits  (Full Council)
+//   focused  →  8 credits  (Focused query)
+//   general  → 18 credits  (Sonnet analyst)
+//   cache    →  1 credit   (any cache hit)
+//   pick     →  0 credits  (text redirect only)
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime  = "nodejs";
+export const dynamic  = "force-dynamic";
 export const maxDuration = 60;
 
 interface ChatBody {
   messages?: Array<{ role: string; content: string }>;
+  email?:    string;
 }
-
 
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -58,6 +55,56 @@ function jsonResponse(body: unknown, status: number) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+// ── Credit helper ────────────────────────────────────────────────────────────
+
+async function checkAndDeductCredits(
+  email:  string,
+  intent: Intent,
+  isCacheHit: boolean,
+): Promise<Response | null> {
+  const effectiveIntent: Intent = isCacheHit ? "cache" : intent;
+  const needed  = CREDITS_PER_INTENT[effectiveIntent];
+
+  // Ensure free-tier row exists / refresh monthly allocation if due
+  await grantFreeCreditsIfDue(email);
+
+  if (needed === 0) return null; // pick redirect — no deduction
+
+  const current = await getCredits(email);
+  const balance = current?.credits ?? 0;
+
+  if (balance < needed) {
+    return jsonResponse(
+      {
+        type:     "error",
+        error:    `Insufficient credits. You need ${needed} credits but have ${balance}. Top up at /pricing.`,
+        code:     "insufficient_credits",
+        credits:  balance,
+        needed,
+      },
+      402
+    );
+  }
+
+  const result = await deductCredits(email, needed, effectiveIntent, 0);
+  if (!result.ok) {
+    return jsonResponse(
+      {
+        type:    "error",
+        error:   `Insufficient credits. You need ${needed} credits but have ${result.remaining}. Top up at /pricing.`,
+        code:    "insufficient_credits",
+        credits: result.remaining,
+        needed,
+      },
+      402
+    );
+  }
+
+  return null; // deduction succeeded — proceed
+}
+
+// ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
   let body: ChatBody;
@@ -67,56 +114,47 @@ export async function POST(req: Request) {
     return jsonResponse({ type: "error", error: "Invalid JSON body." }, 400);
   }
 
-  const raw = Array.isArray(body.messages) ? body.messages : [];
-  // Normalize + filter to known roles. Trim to last 20 turns to cap router
-  // context cost.
+  const raw      = Array.isArray(body.messages) ? body.messages : [];
+  const email    = typeof body.email === "string" && body.email.includes("@")
+    ? body.email.toLowerCase().trim()
+    : null;
+
+  // Normalise + trim to last 20 turns to cap router context cost
   const messages: RouterMessage[] = raw
     .filter(
-      (m) =>
-        m &&
-        typeof m.content === "string" &&
+      (m) => m && typeof m.content === "string" &&
         (m.role === "user" || m.role === "assistant")
     )
-    .map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }))
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))
     .slice(-20);
 
   if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
     return jsonResponse(
-      {
-        type: "error",
-        error: "Expected a non-empty conversation ending in a user message.",
-      },
+      { type: "error", error: "Expected a non-empty conversation ending in a user message." },
       400
     );
   }
 
   const ip = getClientIp(req);
 
-  // The router is cheap but still calls Haiku. Gate it on the general
-  // bucket first so we never even pay for routing if the caller is
-  // hammering us.
+  // General DDoS gate — applies to all requests (even paid users)
   const generalGate = checkRateLimit(ip, RATE_LIMITS.chatGeneral);
   if (!generalGate.ok) {
     return jsonResponse(
-      {
-        type: "error",
-        error: `Rate limit hit. Retry in ${generalGate.retryAfterSeconds}s.`,
-      },
+      { type: "error", error: `Rate limit hit. Retry in ${generalGate.retryAfterSeconds}s.` },
       429
     );
   }
 
-  // Daily wallet kill switch.
+  // Daily API budget kill-switch
   try {
-    ensureDailyBudget(0.005); // cheap router worst case
+    ensureDailyBudget(0.005);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return jsonResponse({ type: "error", error: msg }, 503);
   }
 
+  // ── Intent classification ────────────────────────────────────────────────
   let routerResult;
   try {
     routerResult = await classifyIntent(messages);
@@ -126,67 +164,72 @@ export async function POST(req: Request) {
     return jsonResponse({ type: "error", error: msg }, 503);
   }
 
-  const intent = routerResult.intent;
+  const intent        = routerResult.intent;
   const intentCostUSD = routerResult.costUSD;
   recordSpend(intentCostUSD);
   console.log(
-    `[chat] intent=${intent.action} routerCost=$${intentCostUSD.toFixed(4)} in ${routerResult.durationMs}ms`
+    `[chat] intent=${intent.action} routerCost=$${intentCostUSD.toFixed(4)} email=${email ?? "anon"}`
   );
 
   if (intent.action === "reject") {
-    return jsonResponse(
-      { type: "error", error: intent.reason || "Off-topic for Conviqt." },
-      400
-    );
+    return jsonResponse({ type: "error", error: intent.reason || "Off-topic for Conviqt." }, 400);
   }
 
-  // ── ANALYZE ──────────────────────────────────────────────────────────
+  // ── ANALYZE ─────────────────────────────────────────────────────────────
   if (intent.action === "analyze") {
-    const analyzeGate = checkRateLimit(ip, RATE_LIMITS.chatAnalyze);
-    if (!analyzeGate.ok) {
-      return jsonResponse(
-        {
-          type: "error",
-          error: `Council rate limit hit (${RATE_LIMITS.chatAnalyze.capacity}/min). Retry in ${analyzeGate.retryAfterSeconds}s.`,
-        },
-        429
-      );
+    const ticker   = intent.ticker;
+    const focus    = intent.focus;
+    const cacheKey = councilCacheKey(ticker, focus);
+    const cached   = cacheGet<CouncilResult>(cacheKey);
+    const isCached = !!cached;
+
+    if (email) {
+      const blocked = await checkAndDeductCredits(email, "analyze", isCached);
+      if (blocked) return blocked;
+    } else {
+      // Anonymous: apply per-IP analyze rate limit
+      const gate = checkRateLimit(ip, RATE_LIMITS.chatAnalyze);
+      if (!gate.ok) {
+        return jsonResponse(
+          {
+            type:  "error",
+            error: `Rate limit hit (${RATE_LIMITS.chatAnalyze.capacity}/min). Enter your email above to use paid credits.`,
+          },
+          429
+        );
+      }
     }
+
     try {
-      ensureDailyBudget(0.07); // soft cap per CLAUDE.md
+      ensureDailyBudget(0.07);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    const ticker = intent.ticker;
-    const focus = intent.focus;
-    const cacheKey = councilCacheKey(ticker, focus);
-    const cached = cacheGet<CouncilResult>(cacheKey);
-
-    return streamCouncil({
-      ticker,
-      focus,
-      cached,
-      cacheKey,
-      intentCostUSD,
-    });
+    return streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD });
   }
 
-  // ── FOCUSED ──────────────────────────────────────────────────────────
-  // Specific stock question — not a full BUY/HOLD/SELL thesis.
-  // Lighter pipeline: sweep + focused judge. No 4-agent breakdown.
+  // ── FOCUSED ─────────────────────────────────────────────────────────────
   if (intent.action === "focused") {
-    const analyzeGate = checkRateLimit(ip, RATE_LIMITS.chatAnalyze);
-    if (!analyzeGate.ok) {
-      return jsonResponse(
-        {
-          type: "error",
-          error: `Rate limit hit. Retry in ${analyzeGate.retryAfterSeconds}s.`,
-        },
-        429
-      );
+    const { ticker, question } = intent;
+    const cacheKey = `focused:${ticker}:${question.slice(0, 60).toLowerCase().replace(/\W+/g, "_")}`;
+    const cached   = cacheGet<FocusedResult>(cacheKey);
+    const isCached = !!cached;
+
+    if (email) {
+      const blocked = await checkAndDeductCredits(email, "focused", isCached);
+      if (blocked) return blocked;
+    } else {
+      const gate = checkRateLimit(ip, RATE_LIMITS.chatAnalyze);
+      if (!gate.ok) {
+        return jsonResponse(
+          { type: "error", error: "Rate limit hit. Enter your email above to use paid credits." },
+          429
+        );
+      }
     }
+
     try {
       ensureDailyBudget(0.05);
     } catch (err) {
@@ -194,21 +237,15 @@ export async function POST(req: Request) {
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    const { ticker, question } = intent;
-    const cacheKey = `focused:${ticker}:${question.slice(0, 60).toLowerCase().replace(/\W+/g, "_")}`;
-    const cached = cacheGet<FocusedResult>(cacheKey);
-
     return streamFocused({ ticker, question, cached, cacheKey, intentCostUSD });
   }
 
-  // ── PICK → redirect to Alpha Tracker ────────────────────────────────
-  // The picker pipeline is not part of the chat feature. Stock selection
-  // is handled by the Alpha Tracker (coming soon). Redirect users there.
+  // ── PICK — redirect to Alpha Tracker ────────────────────────────────────
   if (intent.action === "pick") {
     return jsonResponse(
       {
-        type: "text",
-        text: "Stock picks live in the **Alpha Tracker** — a dedicated feature built for exactly this, with a documented methodology, full track record, and every number sourced. It's coming soon.\n\nIn the meantime, ask me to analyze a specific ticker — e.g. \"analyze NVDA\" — and I'll run a full investment thesis with sourced data.",
+        type:    "text",
+        text:    "Stock picks live in the **Alpha Tracker** — a dedicated feature built for exactly this, with a documented methodology, full track record, and every number sourced. It's coming soon.\n\nIn the meantime, ask me to analyze a specific ticker — e.g. \"analyze NVDA\" — and I'll run a full investment thesis with sourced data.",
         costUSD: intentCostUSD,
         intentCostUSD,
       },
@@ -216,11 +253,20 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── GENERAL — streaming institutional analyst (Sonnet + web_search) ──
-  // Deep knowledge base covering equities, macro, options, fixed income,
-  // international markets, commodities, crypto, and geopolitics. The model
-  // autonomously searches for live data when needed and streams text deltas
-  // so the UI renders progressively instead of waiting for the full response.
+  // ── GENERAL — Sonnet analyst ─────────────────────────────────────────────
+  if (email) {
+    const blocked = await checkAndDeductCredits(email, "general", false);
+    if (blocked) return blocked;
+  } else {
+    const gate = checkRateLimit(ip, RATE_LIMITS.chatGeneral);
+    if (!gate.ok) {
+      return jsonResponse(
+        { type: "error", error: "Rate limit hit. Enter your email above to use paid credits." },
+        429
+      );
+    }
+  }
+
   try {
     ensureDailyBudget(0.10); // Sonnet + up to 3 web searches
   } catch (err) {
@@ -231,37 +277,26 @@ export async function POST(req: Request) {
   return streamAnalyst({ messages, intentCostUSD });
 }
 
+// ── Stream helpers ───────────────────────────────────────────────────────────
+
 interface StreamFocusedArgs {
-  ticker: string;
-  question: string;
-  cached?: FocusedResult;
-  cacheKey: string;
+  ticker:     string;
+  question:   string;
+  cached?:    FocusedResult;
+  cacheKey:   string;
   intentCostUSD: number;
 }
 
-function streamFocused({
-  ticker,
-  question,
-  cached,
-  cacheKey,
-  intentCostUSD,
-}: StreamFocusedArgs): Response {
+function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: StreamFocusedArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc = new TextEncoder();
-      const emit = (obj: unknown) =>
-        controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const enc  = new TextEncoder();
+      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
 
       emit({ type: "intent", action: "focused", ticker, question, costUSD: intentCostUSD });
 
       if (cached) {
-        console.log(`[chat] focused cache hit for ${ticker}`);
-        emit({
-          type: "focused_done",
-          result: { ...cached, cached: true },
-          costUSD: intentCostUSD,
-          intentCostUSD,
-        });
+        emit({ type: "focused_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
         emit({ type: "done" });
         controller.close();
         return;
@@ -273,29 +308,18 @@ function streamFocused({
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
         recordSpend(result.estCostUSD);
-        emit({
-          type: "focused_done",
-          result,
-          costUSD: result.estCostUSD + intentCostUSD,
-          intentCostUSD,
-        });
+        emit({ type: "focused_done", result, costUSD: result.estCostUSD + intentCostUSD, intentCostUSD });
       } catch (focusedErr) {
         const focusedMsg = focusedErr instanceof Error ? focusedErr.message : String(focusedErr);
         console.error(`[chat] focused failed for ${ticker}; falling back to analyst:`, focusedMsg);
-        // Fall back to the analyst so the user always gets a useful answer.
         try {
           const fallback = await runAnalyst([{ role: "user", content: question }]);
           recordSpend(fallback.costUSD);
-          emit({
-            type: "text",
-            text: fallback.text,
-            costUSD: fallback.costUSD + intentCostUSD,
-            intentCostUSD,
-          });
+          emit({ type: "text", text: fallback.text, costUSD: fallback.costUSD + intentCostUSD, intentCostUSD });
         } catch (analystErr) {
           const analystMsg = analystErr instanceof Error ? analystErr.message : String(analystErr);
-          console.error(`[chat] analyst fallback also failed:`, analystMsg);
-          emit({ type: "error", error: "Unable to answer this right now. Try asking me to 'analyze AMD' for a full breakdown." });
+          console.error("[chat] analyst fallback also failed:", analystMsg);
+          emit({ type: "error", error: "Unable to answer this right now. Try asking me to 'analyze AAPL' instead." });
         }
       } finally {
         emit({ type: "done" });
@@ -306,25 +330,20 @@ function streamFocused({
 
   return new Response(stream, {
     status: 200,
-    headers: {
-      "Content-Type": "application/x-ndjson; charset=utf-8",
-      "Cache-Control": "no-store, no-transform",
-      "X-Accel-Buffering": "no",
-    },
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
   });
 }
 
 interface StreamAnalystArgs {
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  messages:     Array<{ role: "user" | "assistant"; content: string }>;
   intentCostUSD: number;
 }
 
 function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc = new TextEncoder();
-      const emit = (obj: unknown) =>
-        controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const enc  = new TextEncoder();
+      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
 
       emit({ type: "intent", action: "general", costUSD: intentCostUSD });
 
@@ -333,12 +352,7 @@ function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response
           onDelta: (delta: string) => emit({ type: "text_chunk", delta }),
         });
         recordSpend(result.costUSD);
-        emit({
-          type: "text",
-          text: result.text,
-          costUSD: result.costUSD + intentCostUSD,
-          intentCostUSD,
-        });
+        emit({ type: "text", text: result.text, costUSD: result.costUSD + intentCostUSD, intentCostUSD });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[chat] analyst failed:", msg);
@@ -352,54 +366,28 @@ function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response
 
   return new Response(stream, {
     status: 200,
-    headers: {
-      "Content-Type": "application/x-ndjson; charset=utf-8",
-      "Cache-Control": "no-store, no-transform",
-      "X-Accel-Buffering": "no",
-    },
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
   });
 }
 
 interface StreamCouncilArgs {
-  ticker: string;
-  focus?: string;
-  cached?: CouncilResult;
+  ticker:   string;
+  focus?:   string;
+  cached?:  CouncilResult;
   cacheKey: string;
   intentCostUSD: number;
 }
 
-// Streams an analyze run as NDJSON. Each event is one JSON object on its
-// own line. The client reads until { type: "done" }.
-function streamCouncil({
-  ticker,
-  focus,
-  cached,
-  cacheKey,
-  intentCostUSD,
-}: StreamCouncilArgs): Response {
+function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: StreamCouncilArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc = new TextEncoder();
-      const emit = (obj: unknown) =>
-        controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const enc  = new TextEncoder();
+      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
 
-      emit({
-        type: "intent",
-        action: "analyze",
-        ticker,
-        focus,
-        costUSD: intentCostUSD,
-      });
+      emit({ type: "intent", action: "analyze", ticker, focus, costUSD: intentCostUSD });
 
       if (cached) {
-        console.log(`[chat] council cache hit for ${ticker}`);
-        const tagged: CouncilResult = { ...cached, cached: true };
-        emit({
-          type: "council_done",
-          result: tagged,
-          costUSD: intentCostUSD, // user only pays the router on a cache hit
-          intentCostUSD,
-        });
+        emit({ type: "council_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
         emit({ type: "done" });
         controller.close();
         return;
@@ -412,12 +400,7 @@ function streamCouncil({
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
         recordSpend(result.estCostUSD);
-        emit({
-          type: "council_done",
-          result,
-          costUSD: result.estCostUSD + intentCostUSD,
-          intentCostUSD,
-        });
+        emit({ type: "council_done", result, costUSD: result.estCostUSD + intentCostUSD, intentCostUSD });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] council failed for ${ticker}:`, msg);
@@ -431,10 +414,6 @@ function streamCouncil({
 
   return new Response(stream, {
     status: 200,
-    headers: {
-      "Content-Type": "application/x-ndjson; charset=utf-8",
-      "Cache-Control": "no-store, no-transform",
-      "X-Accel-Buffering": "no",
-    },
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
   });
 }

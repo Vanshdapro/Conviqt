@@ -413,7 +413,7 @@ export async function runAnalyst(
 
   const messageStream = anthropic.messages.stream({
     model: MODELS.analyst,
-    max_tokens: 2500,
+    max_tokens: 1500, // capped to keep worst-case cost under $0.10 (see credit plan)
     system: [{ type: "text", text: ANALYST_SYSTEM, cache_control: { type: "ephemeral" } }],
     tools: [ANALYST_WEB_SEARCH_TOOL],
     messages: apiMessages,
