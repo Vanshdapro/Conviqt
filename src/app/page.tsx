@@ -1,5 +1,5 @@
-import HeroSection from "@/components/HeroSection";
+import IntroAnimation from "@/components/3d/IntroAnimation";
 
 export default function Home() {
-  return <HeroSection />;
+  return <IntroAnimation />;
 }

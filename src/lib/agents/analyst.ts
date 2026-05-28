@@ -399,12 +399,24 @@ export async function runAnalyst(
 
   let fullText = "";
 
+  // Build messages with cache pinned on the second-to-last entry so the
+  // full conversation history (minus the current turn) is cached.
+  const apiMessages = messages.map((m, i) => {
+    const pinCache = messages.length >= 2 && i === messages.length - 2;
+    return {
+      role: m.role,
+      content: pinCache
+        ? [{ type: "text" as const, text: m.content, cache_control: { type: "ephemeral" as const } }]
+        : m.content,
+    };
+  });
+
   const messageStream = anthropic.messages.stream({
     model: MODELS.analyst,
     max_tokens: 2500,
-    system: ANALYST_SYSTEM,
+    system: [{ type: "text", text: ANALYST_SYSTEM, cache_control: { type: "ephemeral" } }],
     tools: [ANALYST_WEB_SEARCH_TOOL],
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    messages: apiMessages,
   });
 
   messageStream.on("text", (text) => {
@@ -427,8 +439,14 @@ export async function runAnalyst(
     webSearchCount
   );
 
+  const u = finalMessage.usage as typeof finalMessage.usage & {
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  };
   console.log(
-    `[Analyst] done in ${Date.now() - t0}ms, ${webSearchCount} search(es), cost=$${costUSD.toFixed(4)}`
+    `[Analyst] done in ${Date.now() - t0}ms, ${webSearchCount} search(es), cost=$${costUSD.toFixed(4)}` +
+    (u.cache_read_input_tokens ? ` (cache_hit=${u.cache_read_input_tokens}tok)` : "") +
+    (u.cache_creation_input_tokens ? ` (cache_write=${u.cache_creation_input_tokens}tok)` : "")
   );
 
   return {

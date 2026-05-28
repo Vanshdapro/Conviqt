@@ -175,7 +175,7 @@ ${factSheet.narrative ? `NARRATIVE CONTEXT:\n${factSheet.narrative}\n\n` : ""}${
     // 300 tokens is enough for a 2-3 sentence structured verdict.
     // Keeping this tight is the biggest per-specialist cost lever.
     max_tokens: 300,
-    system: systemPrompt,
+    system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
     tools: [VERDICT_TOOL],
     tool_choice: { type: "tool", name: VERDICT_TOOL.name },
     messages: [{ role: "user", content: userMessage }],

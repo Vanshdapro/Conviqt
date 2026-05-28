@@ -126,6 +126,19 @@ body {
   animation: slide-up 0.25s ease-out both;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .slide-up { animation: none; }
+}
+
+/* Pick card hover */
+.pick-card {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pick-card:hover {
+  border-color: rgba(79, 135, 247, 0.22) !important;
+  box-shadow: 0 4px 32px rgba(5, 13, 26, 0.6);
+}
+
 /* Thin accent line — top border on institutional cards */
 .accent-top {
   border-top: 2px solid var(--accent);

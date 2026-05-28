@@ -393,7 +393,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
             <h1 className="display text-[2.8rem] lg:text-[3.4rem] text-foreground leading-[1.06] mb-5">
               Research any stock.
               <br />
-              <em className="display text-muted" style={{ fontStyle: "italic", fontWeight: 400 }}>
+              <em className="display gradient-text" style={{ fontStyle: "italic", fontWeight: 400 }}>
                 Every answer cited.
               </em>
             </h1>
@@ -412,7 +412,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
                   key={ex.label}
                   onClick={() => send(ex.label)}
                   disabled={busy}
-                  className="w-full flex items-center justify-between gap-3 border-b border-rule py-3 text-left transition-colors hover:bg-surface-2 disabled:opacity-40 px-1 cursor-pointer disabled:cursor-default"
+                  className="w-full flex items-center justify-between gap-3 border-b border-rule py-3 text-left transition-all hover:bg-surface-2 hover:shadow-[inset_2px_0_0_rgba(79,135,247,0.4)] disabled:opacity-40 px-1 cursor-pointer disabled:cursor-default"
                 >
                   <span className="serif text-[14px] text-foreground/80 leading-snug">
                     {ex.label}
@@ -464,7 +464,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="analyze AAPL · explain the yield curve · what's driving gold…"
             disabled={busy}
-            className="flex-1 rounded border border-rule px-4 py-2.5 text-[14px] text-foreground placeholder:text-dim bg-surface focus:outline-none transition-colors disabled:opacity-50"
+            className="flex-1 rounded-full border border-rule px-5 py-2.5 text-[14px] text-foreground placeholder:text-dim bg-surface focus:outline-none transition-colors disabled:opacity-50"
             onFocus={(e) => {
               e.currentTarget.style.borderColor = "var(--accent-border)";
             }}
@@ -477,7 +477,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="flex items-center justify-center w-9 h-9 rounded border border-rule transition-colors disabled:opacity-30 flex-shrink-0"
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-rule transition-colors disabled:opacity-30 flex-shrink-0"
             style={{ background: input.trim() && !busy ? "var(--accent)" : "var(--surface)", borderColor: input.trim() && !busy ? "var(--accent)" : "var(--rule)" }}
             aria-label="Send"
           >
@@ -802,8 +802,11 @@ function BubbleView({
     return (
       <div className="flex justify-end">
         <div
-          className="max-w-[72%] rounded px-4 py-2.5 text-[14px] text-foreground/90 leading-relaxed"
-          style={{ background: "var(--surface-3)", border: "1px solid var(--rule)" }}
+          className="max-w-[72%] rounded-2xl px-4 py-2.5 text-[14px] text-foreground/90 leading-relaxed"
+          style={{
+            background: "linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%)",
+            border: "1px solid rgba(79,135,247,0.12)"
+          }}
         >
           {bubble.text}
         </div>
@@ -830,7 +833,7 @@ function BubbleView({
 
   if (bubble.kind === "error") {
     return (
-      <div style={{ borderLeft: "2px solid var(--bear)", background: "rgba(214,79,88,0.04)", padding: "14px 18px" }}>
+      <div style={{ borderRadius: 8, overflow: "hidden", borderLeft: "2px solid var(--bear)", borderTop: "1px solid rgba(239,68,68,0.1)", borderRight: "1px solid rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.1)", background: "rgba(239,68,68,0.04)", padding: "14px 18px" }}>
         <div className="mono text-[9px] tracking-[0.16em] uppercase mb-2" style={{ color: "var(--bear)" }}>Error</div>
         <p className="serif text-[14px] text-foreground/85 leading-relaxed">{bubble.error}</p>
       </div>
@@ -840,6 +843,7 @@ function BubbleView({
   if (bubble.kind === "text_streaming") {
     return (
       <article
+        className="slide-up"
         style={{
           borderTop: "2px solid var(--accent)",
           borderRight: "1px solid var(--rule)",
@@ -862,6 +866,7 @@ function BubbleView({
   if (bubble.kind === "text") {
     return (
       <article
+        className="slide-up"
         style={{
           borderTop: "2px solid var(--accent)",
           borderRight: "1px solid var(--rule)",
@@ -940,12 +945,12 @@ function CouncilRunningCard({ progress }: { progress: CouncilProgress }) {
           <div key={s} className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
               <div
-                className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                className={`rounded-full transition-all duration-200 ${
                   idx < stageIdx
-                    ? "bg-bull"
+                    ? "h-1.5 w-1.5 bg-bull"
                     : idx === stageIdx
-                    ? "bg-hold pulse"
-                    : "bg-dim"
+                    ? "h-2 w-2 bg-hold pulse"
+                    : "h-1.5 w-1.5 bg-dim"
                 }`}
               />
               <span

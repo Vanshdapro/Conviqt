@@ -164,7 +164,7 @@ export async function runJudge(
   const response = await anthropic.messages.create({
     model: MODELS.judge,
     max_tokens: 1500,
-    system: SYSTEM,
+    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
     tools: [JUDGMENT_TOOL],
     tool_choice: { type: "tool", name: JUDGMENT_TOOL.name },
     messages: [

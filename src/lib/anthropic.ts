@@ -71,20 +71,27 @@ export const MODELS = {
   analyst: "claude-sonnet-4-6", // general chat — Sonnet for institutional depth
 } as const;
 
-// Per-model unit costs in USD per token. Used by orchestrator to estimate
-// the dollar cost of a run and surface it back to the UI.
+// Per-model unit costs in USD per token.
+// cacheWrite = 1.25× normal input (first call that populates the cache).
+// cacheRead  = 0.10× normal input (subsequent cache hits — the big saving).
 export const PRICING_PER_TOKEN = {
   "claude-haiku-4-5-20251001": {
     input: 1 / 1_000_000,
     output: 5 / 1_000_000,
+    cacheWrite: 1.25 / 1_000_000,
+    cacheRead: 0.10 / 1_000_000,
   },
   "claude-sonnet-4-6": {
     input: 3 / 1_000_000,
     output: 15 / 1_000_000,
+    cacheWrite: 3.75 / 1_000_000,
+    cacheRead: 0.30 / 1_000_000,
   },
   "claude-opus-4-6": {
     input: 15 / 1_000_000,
     output: 75 / 1_000_000,
+    cacheWrite: 18.75 / 1_000_000,
+    cacheRead: 1.50 / 1_000_000,
   },
 } as const;
 
@@ -118,9 +125,16 @@ export const ANALYST_WEB_SEARCH_TOOL = {
 
 // Helper: estimate USD cost of a single Anthropic call given its
 // response.usage block and an optional explicit web_search count.
+// Handles prompt-caching token buckets: cache_creation_input_tokens and
+// cache_read_input_tokens are billed at different rates than plain input_tokens.
 export function estimateCallCostUSD(
   model: keyof typeof PRICING_PER_TOKEN,
-  usage: { input_tokens: number; output_tokens: number },
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_creation_input_tokens?: number | null;
+    cache_read_input_tokens?: number | null;
+  },
   webSearchCount = 0
 ): number {
   const price = PRICING_PER_TOKEN[model];
@@ -128,6 +142,8 @@ export function estimateCallCostUSD(
   return (
     usage.input_tokens * price.input +
     usage.output_tokens * price.output +
+    (usage.cache_creation_input_tokens ?? 0) * price.cacheWrite +
+    (usage.cache_read_input_tokens ?? 0) * price.cacheRead +
     webSearchCount * WEB_SEARCH_COST_USD
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
+import { DashNav } from "@/components/DashNav";
 
 // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ function Sparkle({ style }: { style?: React.CSSProperties }) {
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <path
           d="M11 0L12.8 8.2L21 11L12.8 13.8L11 22L9.2 13.8L1 11L9.2 8.2L11 0Z"
-          fill="rgba(79,135,247,0.5)"
+          fill="rgba(110,182,255,0.3)"
         />
       </svg>
     </motion.div>
@@ -108,7 +108,7 @@ function CandlestickBg() {
       height="140"
       viewBox="0 0 220 140"
       fill="none"
-      style={{ position: "absolute", bottom: 40, left: 40, opacity: 0.07, pointerEvents: "none" }}
+      style={{ position: "absolute", bottom: 40, left: 40, opacity: 0.05, pointerEvents: "none" }}
     >
       {candles.map((c, i) => (
         <g key={i}>
@@ -173,7 +173,6 @@ function PipelineNode({
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          {/* Glow ring for active */}
           <AnimatePresence>
             {isActive && (
               <motion.div
@@ -185,28 +184,27 @@ function PipelineNode({
                   width: 64,
                   height: 64,
                   borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(79,135,247,0.35) 0%, transparent 70%)",
+                  background: "radial-gradient(circle, rgba(110,182,255,0.2) 0%, transparent 70%)",
                   pointerEvents: "none",
                 }}
               />
             )}
           </AnimatePresence>
 
-          {/* Circle */}
           <motion.div
             animate={{
               background: isActive
-                ? "linear-gradient(135deg, #4f87f7 0%, #6fa0ff 100%)"
+                ? "rgba(110,182,255,0.12)"
                 : isCompleted
-                ? "rgba(79,135,247,0.18)"
-                : "rgba(79,135,247,0.07)",
+                ? "rgba(110,182,255,0.08)"
+                : "rgba(232,237,248,0.04)",
               borderColor: isActive
-                ? "#4f87f7"
+                ? "rgba(110,182,255,0.6)"
                 : isCompleted
-                ? "rgba(79,135,247,0.4)"
-                : "rgba(79,135,247,0.2)",
+                ? "rgba(110,182,255,0.25)"
+                : "rgba(232,237,248,0.12)",
               boxShadow: isActive
-                ? "0 0 20px rgba(79,135,247,0.6), 0 0 40px rgba(79,135,247,0.2)"
+                ? "0 0 20px rgba(110,182,255,0.2)"
                 : "none",
             }}
             transition={{ duration: 0.4 }}
@@ -214,7 +212,7 @@ function PipelineNode({
               width: 48,
               height: 48,
               borderRadius: "50%",
-              border: "2px solid",
+              border: "1px solid",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -224,9 +222,9 @@ function PipelineNode({
           >
             <span style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: 700,
-              fontSize: 14,
-              color: isActive ? "#fff" : isCompleted ? "rgba(122,146,184,0.8)" : "rgba(61,82,120,0.8)",
+              fontWeight: 500,
+              fontSize: 13,
+              color: isActive ? "rgba(110,182,255,0.9)" : isCompleted ? "rgba(232,237,248,0.5)" : "rgba(232,237,248,0.25)",
               letterSpacing: "0.05em",
             }}>
               {item.step}
@@ -242,10 +240,10 @@ function PipelineNode({
           height="16"
           viewBox="0 0 16 16"
           fill="none"
-          animate={{ opacity: isActive ? 0.9 : 0.2 }}
+          animate={{ opacity: isActive ? 0.7 : 0.15 }}
           transition={{ duration: 0.4 }}
         >
-          <path d="M10 3L5 8L10 13" stroke="#4f87f7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 3L5 8L10 13" stroke="rgba(110,182,255,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </motion.svg>
       </div>
 
@@ -256,11 +254,11 @@ function PipelineNode({
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
         style={{
           flex: 1,
-          background: isActive ? "rgba(12,22,45,0.9)" : "rgba(10,19,35,0.6)",
+          background: isActive ? "rgba(12,22,45,0.7)" : "rgba(10,19,35,0.5)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          border: `1px solid ${isActive ? "rgba(79,135,247,0.4)" : "rgba(79,135,247,0.1)"}`,
-          borderLeft: `3px solid ${isActive ? "#4f87f7" : isCompleted ? "rgba(79,135,247,0.3)" : "rgba(79,135,247,0.1)"}`,
+          border: `1px solid ${isActive ? "rgba(110,182,255,0.2)" : "rgba(232,237,248,0.06)"}`,
+          borderLeft: `2px solid ${isActive ? "rgba(110,182,255,0.5)" : isCompleted ? "rgba(232,237,248,0.1)" : "rgba(232,237,248,0.06)"}`,
           borderRadius: 14,
           padding: "18px 22px 16px",
           transition: "border-color 0.4s, background 0.4s",
@@ -268,7 +266,6 @@ function PipelineNode({
           overflow: "hidden",
         }}
       >
-        {/* Top shimmer line on active */}
         {isActive && (
           <motion.div
             initial={{ scaleX: 0, opacity: 0 }}
@@ -279,7 +276,7 @@ function PipelineNode({
               left: 0,
               right: 0,
               height: 1,
-              background: "linear-gradient(90deg, transparent, #4f87f7, rgba(111,160,255,0.5), transparent)",
+              background: "linear-gradient(90deg, transparent, rgba(110,182,255,0.4), transparent)",
               transformOrigin: "left",
             }}
           />
@@ -288,11 +285,11 @@ function PipelineNode({
         {/* Header: name + tags */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
-            fontWeight: 700,
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 500,
             fontSize: 17,
-            color: isActive ? "#e8edf8" : "rgba(232,237,248,0.7)",
-            letterSpacing: "-0.4px",
+            color: isActive ? "#e8edf8" : "rgba(232,237,248,0.6)",
+            letterSpacing: "-0.01em",
             transition: "color 0.3s",
           }}>
             {item.name}
@@ -302,9 +299,9 @@ function PipelineNode({
               <span key={tag} style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 10,
-                color: isActive ? "rgba(79,135,247,0.9)" : "rgba(61,82,120,0.8)",
-                background: isActive ? "rgba(79,135,247,0.1)" : "rgba(79,135,247,0.04)",
-                border: `1px solid ${isActive ? "rgba(79,135,247,0.3)" : "rgba(79,135,247,0.1)"}`,
+                color: isActive ? "rgba(110,182,255,0.7)" : "rgba(232,237,248,0.25)",
+                background: isActive ? "rgba(110,182,255,0.06)" : "rgba(232,237,248,0.03)",
+                border: `1px solid ${isActive ? "rgba(110,182,255,0.15)" : "rgba(232,237,248,0.06)"}`,
                 borderRadius: 6,
                 padding: "2px 8px",
                 letterSpacing: "0.05em",
@@ -318,10 +315,10 @@ function PipelineNode({
 
         {/* Description */}
         <p style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-serif), Georgia, serif",
           fontSize: 13,
-          color: isActive ? "rgba(122,146,184,0.9)" : "rgba(122,146,184,0.55)",
-          lineHeight: 1.65,
+          color: isActive ? "rgba(232,237,248,0.75)" : "rgba(232,237,248,0.4)",
+          lineHeight: 1.7,
           margin: "0 0 12px",
           transition: "color 0.3s",
         }}>
@@ -332,11 +329,11 @@ function PipelineNode({
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {item.detail.map((d) => (
             <span key={d} style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-serif), Georgia, serif",
               fontSize: 11,
-              color: isActive ? "rgba(232,237,248,0.6)" : "rgba(61,82,120,0.7)",
-              background: "rgba(79,135,247,0.06)",
-              border: "1px solid rgba(79,135,247,0.08)",
+              color: isActive ? "rgba(232,237,248,0.55)" : "rgba(232,237,248,0.25)",
+              background: "rgba(232,237,248,0.03)",
+              border: "1px solid rgba(232,237,248,0.06)",
               borderRadius: 8,
               padding: "3px 10px",
               transition: "all 0.3s",
@@ -350,56 +347,14 @@ function PipelineNode({
   );
 }
 
-// ── Shared nav ─────────────────────────────────────────────────────────────
-
-function DashNav() {
-  return (
-    <header style={{ borderBottom: "1px solid rgba(79,135,247,0.1)", background: "rgba(6,12,24,0.95)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-          <Image src="/logo1.png" alt="Conviqt" width={24} height={24} style={{ objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: "#e8edf8", letterSpacing: "-0.4px" }}>Conviqt</span>
-        </Link>
-        <nav style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {([
-            { label: "Research", href: "/chat", key: "chat" },
-            { label: "Alpha Tracker", href: "/alpha", key: "alpha" },
-            { label: "Methodology", href: "/methodology", key: "methodology" },
-          ] as const).map(({ label, href, key }) => (
-            <Link
-              key={key}
-              href={href}
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: key === "methodology" ? 600 : 400,
-                fontSize: 13,
-                color: key === "methodology" ? "#4f87f7" : "rgba(122,146,184,0.65)",
-                padding: "6px 14px",
-                borderRadius: 7,
-                textDecoration: "none",
-                borderBottom: key === "methodology" ? "2px solid #4f87f7" : "2px solid transparent",
-              }}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </header>
-  );
-}
-
 // ── Animated vertical line ─────────────────────────────────────────────────
 
 function PipelineVerticalLine({ totalNodes, activeIndex }: { totalNodes: number; activeIndex: number }) {
   const filledFraction = totalNodes > 1 ? activeIndex / (totalNodes - 1) : 0;
-  const LINE_H = 120 * totalNodes - 32;
 
   return (
-    <div style={{ position: "absolute", left: 59, top: 8, bottom: 0, width: 2, zIndex: 0 }}>
-      {/* Background line */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(79,135,247,0.1)", borderRadius: 1 }} />
-      {/* Filled progress line */}
+    <div style={{ position: "absolute", left: 59, top: 8, bottom: 0, width: 1, zIndex: 0 }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(232,237,248,0.06)", borderRadius: 1 }} />
       <motion.div
         animate={{ height: `${filledFraction * 100}%` }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -408,7 +363,7 @@ function PipelineVerticalLine({ totalNodes, activeIndex }: { totalNodes: number;
           top: 0,
           left: 0,
           right: 0,
-          background: "linear-gradient(to bottom, #4f87f7, rgba(79,135,247,0.4))",
+          background: "linear-gradient(to bottom, rgba(110,182,255,0.5), rgba(110,182,255,0.15))",
           borderRadius: 1,
           minHeight: 0,
         }}
@@ -428,7 +383,7 @@ export default function MethodologyPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#050d1a", overflowX: "hidden" }}>
-      <DashNav />
+      <DashNav active="methodology" />
 
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 100px" }}>
 
@@ -439,54 +394,50 @@ export default function MethodologyPage() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           style={{ marginBottom: 80, maxWidth: 760 }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <div style={{ height: 1, width: 32, background: "rgba(79,135,247,0.4)" }} />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "#4f87f7" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ height: 1, width: 32, background: "rgba(232,237,248,0.2)" }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "rgba(232,237,248,0.45)" }}>
               How it works
             </span>
           </div>
           <h1 style={{
-            fontFamily: "'Inter', sans-serif",
-            fontWeight: 800,
-            fontSize: "clamp(40px, 5.5vw, 64px)",
-            letterSpacing: "clamp(-2.5px, -0.04em, -4px)",
-            lineHeight: 1.05,
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 600,
+            fontSize: "clamp(36px, 5vw, 60px)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
             color: "#e8edf8",
             margin: "0 0 20px",
           }}>
             One sweep. Four specialists.<br />
-            <span style={{ color: "rgba(122,146,184,0.6)", fontWeight: 600 }}>One judge. Every dissent published.</span>
+            <span style={{ color: "rgba(232,237,248,0.45)", fontWeight: 400 }}>One judge. Every dissent published.</span>
           </h1>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, color: "rgba(122,146,184,0.75)", lineHeight: 1.7, margin: 0, maxWidth: 520 }}>
+          <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 16, color: "rgba(232,237,248,0.55)", lineHeight: 1.75, margin: 0, maxWidth: 520 }}>
             When you analyze a stock, six AI agents run in sequence. Each only works with facts that have source URLs. The final verdict is a synthesis of four independent views — agreements and disagreements alike.
           </p>
         </motion.div>
 
         {/* ── Pipeline ── */}
         <section style={{ marginBottom: 100 }}>
-          {/* THE PIPELINE label */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
             style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32, paddingLeft: 96 }}
           >
-            <div style={{ height: 1, width: 24, background: "rgba(79,135,247,0.4)" }} />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase" as const, color: "rgba(79,135,247,0.7)" }}>
+            <div style={{ height: 1, width: 24, background: "rgba(232,237,248,0.15)" }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase" as const, color: "rgba(232,237,248,0.3)" }}>
               The Pipeline
             </span>
           </motion.div>
 
-          {/* Nodes + vertical line container */}
           <div style={{ position: "relative" }}>
             <CandlestickBg />
             <PipelineVerticalLine totalNodes={PIPELINE.length} activeIndex={activeIndex} />
 
-            {/* Sparkle decorations */}
             <Sparkle style={{ top: 60, right: 20 }} />
             <Sparkle style={{ bottom: 120, right: 80, opacity: 0.5 }} />
 
-            {/* Node list */}
             <div style={{ position: "relative", zIndex: 1 }}>
               {PIPELINE.map((item, i) => (
                 <PipelineNode
@@ -509,7 +460,7 @@ export default function MethodologyPage() {
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.6 }}
           >
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "rgba(79,135,247,0.6)", marginBottom: 28 }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "rgba(232,237,248,0.3)", marginBottom: 28 }}>
               Principles
             </div>
             <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
@@ -522,7 +473,7 @@ export default function MethodologyPage() {
                   transition={{ duration: 0.5, delay: i * 0.08 }}
                   style={{
                     background: "rgba(10,19,35,0.5)",
-                    border: "1px solid rgba(79,135,247,0.08)",
+                    border: "1px solid rgba(232,237,248,0.06)",
                     borderRadius: 12,
                     padding: "22px 26px",
                     display: "grid",
@@ -531,10 +482,10 @@ export default function MethodologyPage() {
                     alignItems: "start",
                   }}
                 >
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#e8edf8", letterSpacing: "-0.3px" }}>
+                  <div style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 500, fontSize: 14, color: "#e8edf8", letterSpacing: "-0.01em" }}>
                     {pr.label}
                   </div>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: "rgba(122,146,184,0.8)", lineHeight: 1.7, margin: 0 }}>
+                  <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 13, color: "rgba(232,237,248,0.55)", lineHeight: 1.75, margin: 0 }}>
                     {pr.body}
                   </p>
                 </motion.div>
@@ -562,18 +513,18 @@ export default function MethodologyPage() {
                 key={label}
                 style={{
                   background: "rgba(10,19,35,0.5)",
-                  border: "1px solid rgba(79,135,247,0.08)",
+                  border: "1px solid rgba(232,237,248,0.06)",
                   borderRadius: 12,
                   padding: "18px 20px",
                 }}
               >
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#4f87f7", marginBottom: 12 }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "rgba(110,182,255,0.55)", marginBottom: 12 }}>
                   {label}
                 </div>
                 <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column" as const, gap: 7 }}>
                   {items.map((item) => (
-                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Inter', sans-serif", fontSize: 12, color: "rgba(122,146,184,0.7)" }}>
-                      <div style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(79,135,247,0.4)", flexShrink: 0 }} />
+                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12, color: "rgba(232,237,248,0.5)" }}>
+                      <div style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(232,237,248,0.2)", flexShrink: 0 }} />
                       {item}
                     </li>
                   ))}
@@ -582,6 +533,7 @@ export default function MethodologyPage() {
             ))}
           </motion.div>
         </section>
+
       </main>
     </div>
   );
