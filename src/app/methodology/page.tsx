@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { DashNav } from "@/components/DashNav";
@@ -377,9 +377,9 @@ function PipelineVerticalLine({ totalNodes, activeIndex }: { totalNodes: number;
 export default function MethodologyPage() {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const handleActivate = (i: number) => {
+  const handleActivate = useCallback((i: number) => {
     setActiveIndex((prev) => Math.max(prev, i));
-  };
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh", background: "#050d1a", overflowX: "hidden" }}>
