@@ -1,29 +1,33 @@
-// GET /api/credits?email=user@example.com
+// GET /api/credits
 //
-// Returns the current credit balance for the given email.
-// Used by the chat UI to show the live credit indicator.
+// Returns the current credit balance + plan for the LOGGED-IN user.
+// Identity comes from the Supabase session — there is no email query param,
+// so a user can only ever read their own balance.
+//
+// Also lazily provisions the free tier: a verified user with no credit row yet
+// gets their 50 free credits here (and the monthly refresh if due).
 //
 // Response:
 //   { email, credits, plan, credits_reset_at } on success
-//   { error: "not_found" } with 404 if the email has no row yet
-//   { error: "email required" } with 400 if email is missing
+//   { error: "auth_required" } with 401 if not signed in / not verified
 
 import { NextResponse } from "next/server";
-import { getCredits } from "@/lib/credits";
+import { getCredits, grantFreeCreditsIfDue } from "@/lib/credits";
+import { getVerifiedUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const url   = new URL(req.url);
-  const email = url.searchParams.get("email");
-
-  if (!email || typeof email !== "string" || !email.includes("@")) {
-    return NextResponse.json({ error: "email required" }, { status: 400 });
+export async function GET() {
+  const user = await getVerifiedUser();
+  if (!user) {
+    return NextResponse.json({ error: "auth_required" }, { status: 401 });
   }
 
-  const row = await getCredits(email.toLowerCase().trim());
+  // Provision 50 free credits on first access (only verified users reach here).
+  await grantFreeCreditsIfDue(user.email);
 
+  const row = await getCredits(user.email);
   if (!row) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

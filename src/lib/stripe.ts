@@ -90,6 +90,10 @@ export function getPriceId(plan: PlanId): string {
   if (!envVar) throw new Error(`Unknown plan: ${plan}`);
   const id = resolveVar(envVar);
   if (!id) throw new Error(`Price ID not configured for ${plan} (env: ${envVar})`);
+  // Stripe Price IDs must start with "price_". Product IDs (prod_...) will fail at checkout.
+  if (!id.startsWith("price_")) {
+    throw new Error(`${envVar} contains "${id.slice(0, 10)}..." which looks like a Product ID, not a Price ID. Go to Stripe Dashboard → Products → [product] → copy the price_ ID.`);
+  }
   return id;
 }
 

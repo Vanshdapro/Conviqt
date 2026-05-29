@@ -34,6 +34,18 @@ function getUrl(): string {
   return url;
 }
 
+// Public URL + anon key, resolved server-side (with the dev .env.local
+// fallback). Used by the @supabase/ssr server client for auth.
+export function getSupabaseUrl(): string {
+  return getUrl();
+}
+
+export function getSupabaseAnonKey(): string {
+  const key = resolveVar("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  if (!key) throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not set");
+  return key;
+}
+
 // Admin client — uses service role key. Server-only. Never expose to the browser.
 export function getSupabaseAdmin() {
   const key = resolveVar("SUPABASE_SERVICE_ROLE_KEY");

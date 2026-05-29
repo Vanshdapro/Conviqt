@@ -25,13 +25,15 @@ import {
   CREDITS_PER_INTENT,
   type Intent,
 } from "@/lib/credits";
+import { getVerifiedUser } from "@/lib/auth";
 
 // POST /api/chat
-// Body: { messages: [...], email?: string }
+// Body: { messages: [...] }
 //
-// Credit gating:
-//   If `email` is provided → credit-based path (db deduction before pipeline).
-//   If no email           → IP-based rate limiting (free tier, anonymous).
+// Auth + credit gating:
+//   Requires a verified Supabase Auth session. The user's email is taken from
+//   the session (never the request body), then credits are deducted from their
+//   account before the pipeline runs. No anonymous access.
 //
 // Intents and their credit costs:
 //   analyze  → 15 credits  (Full Council)
@@ -46,7 +48,6 @@ export const maxDuration = 60;
 
 interface ChatBody {
   messages?: Array<{ role: string; content: string }>;
-  email?:    string;
 }
 
 function jsonResponse(body: unknown, status: number) {
@@ -107,6 +108,16 @@ async function checkAndDeductCredits(
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
+  // Identity comes from the verified session only — never the request body.
+  const user = await getVerifiedUser();
+  if (!user) {
+    return jsonResponse(
+      { type: "error", error: "Please sign in to use Conviqt.", code: "auth_required" },
+      401
+    );
+  }
+  const email = user.email;
+
   let body: ChatBody;
   try {
     body = (await req.json()) as ChatBody;
@@ -114,10 +125,7 @@ export async function POST(req: Request) {
     return jsonResponse({ type: "error", error: "Invalid JSON body." }, 400);
   }
 
-  const raw      = Array.isArray(body.messages) ? body.messages : [];
-  const email    = typeof body.email === "string" && body.email.includes("@")
-    ? body.email.toLowerCase().trim()
-    : null;
+  const raw = Array.isArray(body.messages) ? body.messages : [];
 
   // Normalise + trim to last 20 turns to cap router context cost
   const messages: RouterMessage[] = raw
@@ -183,21 +191,9 @@ export async function POST(req: Request) {
     const cached   = cacheGet<CouncilResult>(cacheKey);
     const isCached = !!cached;
 
-    if (email) {
+    {
       const blocked = await checkAndDeductCredits(email, "analyze", isCached);
       if (blocked) return blocked;
-    } else {
-      // Anonymous: apply per-IP analyze rate limit
-      const gate = checkRateLimit(ip, RATE_LIMITS.chatAnalyze);
-      if (!gate.ok) {
-        return jsonResponse(
-          {
-            type:  "error",
-            error: `Rate limit hit (${RATE_LIMITS.chatAnalyze.capacity}/min). Enter your email above to use paid credits.`,
-          },
-          429
-        );
-      }
     }
 
     try {
@@ -217,17 +213,9 @@ export async function POST(req: Request) {
     const cached   = cacheGet<FocusedResult>(cacheKey);
     const isCached = !!cached;
 
-    if (email) {
+    {
       const blocked = await checkAndDeductCredits(email, "focused", isCached);
       if (blocked) return blocked;
-    } else {
-      const gate = checkRateLimit(ip, RATE_LIMITS.chatAnalyze);
-      if (!gate.ok) {
-        return jsonResponse(
-          { type: "error", error: "Rate limit hit. Enter your email above to use paid credits." },
-          429
-        );
-      }
     }
 
     try {
@@ -254,17 +242,9 @@ export async function POST(req: Request) {
   }
 
   // ── GENERAL — Sonnet analyst ─────────────────────────────────────────────
-  if (email) {
+  {
     const blocked = await checkAndDeductCredits(email, "general", false);
     if (blocked) return blocked;
-  } else {
-    const gate = checkRateLimit(ip, RATE_LIMITS.chatGeneral);
-    if (!gate.ok) {
-      return jsonResponse(
-        { type: "error", error: "Rate limit hit. Enter your email above to use paid credits." },
-        429
-      );
-    }
   }
 
   try {

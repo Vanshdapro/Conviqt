@@ -23,6 +23,12 @@ export interface AlphaStore {
   hasPicksForRunId(runId: string): Promise<boolean>;
   fetchRecentlySold(sinceDaysAgo: number): Promise<AlphaPick[]>;
   lastRunDate(): Promise<string | null>;
+  /**
+   * The most recent active publication: the run_id shared by the newest batch
+   * of active picks, plus the date it was created. Used to gate Alpha unlocks
+   * per-publication. Returns null when there are no active picks.
+   */
+  currentPublication(): Promise<{ runId: string; publishedDate: string } | null>;
 }
 
 // --------------------------------------------------------------------------
@@ -113,6 +119,18 @@ class FileAlphaStore implements AlphaStore {
       (b.created_at ?? "").localeCompare(a.created_at ?? "")
     );
     return sorted[0].created_at?.slice(0, 10) ?? null;
+  }
+
+  async currentPublication(): Promise<{ runId: string; publishedDate: string } | null> {
+    const active = readFile().filter((p) => p.status === "ACTIVE");
+    if (active.length === 0) return null;
+    const newest = [...active].sort((a, b) =>
+      (b.created_at ?? "").localeCompare(a.created_at ?? "")
+    )[0];
+    return {
+      runId: newest.run_id,
+      publishedDate: (newest.created_at ?? newest.entry_date).slice(0, 10),
+    };
   }
 }
 
@@ -206,6 +224,23 @@ class SupabaseAlphaStore implements AlphaStore {
       .limit(1);
     if (error) throw new Error(`SupabaseAlphaStore.lastRunDate: ${error.message}`);
     return data?.[0]?.created_at?.slice(0, 10) ?? null;
+  }
+
+  async currentPublication(): Promise<{ runId: string; publishedDate: string } | null> {
+    const db = await this.db();
+    const { data, error } = await db
+      .from("alpha_picks")
+      .select("run_id, created_at, entry_date")
+      .eq("status", "ACTIVE")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw new Error(`SupabaseAlphaStore.currentPublication: ${error.message}`);
+    const row = data?.[0];
+    if (!row) return null;
+    return {
+      runId: row.run_id as string,
+      publishedDate: ((row.created_at as string) ?? (row.entry_date as string)).slice(0, 10),
+    };
   }
 }
 

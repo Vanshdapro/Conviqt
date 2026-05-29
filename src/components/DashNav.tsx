@@ -64,85 +64,122 @@ export function DashNav({ active }: { active?: "chat" | "alpha" | "methodology" 
         ))}
       </ul>
 
-      {/* Right side: credit badge (if email stored) + CTA */}
+      {/* Right side: live credit balance + account */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <CreditBadge />
-        <Link
-          href="/chat"
-          style={{
-            fontFamily:    "var(--font-serif), Georgia, serif",
-            fontSize:      "11px",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color:         "#e8edf8",
-            background:    "transparent",
-            border:        "1px solid rgba(232,237,248,0.6)",
-            borderRadius:  "100px",
-            padding:       "11px 26px",
-            display:       "flex",
-            alignItems:    "center",
-            gap:           "9px",
-            textDecoration:"none",
-          }}
-        >
-          Analyze a Stock{" "}
-          <span style={{ fontSize: "18px", lineHeight: "0" }}>•</span>
-        </Link>
+        <AccountControls />
       </div>
     </nav>
   );
 }
 
-// ── Credit badge ──────────────────────────────────────────────────────────────
-// Shows "X credits" for users who have stored their email in localStorage.
+// ── Credit badge + account ──────────────────────────────────────────────────
+// Reads the logged-in user's balance/plan from the session-backed /api/credits.
 
-function CreditBadge() {
+function planLabel(plan: string): string {
+  if (plan === "max_monthly") return "Max";
+  if (plan === "max_pro_monthly") return "Max Pro";
+  if (plan.startsWith("credits_")) return "Pro";
+  return "Free";
+}
+
+function AccountControls() {
   const [credits, setCredits] = useState<number | null>(null);
+  const [plan, setPlan] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const email = localStorage.getItem("conviqt_email");
-    if (!email) return;
-
-    fetch(`/api/credits?email=${encodeURIComponent(email)}`)
-      .then((r) => r.json())
+    fetch("/api/credits")
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (typeof d.credits === "number") setCredits(d.credits);
+        if (d && typeof d.credits === "number") {
+          setCredits(d.credits);
+          setPlan(typeof d.plan === "string" ? d.plan : "free");
+        }
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => setLoaded(true));
   }, []);
+
+  // Logged out (or not yet provisioned): offer sign-in.
+  if (loaded && credits === null) {
+    return (
+      <Link
+        href="/login"
+        style={{
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "11px",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#e8edf8",
+          border: "1px solid rgba(232,237,248,0.6)",
+          borderRadius: "100px",
+          padding: "9px 22px",
+          textDecoration: "none",
+        }}
+      >
+        Sign in
+      </Link>
+    );
+  }
 
   if (credits === null) return null;
 
+  const isLow = credits < 10;
+
   return (
-    <Link
-      href="/pricing"
-      title="View pricing and top up"
-      style={{
-        display:       "flex",
-        alignItems:    "center",
-        gap:           "5px",
-        background:    credits < 10 ? "rgba(239,68,68,0.12)" : "rgba(16,185,129,0.1)",
-        border:        `1px solid ${credits < 10 ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.25)"}`,
-        borderRadius:  "100px",
-        padding:       "5px 11px",
-        textDecoration:"none",
-        fontSize:      "11px",
-        fontFamily:    "monospace",
-        letterSpacing: "0.04em",
-        color:         credits < 10 ? "#f87171" : "#34d399",
-      }}
-    >
-      <span
+    <>
+      <Link
+        href="/pricing"
+        title="View pricing and top up"
         style={{
-          display:      "inline-block",
-          width:        "5px",
-          height:       "5px",
-          borderRadius: "50%",
-          background:   credits < 10 ? "#f87171" : "#34d399",
-          flexShrink:   0,
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          background: isLow ? "rgba(239,68,68,0.12)" : "rgba(16,185,129,0.1)",
+          border: `1px solid ${isLow ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.25)"}`,
+          borderRadius: "100px",
+          padding: "5px 12px",
+          textDecoration: "none",
+          fontSize: "11px",
+          fontFamily: "monospace",
+          letterSpacing: "0.04em",
+          color: isLow ? "#f87171" : "#34d399",
         }}
-      />
-      {credits.toLocaleString()} cr
-    </Link>
+      >
+        <span
+          style={{
+            display: "inline-block",
+            width: "5px",
+            height: "5px",
+            borderRadius: "50%",
+            background: isLow ? "#f87171" : "#34d399",
+            flexShrink: 0,
+          }}
+        />
+        {credits.toLocaleString()} cr
+        {plan && (
+          <span style={{ color: "rgba(232,237,248,0.4)", marginLeft: 2 }}>· {planLabel(plan)}</span>
+        )}
+      </Link>
+
+      <form action="/auth/signout" method="post" style={{ margin: 0 }}>
+        <button
+          type="submit"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "10px",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "rgba(232,237,248,0.5)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 6px",
+          }}
+        >
+          Sign out
+        </button>
+      </form>
+    </>
   );
 }

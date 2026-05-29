@@ -4,8 +4,11 @@
 //   - One-time credit packs  (credits_500 | credits_1000 | credits_2000 | credits_3000)
 //   - Recurring subscriptions (max_monthly | max_pro_monthly)
 //
-// Body:   { plan: PlanId, email?: string }
+// Body:   { plan: PlanId }
 // Returns: { url: string }  — Stripe-hosted checkout URL to redirect to.
+//
+// The email is ALWAYS the verified session email — never client-supplied —
+// so the webhook credits the account that actually paid.
 
 import { NextResponse } from "next/server";
 import {
@@ -16,18 +19,25 @@ import {
   ALL_PLANS,
   type PlanId,
 } from "@/lib/stripe";
+import { getVerifiedUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  let body: { plan?: string; email?: string };
+  const user = await getVerifiedUser();
+  if (!user) {
+    return NextResponse.json({ error: "auth_required" }, { status: 401 });
+  }
+  const email = user.email;
+
+  let body: { plan?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { plan, email } = body;
+  const { plan } = body;
 
   if (!plan || !ALL_PLANS.has(plan)) {
     return NextResponse.json(
@@ -56,7 +66,7 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create({
       mode:       isSub ? "subscription" : "payment",
       line_items: [{ price: priceId, quantity: 1 }],
-      ...(email ? { customer_email: email } : {}),
+      customer_email: email,
       success_url: `${siteUrl}/pricing?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${siteUrl}/pricing?canceled=true`,
       allow_promotion_codes:      true,

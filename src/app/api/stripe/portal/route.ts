@@ -3,7 +3,7 @@
 // Creates a Stripe Customer Portal session so subscribers can manage their
 // plan, update payment method, or cancel.
 //
-// Body: { email: string }
+// No body — the email is the verified session email.
 // Returns: { url: string }
 //
 // Requires the Billing Portal to be configured in the Stripe Dashboard:
@@ -12,21 +12,16 @@
 import { NextResponse } from "next/server";
 import { getStripe, getSiteUrl } from "@/lib/stripe";
 import { getSubscriberByEmail } from "@/lib/subscription";
+import { getVerifiedUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  let body: { email?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+export async function POST() {
+  const user = await getVerifiedUser();
+  if (!user) {
+    return NextResponse.json({ error: "auth_required" }, { status: 401 });
   }
-
-  const { email } = body;
-  if (!email || typeof email !== "string") {
-    return NextResponse.json({ error: "email is required." }, { status: 400 });
-  }
+  const email = user.email;
 
   const subscriber = await getSubscriberByEmail(email);
   if (!subscriber) {

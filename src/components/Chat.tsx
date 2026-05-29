@@ -102,37 +102,19 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
   const [input,    setInput]    = useState("");
   const [bubbles,  setBubbles]  = useState<Bubble[]>([]);
   const [busy,     setBusy]     = useState(false);
-  const [email,    setEmail]    = useState<string>("");
   const [credits,  setCredits]  = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load stored email and fetch credits on mount
+  // Fetch the logged-in user's credit balance on mount (session-backed).
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("conviqt_email") : null;
-    if (stored) {
-      setEmail(stored);
-      fetchCredits(stored);
-    }
+    fetchCredits();
   }, []);
 
-  function fetchCredits(e: string) {
-    if (!e || !e.includes("@")) return;
-    fetch(`/api/credits?email=${encodeURIComponent(e)}`)
-      .then((r) => r.json())
-      .then((d) => { if (typeof d.credits === "number") setCredits(d.credits); })
+  function fetchCredits() {
+    fetch("/api/credits")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && typeof d.credits === "number") setCredits(d.credits); })
       .catch(() => null);
-  }
-
-  function handleEmailSave(newEmail: string) {
-    const trimmed = newEmail.trim().toLowerCase();
-    setEmail(trimmed);
-    if (trimmed) {
-      localStorage.setItem("conviqt_email", trimmed);
-      fetchCredits(trimmed);
-    } else {
-      localStorage.removeItem("conviqt_email");
-      setCredits(null);
-    }
   }
 
   useImperativeHandle(ref, () => ({ send }));
@@ -208,7 +190,6 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: buildApiMessages(history),
-          ...(email ? { email } : {}),
         }),
       });
 
@@ -216,6 +197,11 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
 
       if (!contentType.includes("ndjson")) {
         const data = (await res.json()) as ChatStreamEvent & { code?: string; credits?: number; needed?: number };
+        // Session expired or signed out — send them to login.
+        if (res.status === 401 && data.code === "auth_required") {
+          window.location.href = "/login?next=/chat";
+          return;
+        }
         // Handle insufficient credits with a helpful upgrade prompt
         if (res.status === 402 && data.code === "insufficient_credits") {
           const have   = data.credits ?? 0;
@@ -274,7 +260,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
     } finally {
       setBusy(false);
       // Refresh credit balance after every completed request
-      if (email) fetchCredits(email);
+      fetchCredits();
     }
   }
 
@@ -556,13 +542,9 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
           </button>
         </form>
 
-        {/* Credit bar */}
+        {/* Credit bar — read-only balance (identity comes from the session) */}
         <div className="mx-auto max-w-[860px] w-full px-5 lg:px-10 pb-3">
-          <CreditBar
-            email={email}
-            credits={credits}
-            onEmailSave={handleEmailSave}
-          />
+          <CreditBar credits={credits} />
         </div>
       </div>
     </section>
@@ -573,88 +555,9 @@ export default Chat;
 
 // ── Credit bar ────────────────────────────────────────────────────────────
 
-interface CreditBarProps {
-  email:       string;
-  credits:     number | null;
-  onEmailSave: (email: string) => void;
-}
-
-function CreditBar({ email, credits, onEmailSave }: CreditBarProps) {
-  const [editing,    setEditing]    = useState(false);
-  const [draft,      setDraft]      = useState("");
-
-  function startEdit() {
-    setDraft(email);
-    setEditing(true);
-  }
-
-  function commitEdit() {
-    const trimmed = draft.trim();
-    if (trimmed && !trimmed.includes("@")) return; // not a valid email yet
-    onEmailSave(trimmed);
-    setEditing(false);
-  }
-
+function CreditBar({ credits }: { credits: number | null }) {
   const isLow = credits !== null && credits < 10;
 
-  // No email set — show a soft prompt to enter email
-  if (!email && !editing) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="mono text-[10px] text-dim">
-          Free tier · rate limited
-        </span>
-        <span className="text-dim text-[10px]">·</span>
-        <button
-          onClick={startEdit}
-          className="mono text-[10px] transition-colors"
-          style={{ color: "var(--accent)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-        >
-          enter email for paid credits →
-        </button>
-      </div>
-    );
-  }
-
-  // Email input open
-  if (editing) {
-    return (
-      <form
-        onSubmit={(e) => { e.preventDefault(); commitEdit(); }}
-        className="flex items-center gap-2"
-      >
-        <input
-          type="email"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="your@email.com"
-          autoFocus
-          className="mono text-[11px] bg-transparent border-b border-rule focus:outline-none focus:border-accent text-foreground/80 placeholder:text-dim w-44 pb-0.5 transition-colors"
-          style={{ borderColor: "var(--rule)" }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--rule)"; commitEdit(); }}
-          suppressHydrationWarning
-        />
-        <button
-          type="submit"
-          className="mono text-[10px] transition-colors"
-          style={{ color: "var(--accent)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-        >
-          save
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className="mono text-[10px] text-dim transition-colors hover:text-muted"
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-        >
-          cancel
-        </button>
-      </form>
-    );
-  }
-
-  // Email set — show balance
   return (
     <div className="flex items-center gap-2">
       <span
@@ -668,15 +571,9 @@ function CreditBar({ email, credits, onEmailSave }: CreditBarProps) {
         {credits !== null ? credits.toLocaleString() : "—"} credits
       </span>
       <span className="text-dim text-[10px]">·</span>
-      <span className="mono text-[10px] text-dim truncate max-w-[140px]">{email}</span>
-      <span className="text-dim text-[10px]">·</span>
-      <button
-        onClick={startEdit}
-        className="mono text-[10px] text-dim hover:text-muted transition-colors"
-        style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-      >
-        change
-      </button>
+      <span className="mono text-[10px] text-dim">
+        {credits !== null ? "deducted per query" : "loading…"}
+      </span>
       {isLow && (
         <>
           <span className="text-dim text-[10px]">·</span>

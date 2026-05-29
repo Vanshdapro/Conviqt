@@ -25,11 +25,8 @@ export function PricingCard({ plan }: PricingCardProps) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
-  // Free plan — just link to chat
   if (plan.kind === "free") {
-    return (
-      <FreeCard plan={plan} />
-    );
+    return <FreeCard plan={plan} />;
   }
 
   async function handleCheckout() {
@@ -42,6 +39,10 @@ export function PricingCard({ plan }: PricingCardProps) {
         body:    JSON.stringify({ plan: plan.id }),
       });
       const data = await res.json();
+      if (res.status === 401 || data.error === "auth_required") {
+        window.location.href = "/signup?next=/pricing";
+        return;
+      }
       if (!res.ok || !data.url) {
         setError(data.error ?? "Something went wrong. Please try again.");
         return;
@@ -56,46 +57,143 @@ export function PricingCard({ plan }: PricingCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className={`relative flex flex-col rounded-2xl border p-7 h-full ${
-        plan.highlighted
-          ? "border-emerald-500/60 bg-emerald-950/30 shadow-[0_0_40px_rgba(16,185,129,0.12)]"
-          : "border-white/10 bg-white/[0.03]"
-      }`}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        borderRadius: 14,
+        background: plan.highlighted ? "rgba(10,19,35,0.88)" : "rgba(10,19,35,0.5)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        border: `1px solid ${plan.highlighted ? "rgba(232,237,248,0.18)" : "rgba(232,237,248,0.07)"}`,
+        padding: "28px 24px",
+        overflow: "hidden",
+      }}
     >
+      {/* Subtle top line for highlighted */}
+      {plan.highlighted && (
+        <div style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0, height: 1,
+          background: "linear-gradient(90deg, transparent, rgba(140,200,255,0.5), transparent)",
+        }} />
+      )}
+
+      {/* Badge */}
       {plan.badge && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-black tracking-wide uppercase">
+        <div style={{ position: "absolute", top: -1, right: 18 }}>
+          <span style={{
+            display: "inline-flex",
+            alignItems: "center",
+            background: "rgba(10,19,35,0.95)",
+            border: "1px solid rgba(232,237,248,0.14)",
+            borderRadius: 999,
+            padding: "3px 12px",
+            fontFamily: "var(--font-serif), Georgia, serif",
+            fontSize: 10,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase" as const,
+            color: "rgba(140,200,255,0.8)",
+          }}>
             {plan.badge}
           </span>
         </div>
       )}
 
       {/* Header */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-base font-semibold text-white">{plan.name}</h3>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h3 style={{
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 500,
+            fontSize: "16px",
+            letterSpacing: "-0.02em",
+            color: "#e8edf8",
+            margin: 0,
+          }}>
+            {plan.name}
+          </h3>
           <CreditPill credits={plan.credits} kind={plan.kind} />
         </div>
-        <p className="text-xs text-white/45 leading-relaxed">{plan.description}</p>
+        <p style={{
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "13px",
+          color: "rgba(232,237,248,0.45)",
+          lineHeight: 1.55,
+          letterSpacing: "0.01em",
+          margin: 0,
+        }}>
+          {plan.description}
+        </p>
       </div>
 
       {/* Price */}
-      <div className="mb-6">
-        <span className="text-3xl font-bold text-white">{plan.price}</span>
-        <span className="ml-1.5 text-sm text-white/40">{plan.period}</span>
+      <div style={{ marginBottom: 24 }}>
+        <span style={{
+          fontFamily: "var(--font-display), Georgia, serif",
+          fontWeight: 500,
+          fontSize: "40px",
+          letterSpacing: "-0.03em",
+          color: "#e8edf8",
+          lineHeight: 1,
+        }}>
+          {plan.price}
+        </span>
+        <span style={{
+          marginLeft: 8,
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "13px",
+          color: "rgba(232,237,248,0.38)",
+          letterSpacing: "0.02em",
+        }}>
+          {plan.period}
+        </span>
       </div>
 
       {/* Features */}
-      <ul className="mb-7 flex-1 space-y-2.5">
+      <ul style={{
+        flex: 1,
+        listStyle: "none",
+        padding: 0,
+        margin: "0 0 24px 0",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}>
         {plan.features.map((feature, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-xs text-white/65">
-            <CheckIcon
-              className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${plan.highlighted ? "text-emerald-400" : "text-white/35"}`}
-            />
-            <span className="leading-snug">{feature}</span>
+          <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{
+                width: 13,
+                height: 13,
+                flexShrink: 0,
+                marginTop: 2,
+                color: plan.highlighted ? "rgba(140,200,255,0.7)" : "rgba(232,237,248,0.25)",
+              }}
+            >
+              <path
+                d="M3 8l3.5 3.5L13 5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span style={{
+              fontFamily: "var(--font-serif), Georgia, serif",
+              fontSize: "13px",
+              color: "rgba(232,237,248,0.6)",
+              lineHeight: 1.55,
+              letterSpacing: "0.01em",
+            }}>
+              {feature}
+            </span>
           </li>
         ))}
       </ul>
@@ -104,23 +202,51 @@ export function PricingCard({ plan }: PricingCardProps) {
       <button
         onClick={handleCheckout}
         disabled={loading}
-        className={`w-full rounded-xl py-2.5 px-5 text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
-          plan.highlighted
-            ? "bg-emerald-500 text-black hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
-            : "bg-white/8 text-white hover:bg-white/15 border border-white/10"
-        }`}
+        style={{
+          width: "100%",
+          borderRadius: 100,
+          padding: "11px 20px",
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "11px",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase" as const,
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.55 : 1,
+          transition: "opacity 0.2s, border-color 0.2s",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          background: "transparent",
+          color: "#e8edf8",
+          border: `1px solid ${plan.highlighted ? "rgba(232,237,248,0.6)" : "rgba(232,237,248,0.22)"}`,
+        }}
       >
         {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <SpinnerIcon className="h-4 w-4 animate-spin" />
+          <>
+            <SpinnerIcon style={{ width: 13, height: 13 }} />
             Redirecting…
-          </span>
+          </>
         ) : (
-          plan.cta
+          <>
+            {plan.cta}
+            <span style={{ fontSize: "18px", lineHeight: "0" }}>•</span>
+          </>
         )}
       </button>
 
-      {error && <p className="mt-3 text-center text-xs text-red-400">{error}</p>}
+      {error && (
+        <p style={{
+          marginTop: 10,
+          textAlign: "center",
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "12px",
+          color: "rgba(239,68,68,0.8)",
+          letterSpacing: "0.01em",
+        }}>
+          {error}
+        </p>
+      )}
     </motion.div>
   );
 }
@@ -130,38 +256,129 @@ export function PricingCard({ plan }: PricingCardProps) {
 function FreeCard({ plan }: { plan: PricingPlan }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative flex flex-col rounded-2xl border border-white/[0.08] bg-white/[0.02] p-7"
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 14,
+        background: "rgba(10,19,35,0.5)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        border: "1px solid rgba(232,237,248,0.07)",
+        padding: "28px 24px",
+      }}
     >
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-base font-semibold text-white">{plan.name}</h3>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h3 style={{
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 500,
+            fontSize: "16px",
+            letterSpacing: "-0.02em",
+            color: "#e8edf8",
+            margin: 0,
+          }}>
+            {plan.name}
+          </h3>
           <CreditPill credits={plan.credits} kind="free" />
         </div>
-        <p className="text-xs text-white/45 leading-relaxed">{plan.description}</p>
+        <p style={{
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "13px",
+          color: "rgba(232,237,248,0.45)",
+          lineHeight: 1.55,
+          letterSpacing: "0.01em",
+          margin: 0,
+        }}>
+          {plan.description}
+        </p>
       </div>
 
-      <div className="mb-6">
-        <span className="text-3xl font-bold text-white">{plan.price}</span>
-        <span className="ml-1.5 text-sm text-white/40">{plan.period}</span>
+      <div style={{ marginBottom: 24 }}>
+        <span style={{
+          fontFamily: "var(--font-display), Georgia, serif",
+          fontWeight: 500,
+          fontSize: "40px",
+          letterSpacing: "-0.03em",
+          color: "#e8edf8",
+          lineHeight: 1,
+        }}>
+          {plan.price}
+        </span>
+        <span style={{
+          marginLeft: 8,
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "13px",
+          color: "rgba(232,237,248,0.38)",
+          letterSpacing: "0.02em",
+        }}>
+          {plan.period}
+        </span>
       </div>
 
-      <ul className="mb-7 flex-1 space-y-2.5">
+      <ul style={{
+        flex: 1,
+        listStyle: "none",
+        padding: 0,
+        margin: "0 0 24px 0",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}>
         {plan.features.map((feature, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-xs text-white/65">
-            <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/30" />
-            <span className="leading-snug">{feature}</span>
+          <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{ width: 13, height: 13, flexShrink: 0, marginTop: 2, color: "rgba(232,237,248,0.25)" }}
+            >
+              <path
+                d="M3 8l3.5 3.5L13 5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span style={{
+              fontFamily: "var(--font-serif), Georgia, serif",
+              fontSize: "13px",
+              color: "rgba(232,237,248,0.6)",
+              lineHeight: 1.55,
+              letterSpacing: "0.01em",
+            }}>
+              {feature}
+            </span>
           </li>
         ))}
       </ul>
 
       <a
         href="/chat"
-        className="w-full rounded-xl py-2.5 px-5 text-sm font-semibold text-center bg-white/8 text-white hover:bg-white/15 border border-white/10 transition-colors block"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          textAlign: "center",
+          borderRadius: 100,
+          padding: "11px 20px",
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "11px",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#e8edf8",
+          background: "transparent",
+          border: "1px solid rgba(232,237,248,0.22)",
+          textDecoration: "none",
+          transition: "border-color 0.2s",
+        }}
       >
-        {plan.cta} →
+        {plan.cta}
+        <span style={{ fontSize: "18px", lineHeight: "0" }}>•</span>
       </a>
     </motion.div>
   );
@@ -176,7 +393,18 @@ function CreditPill({ credits, kind }: { credits: number; kind: PricingPlan["kin
       : `${credits.toLocaleString()} cr`;
 
   return (
-    <span className="rounded-full bg-white/[0.06] border border-white/[0.1] px-2 py-0.5 text-[10px] font-mono text-white/50">
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      borderRadius: 999,
+      background: "transparent",
+      border: "1px solid rgba(232,237,248,0.12)",
+      padding: "2px 10px",
+      fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
+      fontSize: "10px",
+      letterSpacing: "0.06em",
+      color: "rgba(232,237,248,0.38)",
+    }}>
       {label}
     </span>
   );
@@ -219,30 +447,49 @@ export function ManageSubscriptionButton({ email }: ManageButtonProps) {
       <button
         onClick={handlePortal}
         disabled={loading}
-        className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors disabled:opacity-60"
+        style={{
+          borderRadius: 100,
+          border: "1px solid rgba(232,237,248,0.22)",
+          background: "transparent",
+          padding: "10px 24px",
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "11px",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#e8edf8",
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.55 : 1,
+          transition: "opacity 0.2s",
+        }}
       >
         {loading ? "Opening portal…" : "Manage subscription"}
       </button>
-      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+      {error && (
+        <p style={{
+          marginTop: 8,
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "12px",
+          color: "rgba(239,68,68,0.8)",
+        }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
+// ── Spinner ───────────────────────────────────────────────────────────────────
 
-function CheckIcon({ className }: { className?: string }) {
+function SpinnerIcon({ style }: { style?: React.CSSProperties }) {
   return (
-    <svg className={className} viewBox="0 0 16 16" fill="none">
-      <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SpinnerIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="31.416" strokeDashoffset="10" opacity="0.3" />
-      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    <svg style={style} viewBox="0 0 24 24" fill="none">
+      <circle
+        cx="12" cy="12" r="10"
+        stroke="currentColor" strokeWidth="2.5"
+        strokeLinecap="round" strokeDasharray="31.416" strokeDashoffset="10"
+        opacity="0.3"
+      />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }
