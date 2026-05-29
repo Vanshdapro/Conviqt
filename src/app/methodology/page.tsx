@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { DashNav } from "@/components/DashNav";
@@ -376,6 +376,10 @@ function PipelineVerticalLine({ totalNodes, activeIndex }: { totalNodes: number;
 
 export default function MethodologyPage() {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   const handleActivate = useCallback((i: number) => {
     setActiveIndex((prev) => Math.max(prev, i));
