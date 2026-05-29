@@ -1,5 +1,26 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ ticker: string }>;
+}): Promise<Metadata> {
+  const { ticker } = await params;
+  const TICK = ticker.toUpperCase();
+  return {
+    title: `${TICK} Stock Analysis`,
+    description: `AI equity research on ${TICK}. Five agents debate fundamentals, technicals, sentiment, and macro — every number cited.`,
+    alternates: { canonical: `https://conviqt.com/stock/${TICK.toLowerCase()}` },
+    openGraph: {
+      title: `${TICK} — AI Equity Research | Conviqt`,
+      description: `Five AI agents analyze ${TICK} with live web data. Every fact has a source URL.`,
+      url: `https://conviqt.com/stock/${TICK.toLowerCase()}`,
+      type: "website",
+    },
+  };
+}
 
 // Legacy /stock/[ticker] route. In v0.2 (chat-first) the canonical entry
 // point is the homepage. Bouncing users to / with a hint preserves any
