@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const SITE_URL = "https://conviqt.com";
+const SITE_URL = "https://www.conviqt.com";
 const SITE_NAME = "Conviqt";
 const TITLE = "Conviqt — AI Equity Research. Cited. Accountable.";
 const DESCRIPTION =
@@ -33,6 +33,9 @@ export const metadata: Metadata = {
   authors: [{ name: "Conviqt", url: SITE_URL }],
   creator: "Conviqt",
   publisher: "Conviqt",
+  verification: {
+    google: "PASTE_YOUR_GSC_CODE_HERE",
+  },
   robots: {
     index: true,
     follow: true,

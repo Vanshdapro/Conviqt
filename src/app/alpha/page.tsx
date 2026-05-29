@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   title: "Alpha Tracker",
   description:
     "Conviqt's public paper-trade track record. Every pick the Council made — buys, sells, stops — with full P&L. We publish winners and losers.",
-  alternates: { canonical: "https://conviqt.com/alpha" },
+  alternates: { canonical: "https://www.conviqt.com/alpha" },
   openGraph: {
     title: "Alpha Tracker | Conviqt",
     description:
       "Full track record: every AI-generated stock pick, entry price, stop loss, and outcome. No cherry-picking.",
-    url: "https://conviqt.com/alpha",
+    url: "https://www.conviqt.com/alpha",
     type: "website",
   },
   twitter: {

@@ -4,12 +4,12 @@ export const metadata: Metadata = {
   title: "Pricing",
   description:
     "Start free with 50 credits every month. Upgrade for unlimited AI equity research — no lock-in, cancel any time.",
-  alternates: { canonical: "https://conviqt.com/pricing" },
+  alternates: { canonical: "https://www.conviqt.com/pricing" },
   openGraph: {
     title: "Pricing | Conviqt",
     description:
       "Start free with 50 credits every month. Upgrade for unlimited AI equity research.",
-    url: "https://conviqt.com/pricing",
+    url: "https://www.conviqt.com/pricing",
     type: "website",
   },
   twitter: {

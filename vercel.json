@@ -4,5 +4,13 @@
       "path": "/api/alpha/run",
       "schedule": "0 11 * * 1-5"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "conviqt.com" }],
+      "destination": "https://www.conviqt.com/$1",
+      "permanent": true
+    }
   ]
 }
