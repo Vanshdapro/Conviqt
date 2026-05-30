@@ -1,7 +1,7 @@
 // Conviqt Learn — lesson authoring agent.
 //
 // Given a lesson from the static curriculum, Claude (Sonnet) authors a complete
-// interactive lesson module: a teen-friendly explainer, an SVG infographic, an
+// interactive lesson module: an institutional-grade explainer, an SVG infographic, an
 // interactive simulator choice, a real-world example, a quiz, and a bridge into
 // the Chat/Alpha products.
 //
@@ -21,6 +21,10 @@ const ALLOWED_WIDGETS: WidgetType[] = [
   "budget_split",
   "diversification",
   "dollar_cost_averaging",
+  "position_sizing",
+  "drawdown_recovery",
+  "expected_value",
+  "reverse_dcf",
 ];
 
 const PUBLISH_LESSON_TOOL = {
@@ -46,7 +50,7 @@ const PUBLISH_LESSON_TOOL = {
           properties: {
             emoji: { type: "string", description: "One emoji." },
             heading: { type: "string", description: "Max 5 words." },
-            body: { type: "string", description: "1-3 sentences, friendly, concrete, no jargon without explaining it." },
+            body: { type: "string", description: "1-3 sentences. Sharp, concrete, specific. Use real numbers or examples; define advanced jargon the first time it appears." },
           },
           required: ["emoji", "heading", "body"],
         },
@@ -75,7 +79,7 @@ const PUBLISH_LESSON_TOOL = {
           params: {
             type: "object",
             description:
-              "Starting numbers. compound_interest: {principal, monthlyContribution, years, annualRatePct}. budget_split: {monthlyIncome, needsPct, wantsPct, savingsPct}. diversification: {} . dollar_cost_averaging: {monthlyAmount, months}.",
+              "Starting numbers. compound_interest: {principal, monthlyContribution, years, annualRatePct}. budget_split: {monthlyIncome, needsPct, wantsPct, savingsPct}. diversification: {holdings}. dollar_cost_averaging: {monthlyAmount, months}. position_sizing: {winRatePct, payoffRatio, capital}. drawdown_recovery: {drawdownPct}. expected_value: {winProbPct, winPct, lossPct}. reverse_dcf: {currentPrice, currentFcfPerShare, impliedGrowthPct, discountRatePct, years}.",
             additionalProperties: { type: "number" },
           },
         },
@@ -130,18 +134,18 @@ const PUBLISH_LESSON_TOOL = {
 };
 
 function systemPrompt(track: Track): string {
-  return `You are the lead curriculum designer for Conviqt Learn — a gamified financial-literacy academy aimed at teenagers (roughly ages 13-17) who want to learn money, investing, and markets.
+  return `You are the head of research education at Conviqt — a former hedge-fund partner and CIO who now writes the masterclass curriculum that turns serious investors into professional-grade thinkers. Your learners are ambitious adults: finance students, junior analysts, active investors, and self-taught operators who already know the basics and are bored by them. They want the mental models, sizing math, risk frameworks, and market structure that an MBA and a CFA gloss over.
 
-Voice: warm, sharp, a little playful. You respect the learner's intelligence but never assume prior knowledge. Short sentences. Concrete examples from a teenager's world (allowances, part-time jobs, sneakers, games, phones, streaming). Zero condescension. Define every piece of jargon the moment you use it.
+Voice: precise, authoritative, intellectually generous — the way a great PM teaches a sharp new analyst. Respect the reader's intelligence; never condescend, never pad. Use real institutional examples (Druckenmiller, Soros, Buffett, Marks, Taleb, Mauboussin; real episodes like the 2024 yen-carry unwind, SaaS de-ratings, the GLP-1 trade). Define advanced jargon the first time you use it, then use it freely. No teenage analogies, no allowances or sneakers. Make the reader feel they are being let into how money is actually managed.
 
-This lesson belongs to the "${track.name}" track (${track.tagline}). The track accent color is ${track.accent} — lean on it in your SVG infographic.
+This lesson belongs to the "${track.name}" track (${track.tagline}). The track accent color is ${track.accent} — build the SVG infographic around it.
 
 Hard rules:
-- Be accurate. Never promise guaranteed returns. Always acknowledge risk honestly.
-- This is education, NOT financial advice. Never tell the learner to buy/sell a specific security.
-- The SVG must be valid, self-contained, and purely presentational (no scripts, no event handlers, no external images, no <foreignObject>). Use viewBox='0 0 800 360'. Make it genuinely illustrate the concept — a diagram, not decoration.
-- When the lesson naturally connects to Conviqt's own products (the AI Council, the disagreement signal, the public Alpha Tracker paper-trade record, the Chat analysis), make that connection explicitly. The "tryInChat" bridge should feel like the obvious next step.
-- Pick an interactive widget ONLY when it truly reinforces the lesson. A budgeting lesson wants budget_split; a compounding lesson wants compound_interest; a diversification lesson wants diversification; a slow-investing lesson wants dollar_cost_averaging. Otherwise set widget to null.
+- Be rigorous and accurate. Never promise returns. Always give the bear case / the way the idea fails. Intellectual honesty is the product.
+- This is education, NOT personalized financial advice. Teach frameworks; never tell the learner to buy/sell a specific security.
+- The SVG must be valid, self-contained, and purely presentational (no scripts, no event handlers, no external images, no <foreignObject>). Use viewBox='0 0 800 360'. It must genuinely illustrate the concept — a real diagram, chart, payoff curve, or framework map a strategist would put on a slide, not decoration. Restrained, institutional aesthetics: clean lines, labeled axes, the accent color plus neutral greys on the dark canvas.
+- When the lesson connects to Conviqt's own engine (the macro→screener→six-specialist→CIO→portfolio-constructor pipeline, the disagreement signal, the public Alpha Tracker track record, on-demand Council analysis in Chat), make the connection explicitly. The "tryInChat" bridge should feel like the obvious way to apply the model on a live name.
+- Pick an interactive widget ONLY when it truly reinforces the lesson. Map: sizing/Kelly → position_sizing; loss asymmetry / recovery math → drawdown_recovery; probability-weighted asymmetric bets / expected value → expected_value; what's-priced-in / reverse DCF → reverse_dcf; intrinsic-value or capital compounding → compound_interest; correlation/diversification → diversification; cost-averaging → dollar_cost_averaging. Otherwise set widget to null. Never force a widget that doesn't fit.
 
 Call publish_lesson exactly once with the complete lesson.`;
 }
@@ -200,7 +204,7 @@ export async function authorLesson(meta: LessonMeta, track: Track): Promise<Auth
     messages: [
       {
         role: "user",
-        content: `Create the lesson "${meta.title}".\n\nLearning objective: ${meta.objective}\n\nDifficulty: ${meta.difficulty}. Keep it tight and engaging — a teenager should finish it in a few minutes and feel they actually get it.`,
+        content: `Create the lesson "${meta.title}".\n\nLearning objective: ${meta.objective}\n\nLevel: ${meta.difficulty}. Keep it tight, rigorous, and genuinely advanced — a serious investor should finish it in a few minutes and walk away with a model they can deploy, not a definition they could have Googled.`,
       },
     ],
   });

@@ -338,6 +338,238 @@ function PriceBars({ prices }: { prices: number[] }) {
   );
 }
 
+// ── 5. Position sizing (Kelly criterion) ─────────────────────────────────────
+
+function PositionSizingLab({ p }: { p: Record<string, number> }) {
+  const [winRate, setWinRate] = useState(clamp(p.winRatePct ?? 55, 5, 95));
+  const [payoff, setPayoff] = useState(clamp(p.payoffRatio ?? 2, 0.2, 6));
+  const [capital, setCapital] = useState(clamp(p.capital ?? 100000, 1000, 5_000_000));
+
+  const wp = winRate / 100;
+  const lp = 1 - wp;
+  // Kelly: f* = (p*b - q) / b
+  const fullKelly = (wp * payoff - lp) / payoff;
+  const edge = wp * payoff - lp; // expected payoff per unit risked
+  const positive = fullKelly > 0;
+  const fk = Math.max(0, fullKelly);
+  const halfK = fk / 2;
+
+  const barColor = !positive ? BEAR : fk > 0.25 ? HOLD : BULL;
+
+  return (
+    <Shell>
+      <div>
+        <Slider label="Win rate" value={winRate} min={5} max={95} step={1} onChange={setWinRate} format={(v) => `${v}%`} accent={ACCENT} />
+        <Slider label="Payoff ratio (avg win ÷ avg loss)" value={payoff} min={0.2} max={6} step={0.1} onChange={setPayoff} format={(v) => `${v.toFixed(1)}×`} accent={BULL} />
+        <Slider label="Account capital" value={capital} min={1000} max={5_000_000} step={1000} onChange={setCapital} format={fmtUSD} accent={ACCENT} />
+        <p style={{ fontSize: 12.5, color: MUTED, marginTop: 4 }}>
+          {positive ? (
+            <>You have a positive edge. <strong style={{ color: INK }}>Full Kelly</strong> maximizes long-run growth but is violently volatile — pros bet <strong style={{ color: INK }}>half</strong>.</>
+          ) : (
+            <>Negative edge: Kelly says bet <strong style={{ color: BEAR }}>nothing</strong>. No sizing rule rescues a losing strategy.</>
+          )}
+        </p>
+      </div>
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Stat label="Full Kelly" value={`${(fk * 100).toFixed(1)}%`} accent={barColor} />
+          <Stat label="Half Kelly (use this)" value={`${(halfK * 100).toFixed(1)}%`} accent={positive ? ACCENT : BEAR} />
+          <Stat label="Edge per $ risked" value={`${edge >= 0 ? "+" : ""}${(edge * 100).toFixed(0)}¢`} accent={positive ? BULL : BEAR} />
+          <Stat label="Risk on this trade" value={fmtUSD(capital * halfK)} accent={positive ? ACCENT : BEAR} />
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 8 }}>
+            Bet size vs your bankroll
+          </div>
+          <div style={{ height: 22, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+            <div style={{ width: `${Math.min(100, fk * 100)}%`, height: "100%", background: barColor, transition: "width .25s ease" }} />
+          </div>
+          <p style={{ fontSize: 12, color: MUTED, marginTop: 10 }}>
+            Betting more than full Kelly lowers growth <em>and</em> raises risk of ruin — over-betting an edge still goes to zero.
+          </p>
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+// ── 6. Drawdown recovery (the recovery tax) ───────────────────────────────────
+
+function DrawdownRecovery({ p }: { p: Record<string, number> }) {
+  const [dd, setDd] = useState(clamp(p.drawdownPct ?? 50, 1, 95));
+  const d = dd / 100;
+  const recovery = d / (1 - d); // gain needed to get back to even
+  const recoveryPct = recovery * 100;
+  const sevColor = dd >= 50 ? BEAR : dd >= 25 ? HOLD : BULL;
+
+  return (
+    <Shell>
+      <div>
+        <Slider label="Drawdown (peak-to-trough loss)" value={dd} min={1} max={95} step={1} onChange={setDd} format={(v) => `−${v}%`} accent={sevColor} />
+        <div style={{ marginTop: 6, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Stat label="You lost" value={`−${dd}%`} accent={BEAR} />
+          <Stat label="Gain to break even" value={`+${recoveryPct.toFixed(0)}%`} accent={sevColor} />
+        </div>
+        <p style={{ fontSize: 12.5, color: MUTED, marginTop: 12 }}>
+          Losses and gains are <strong style={{ color: INK }}>not symmetric</strong>. The deeper the hole, the
+          exponentially harder the climb — which is why capping drawdowns beats chasing the last few points of upside.
+        </p>
+      </div>
+      <div>
+        <div style={{ display: "grid", gap: 14 }}>
+          <RecoveryBar label="The loss" pct={dd} max={Math.max(100, recoveryPct)} color={BEAR} caption={`−${dd}%`} />
+          <RecoveryBar label="The climb back" pct={recoveryPct} max={Math.max(100, recoveryPct)} color={sevColor} caption={`+${recoveryPct.toFixed(0)}%`} />
+        </div>
+        <p style={{ fontSize: 12, color: MUTED, marginTop: 14, textAlign: "center" }}>
+          −20% → +25%　•　−50% → +100%　•　−80% → +400%
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
+function RecoveryBar({ label, pct, max, color, caption }: { label: string; pct: number; max: number; color: string; caption: string }) {
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontSize: 11.5, color: MUTED }}>{label}</span>
+        <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color }}>{caption}</span>
+      </div>
+      <div style={{ height: 20, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+        <div style={{ width: `${Math.min(100, (pct / max) * 100)}%`, height: "100%", background: color, transition: "width .25s ease" }} />
+      </div>
+    </div>
+  );
+}
+
+// ── 7. Expected value (asymmetric bets) ───────────────────────────────────────
+
+function ExpectedValueLab({ p }: { p: Record<string, number> }) {
+  const [winProb, setWinProb] = useState(clamp(p.winProbPct ?? 40, 1, 99));
+  const [winPct, setWinPct] = useState(clamp(p.winPct ?? 60, 1, 300));
+  const [lossPct, setLossPct] = useState(clamp(p.lossPct ?? 20, 1, 100));
+
+  const wp = winProb / 100;
+  const ev = wp * winPct - (1 - wp) * lossPct; // expected % return on the position
+  const payoff = winPct / lossPct;
+  const positive = ev > 0;
+  const evColor = positive ? BULL : BEAR;
+
+  return (
+    <Shell>
+      <div>
+        <Slider label="Chance you're right" value={winProb} min={1} max={99} step={1} onChange={setWinProb} format={(v) => `${v}%`} accent={ACCENT} />
+        <Slider label="Upside if right" value={winPct} min={1} max={300} step={5} onChange={setWinPct} format={(v) => `+${v}%`} accent={BULL} />
+        <Slider label="Downside if wrong" value={lossPct} min={1} max={100} step={1} onChange={setLossPct} format={(v) => `−${v}%`} accent={BEAR} />
+        <p style={{ fontSize: 12.5, color: MUTED, marginTop: 4 }}>
+          A <strong style={{ color: INK }}>{winProb}%</strong> shot can be a great bet and a <strong style={{ color: INK }}>{(100 - winProb)}%</strong> favorite can be a terrible one. Asymmetry — not your hit rate — is the edge.
+        </p>
+      </div>
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Stat label="Expected value" value={`${ev >= 0 ? "+" : ""}${ev.toFixed(1)}%`} accent={evColor} />
+          <Stat label="Payoff ratio" value={`${payoff.toFixed(1)}×`} accent={payoff >= 1 ? BULL : HOLD} />
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
+            Probability-weighted outcomes
+          </div>
+          <ProbBar label="Win" prob={wp} value={winPct} color={BULL} />
+          <ProbBar label="Lose" prob={1 - wp} value={-lossPct} color={BEAR} />
+        </div>
+        <p style={{ fontSize: 12, color: MUTED, marginTop: 12 }}>
+          {positive
+            ? "Positive EV: repeat this bet enough times and you compound up — even losing more often than you win."
+            : "Negative EV: the math is against you. Size it to zero or find a better asymmetry."}
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
+function ProbBar({ label, prob, value, color }: { label: string; prob: number; value: number; color: string }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+        <span style={{ fontSize: 11.5, color: MUTED }}>{label} · {(prob * 100).toFixed(0)}% of the time</span>
+        <span style={{ fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color }}>{value >= 0 ? "+" : ""}{value}%</span>
+      </div>
+      <div style={{ height: 16, borderRadius: 5, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+        <div style={{ width: `${prob * 100}%`, height: "100%", background: color, opacity: 0.85, transition: "width .25s ease" }} />
+      </div>
+    </div>
+  );
+}
+
+// ── 8. Reverse DCF (what growth is priced in) ─────────────────────────────────
+
+function ReverseDcfLab({ p }: { p: Record<string, number> }) {
+  const [price, setPrice] = useState(clamp(p.currentPrice ?? 100, 5, 2000));
+  const [fcf, setFcf] = useState(clamp(p.currentFcfPerShare ?? 4, 0.1, 100));
+  const [growth, setGrowth] = useState(clamp(p.impliedGrowthPct ?? 12, 0, 60));
+  const [discount, setDiscount] = useState(clamp(p.discountRatePct ?? 9, 5, 18));
+  const years = clamp(Math.round(p.years ?? 10), 5, 15);
+
+  const TERMINAL_G = 2.5;
+
+  const fairValue = useMemo(() => {
+    const g = growth / 100;
+    const r = discount / 100;
+    const tg = TERMINAL_G / 100;
+    let pv = 0;
+    let f = fcf;
+    for (let t = 1; t <= years; t++) {
+      f = f * (1 + g);
+      pv += f / Math.pow(1 + r, t);
+    }
+    // Gordon terminal value on the final-year FCF
+    if (r > tg) {
+      const tv = (f * (1 + tg)) / (r - tg);
+      pv += tv / Math.pow(1 + r, years);
+    }
+    return pv;
+  }, [fcf, growth, discount, years]);
+
+  const premium = ((price - fairValue) / fairValue) * 100;
+  const overvalued = premium > 0;
+  const valColor = Math.abs(premium) < 10 ? HOLD : overvalued ? BEAR : BULL;
+
+  return (
+    <Shell>
+      <div>
+        <Slider label="Current share price" value={price} min={5} max={2000} step={5} onChange={setPrice} format={fmtUSD} accent={ACCENT} />
+        <Slider label="Free cash flow / share" value={fcf} min={0.1} max={100} step={0.1} onChange={setFcf} format={(v) => `$${v.toFixed(2)}`} accent={ACCENT} />
+        <Slider label="Assumed FCF growth (next decade)" value={growth} min={0} max={60} step={1} onChange={setGrowth} format={(v) => `${v}%/yr`} accent={BULL} />
+        <Slider label="Discount rate" value={discount} min={5} max={18} step={0.5} onChange={setDiscount} format={(v) => `${v}%`} accent={HOLD} />
+        <p style={{ fontSize: 12.5, color: MUTED, marginTop: 4 }}>
+          Don&apos;t forecast — <strong style={{ color: INK }}>invert</strong>. Drag growth until fair value meets the price: that&apos;s the growth the market is <em>already</em> paying for.
+        </p>
+      </div>
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Stat label="Model fair value" value={fmtUSD(fairValue)} accent={ACCENT} />
+          <Stat label={overvalued ? "Priced above model" : "Priced below model"} value={`${overvalued ? "+" : ""}${premium.toFixed(0)}%`} accent={valColor} />
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
+            Price vs intrinsic value
+          </div>
+          <RecoveryBar label="Market price" pct={price} max={Math.max(price, fairValue)} color={INK} caption={fmtUSD(price)} />
+          <div style={{ height: 10 }} />
+          <RecoveryBar label="Model value" pct={fairValue} max={Math.max(price, fairValue)} color={valColor} caption={fmtUSD(fairValue)} />
+        </div>
+        <p style={{ fontSize: 12, color: MUTED, marginTop: 12 }}>
+          {Math.abs(premium) < 10
+            ? "Roughly fairly priced for these assumptions — the debate is whether the growth is achievable."
+            : overvalued
+              ? "The price demands richer growth than you've assumed. Is that realistic, or is optimism embedded?"
+              : "The price implies less growth than you've assumed — a potential margin of safety if you're right."}
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 const REGISTRY: Record<WidgetType, (props: { p: Record<string, number> }) => React.ReactElement> = {
@@ -345,6 +577,10 @@ const REGISTRY: Record<WidgetType, (props: { p: Record<string, number> }) => Rea
   budget_split: BudgetSplitter,
   diversification: DiversificationMeter,
   dollar_cost_averaging: DollarCostAveraging,
+  position_sizing: PositionSizingLab,
+  drawdown_recovery: DrawdownRecovery,
+  expected_value: ExpectedValueLab,
+  reverse_dcf: ReverseDcfLab,
 };
 
 export function LessonWidgetRenderer({ widget }: { widget: LessonWidget }) {

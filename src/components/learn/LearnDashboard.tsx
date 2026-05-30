@@ -40,14 +40,14 @@ const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
 type Active = { module: LessonModule; track: Track } | null;
 
 const DIFFICULTY_LABEL: Record<LessonMeta["difficulty"], string> = {
-  starter: "Starter",
   core: "Core",
-  sharp: "Sharp",
+  advanced: "Advanced",
+  mastery: "Mastery",
 };
 const DIFFICULTY_LEVEL: Record<LessonMeta["difficulty"], number> = {
-  starter: 1,
-  core: 2,
-  sharp: 3,
+  core: 1,
+  advanced: 2,
+  mastery: 3,
 };
 
 export function LearnDashboard() {
@@ -204,12 +204,13 @@ export function LearnDashboard() {
             maxWidth: 760,
           }}
         >
-          From finance-curious to analyst-grade.
+          The investing masterclass an MBA skips.
         </h1>
-        <p style={{ fontFamily: SERIF, fontSize: 17, color: INK_SOFT, maxWidth: 600, margin: "0 0 30px", lineHeight: 1.6 }}>
-          A structured course in budgeting, valuation, and how markets actually move — each lesson
-          interactive and wired into the same five-agent Council professionals use. Built for finance
-          students and anyone serious about reading the market for themselves.
+        <p style={{ fontFamily: SERIF, fontSize: 17, color: INK_SOFT, maxWidth: 620, margin: "0 0 30px", lineHeight: 1.6 }}>
+          The mental models, position-sizing math, risk frameworks, and market structure that
+          professional capital actually runs on — Kelly sizing, variant perception, reverse-DCF,
+          reflexivity, drawdown discipline. Each lesson is interactive and wired into the same
+          institutional engine Conviqt uses to pick stocks.
         </p>
 
         {/* Primary CTA */}

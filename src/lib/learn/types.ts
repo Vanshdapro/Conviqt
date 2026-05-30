@@ -15,7 +15,12 @@ export type WidgetType =
   | "compound_interest"
   | "budget_split"
   | "diversification"
-  | "dollar_cost_averaging";
+  | "dollar_cost_averaging"
+  // ── Advanced / institutional simulators ──
+  | "position_sizing"      // Kelly criterion & fractional Kelly
+  | "drawdown_recovery"    // the asymmetric cost of losses
+  | "expected_value"       // probability-weighted asymmetric bets
+  | "reverse_dcf";         // what growth is already priced in
 
 export interface LessonWidget {
   type: WidgetType;
@@ -36,7 +41,7 @@ export interface QuizQuestion {
 export interface ConceptCard {
   emoji: string;
   heading: string;
-  body: string; // 1-3 sentences, teen-friendly
+  body: string; // 1-3 sentences, sharp and concrete
 }
 
 export interface KeyTerm {
@@ -71,7 +76,7 @@ export interface LessonModule {
 
 // ── Curriculum (static catalog) ──────────────────────────────────────────────
 
-export type Difficulty = "starter" | "core" | "sharp";
+export type Difficulty = "core" | "advanced" | "mastery";
 
 export interface LessonMeta {
   id: string; // stable, also the global cache key
@@ -102,9 +107,9 @@ export interface LearnStats {
 }
 
 export const LESSON_XP_BY_DIFFICULTY: Record<Difficulty, number> = {
-  starter: 40,
   core: 60,
-  sharp: 100,
+  advanced: 100,
+  mastery: 160,
 };
 
 // Level curve: simple, legible thresholds. Level N requires 250*(N-1) cumulative XP.

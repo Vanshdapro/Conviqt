@@ -75,6 +75,48 @@ export function ShieldIcon(p: IconProps) {
   );
 }
 
+export function ScaleIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <line x1="12" y1="4" x2="12" y2="20" />
+      <line x1="7" y1="20" x2="17" y2="20" />
+      <path d="M12 6 5 9m7-3 7 3" />
+      <path d="M2.5 13a2.5 2.5 0 0 0 5 0L5 9Z" />
+      <path d="M16.5 13a2.5 2.5 0 0 0 5 0L19 9Z" />
+    </Svg>
+  );
+}
+
+export function DiamondIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M6 4h12l3.5 5L12 21 2.5 9 6 4Z" />
+      <path d="M2.5 9h19M9 4 7 9l5 12 5-12-2-5" />
+    </Svg>
+  );
+}
+
+export function CycleIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L20 9" />
+      <polyline points="20 4 20 9 15 9" />
+      <path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4 15" />
+      <polyline points="4 20 4 15 9 15" />
+    </Svg>
+  );
+}
+
+export function CpuIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="1.5" />
+      <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" />
+      <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" />
+    </Svg>
+  );
+}
+
 // ── Utility glyphs ───────────────────────────────────────────────────────────
 
 export function CheckIcon(p: IconProps) {
@@ -122,16 +164,18 @@ export function BookIcon(p: IconProps) {
 // Maps a curriculum track id to its glyph. Falls back to the book.
 export function TrackIcon({ trackId, size = 20, ...rest }: IconProps & { trackId: string }) {
   switch (trackId) {
-    case "money-basics":
-      return <WalletIcon size={size} {...rest} />;
-    case "investing-101":
-      return <TrendingUpIcon size={size} {...rest} />;
-    case "reading-market":
-      return <SearchIcon size={size} {...rest} />;
-    case "how-conviqt-thinks":
+    case "mental-models":
       return <NetworkIcon size={size} {...rest} />;
-    case "smart-and-safe":
+    case "position-sizing":
+      return <ScaleIcon size={size} {...rest} />;
+    case "risk-management":
       return <ShieldIcon size={size} {...rest} />;
+    case "valuation-quality":
+      return <DiamondIcon size={size} {...rest} />;
+    case "macro-reflexivity":
+      return <CycleIcon size={size} {...rest} />;
+    case "conviqt-engine":
+      return <CpuIcon size={size} {...rest} />;
     default:
       return <BookIcon size={size} {...rest} />;
   }
