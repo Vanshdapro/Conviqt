@@ -6,6 +6,7 @@ import {
 } from "../anthropic";
 import { VALID_TICKER_RE } from "./router";
 import { pickerRecentTickers, pickerRecordTickers } from "../cache";
+import type { MacroRegime } from "../alphaTypes";
 
 // Stock picker agent. Sonnet + web_search. Surveys current market themes
 // and emits 1-3 tickers worth running a full Council on, each with a
@@ -114,7 +115,29 @@ export interface PickerResult {
   webSearchCount: number;
 }
 
-export async function runPicker(): Promise<PickerResult> {
+// Build the regime briefing the scout leans into. The desk's macro seat has
+// already read the tape; the scout hunts WITHIN that regime rather than
+// re-deriving it. Favored sectors get a tailwind, avoid-sectors a high bar.
+function regimeBlock(regime?: MacroRegime): string {
+  if (!regime) return "";
+  const favored = regime.favoredSectors.length
+    ? regime.favoredSectors.join(", ")
+    : "(none flagged)";
+  const avoid = regime.avoidSectors.length
+    ? regime.avoidSectors.join(", ")
+    : "(none flagged)";
+  const risks = regime.keyRisks.length ? regime.keyRisks.join("; ") : "(none flagged)";
+  return `\n\nTODAY'S MACRO REGIME (set by the desk's macro strategist):
+- Stance: ${regime.stance}
+- Read: ${regime.summary}
+- Favored sectors (macro tailwind): ${favored}
+- Avoid sectors (macro headwind): ${avoid}
+- Key risks: ${risks}
+
+Lean your scouting INTO this regime. Prefer setups in favored sectors. A name in an avoid-sector must clear a materially higher bar (an idiosyncratic catalyst strong enough to override the headwind). In a RISK_OFF regime, demand stronger setups and feel free to return fewer (or zero) picks.`;
+}
+
+export async function runPicker(regime?: MacroRegime): Promise<PickerResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
 
@@ -124,7 +147,7 @@ export async function runPicker(): Promise<PickerResult> {
       ? `\n\nYou have surfaced these tickers in the last 24 hours: ${[...new Set(recent)].join(", ")}. Do NOT repeat them unless the setup has materially changed since (new earnings print, fresh macro catalyst, technical breakout). Prefer fresh names.`
       : "";
 
-  const SYSTEM = SYSTEM_BASE + recentBlock;
+  const SYSTEM = SYSTEM_BASE + regimeBlock(regime) + recentBlock;
 
   const response = await anthropic.messages.create({
     model: MODELS.picker,

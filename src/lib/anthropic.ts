@@ -69,6 +69,10 @@ export const MODELS = {
   judge: "claude-haiku-4-5-20251001",
   picker: "claude-sonnet-4-6",
   analyst: "claude-sonnet-4-6", // general chat — Sonnet for institutional depth
+  // Alpha Tracker institutional pipeline:
+  regime: "claude-haiku-4-5-20251001", // macro regime read — search-driven, structured
+  council: "claude-haiku-4-5-20251001", // 6-lens scorecard — one tight structured call
+  cio: "claude-sonnet-4-6", // CIO + portfolio constructor — the high-stakes synthesis
 } as const;
 
 // Per-model unit costs in USD per token.

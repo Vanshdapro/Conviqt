@@ -186,7 +186,41 @@ class SupabaseAlphaStore implements AlphaStore {
   async insert(pick: Omit<AlphaPick, "id" | "created_at">): Promise<void> {
     const db = await this.db();
     const { error } = await db.from("alpha_picks").insert(pick);
-    if (error) throw new Error(`SupabaseAlphaStore.insert ${pick.ticker}: ${error.message}`);
+    if (!error) return;
+
+    // If migration 009 hasn't been applied yet, the institutional columns
+    // won't exist. PostgREST surfaces this as PGRST204 / 42703. Rather than
+    // dropping the whole pick, strip those keys and retry once so the core
+    // pick still lands — then warn so the operator runs the migration.
+    const missingColumn =
+      error.code === "PGRST204" ||
+      error.code === "42703" ||
+      /column .* does not exist/i.test(error.message);
+
+    if (missingColumn) {
+      console.warn(
+        `[alphaStore] institutional columns missing — run migration 009_alpha_institutional.sql. ` +
+          `Inserting ${pick.ticker} without position_size_pct/risk_reward/lens_scores/regime fields.`
+      );
+      const {
+        position_size_pct: _psp,
+        risk_reward: _rr,
+        lens_scores: _ls,
+        regime_stance: _rs,
+        regime_summary: _rsum,
+        ...core
+      } = pick as Omit<AlphaPick, "id" | "created_at"> & Record<string, unknown>;
+      void _psp; void _rr; void _ls; void _rs; void _rsum;
+      const retry = await db.from("alpha_picks").insert(core);
+      if (retry.error) {
+        throw new Error(
+          `SupabaseAlphaStore.insert ${pick.ticker} (fallback): ${retry.error.message}`
+        );
+      }
+      return;
+    }
+
+    throw new Error(`SupabaseAlphaStore.insert ${pick.ticker}: ${error.message}`);
   }
 
   async hasPicksForRunId(runId: string): Promise<boolean> {

@@ -4,87 +4,85 @@ import {
   estimateCallCostUSD,
 } from "../anthropic";
 import type { FactSheet } from "./types";
-import type { AlphaPickDraft, AlphaPickSource } from "../alphaTypes";
+import type {
+  AlphaPickDraft,
+  AlphaPickSource,
+  LensScore,
+  MacroRegime,
+} from "../alphaTypes";
 
-// The Alpha Judge takes up to 3 candidate FactSheets (each pre-researched by
-// sweep) and selects at most 2 to publish as Alpha Tracker picks. For each
-// selected pick it produces the full structured record: entry price (from
-// FactSheet price facts), target, stop-loss, catalyst, conviction (1-10),
-// bull/bear theses, and source citations back into the FactSheet.sources array.
+// The CIO + Portfolio Constructor — the final seat on the desk.
 //
-// One Sonnet call handles all candidates so we stay under the cost ceiling.
+// Inputs per candidate: a cited FactSheet, the scout's setup thesis, and the
+// 6-lens council scorecard. Plus the day's macro regime. The CIO:
+//   1. Selects the single best name (0 is fine — cash is a position).
+//   2. Sizes it as a % of the paper book (the portfolio-constructor job),
+//      scaling with conviction, risk/reward, and the regime.
+//   3. Sets entry (from the FactSheet), a target, and a stop with real
+//      reward:risk discipline.
+//   4. Writes the bull/bear case and names the catalyst.
+//
+// One Sonnet call keeps this under the cost ceiling. risk_reward is computed
+// deterministically in code from entry/target/stop — never trusted to the model.
 
-const SYSTEM = `You are the Alpha Judge for Conviqt's paper portfolio.
+const SYSTEM = `You are the Chief Investment Officer and portfolio constructor for Conviqt's paper trading desk.
 
-You receive FactSheets for 1-3 candidate stocks. For each candidate you have:
-- A FactSheet with cited price, fundamental, technical, sentiment, and macro facts
-- A brief picker thesis explaining the setup
+You receive 1-3 candidates. For each you have: a cited FactSheet, the scout's setup thesis, and a 6-lens council scorecard (Fundamental, Valuation, Catalyst, Risk, Technical, Sentiment — each 0-10, higher is better, including Risk where 10 = low/contained risk). You also have today's macro regime.
 
-Your job: select the single best pick (0 is fine if nothing clears the bar) and produce a full structured record for it via the report_alpha_picks tool. Only ever return 1 pick.
+Your job: select the SINGLE best name (or none) and construct the position via report_cio_pick. Return at most 1 pick.
 
-Rules:
-1. entry_price MUST come from a price fact in that candidate's FactSheet. Use the most recent closing/current price you can find. If no price fact exists, conviction must be 0.
-2. target_price: 3-6 month price target. Must be higher than entry_price. Must have at least 5% upside, and a realistic basis (e.g. analyst consensus, historical multiple, product catalyst). Must cite a sourceIndex.
-3. stop_loss: price at which the thesis is invalidated. Typically 8-15% below entry. Must cite a sourceIndex.
-4. catalyst: the single most specific near-term catalyst (e.g. "Q3 earnings on Aug 12", "FDA decision expected Q3 2026", "Fed rate cut in Sept"). Be specific — not just "earnings".
-5. conviction: 1-10. The minimum publishable conviction is 7. If your honest conviction is below 7 for a candidate, set it to 0 — the pipeline will skip that pick. Never inflate conviction.
-6. bull_thesis: 2-3 sentences. Name specific numbers and catalysts. No vague language.
-7. bear_thesis: 2-3 sentences. Name the specific risk, magnitude, and probability. Different background treatment in the UI — give it equal weight.
-8. source_indexes: cite at least 2 source indexes from that candidate's FactSheet.sources array. These must resolve to real sources — do not cite indexes that don't exist.
-9. Never select more than 1 pick total. This is a daily single-pick tracker.
-10. Pick the single strongest candidate. Quality over quantity.`;
+Selection:
+- Weigh the council scorecard, but you are the decision-maker — a single decisive lens (e.g. a hard-dated catalyst, or a glaring valuation gap) can carry a name with otherwise average scores, and a single fatal lens (severe Risk score) can veto an otherwise strong one.
+- Respect the regime. In RISK_OFF, demand a higher bar and size smaller. In RISK_ON, you can lean in.
+- Quality over activity. If nothing clears the bar, return zero picks and explain in rationale. Cash is a position.
 
-const REPORT_ALPHA_PICKS_TOOL = {
-  name: "report_alpha_picks",
-  description: "Emit the single best Alpha Tracker pick (0 or 1). Never emit more than 1.",
+Constructing the position:
+1. entry_price MUST come from a price fact in the chosen candidate's FactSheet. If none exists, you cannot pick that name.
+2. target_price: realistic 3-6 month target, above entry, with a basis (multiple, analyst consensus, catalyst). Cite a sourceIndex.
+3. stop_loss: where the thesis is invalidated, below entry (typically 8-15% down). Cite a sourceIndex.
+4. Reward:risk discipline — target and stop should give AT LEAST ~2:1 reward-to-risk. If you cannot construct a 2:1 setup honestly, lower conviction or pass.
+5. position_size_pct: % of the paper book to allocate, 1-10. Scale UP with conviction and reward:risk; scale DOWN in a RISK_OFF regime or when the Risk lens is weak. A 10/10 conviction name in a RISK_ON regime might be 8-10%; a borderline name 1-3%.
+6. conviction: 1-10. Minimum publishable is 7 — if your honest conviction is below 7, set it to 0 and the pick is skipped. Never inflate.
+7. bull_thesis / bear_thesis: 2-3 sentences each, specific numbers and catalysts. Give the bear equal weight.
+8. catalyst: the single most specific near-term trigger (dated if possible).
+9. source_indexes: at least 2 from the chosen candidate's FactSheet.sources.
+
+Return at most 1 pick. Pick the single strongest. Quality over quantity.`;
+
+const REPORT_CIO_PICK_TOOL = {
+  name: "report_cio_pick",
+  description:
+    "Emit the single best constructed pick (0 or 1). Never emit more than 1.",
   input_schema: {
     type: "object" as const,
     properties: {
       picks: {
         type: "array",
-        description: "0 or 1 pick. Must pass validation (conviction >= 7, entry_price > 0, source_indexes.length >= 2).",
         maxItems: 1,
         items: {
           type: "object",
           properties: {
             candidate_index: {
               type: "number",
-              description: "0-based index of which candidate this pick is for.",
+              description: "0-based index of the chosen candidate.",
             },
             ticker: { type: "string" },
             company_name: { type: "string" },
-            entry_price: {
+            entry_price: { type: "number", description: "From FactSheet price facts. > 0." },
+            target_price: { type: "number", description: "3-6 month target. > entry_price." },
+            stop_loss: { type: "number", description: "Invalidation price. < entry_price." },
+            catalyst: { type: "string", description: "Single most specific near-term catalyst." },
+            conviction: { type: "number", description: "1-10. Set 0 to skip." },
+            position_size_pct: {
               type: "number",
-              description: "Current price from FactSheet price facts. Must be > 0.",
+              description: "% of the paper book to allocate, 1-10.",
             },
-            target_price: {
-              type: "number",
-              description: "3-6 month price target. Must be > entry_price.",
-            },
-            stop_loss: {
-              type: "number",
-              description: "Stop-loss price where thesis is invalidated. Must be < entry_price.",
-            },
-            catalyst: {
-              type: "string",
-              description: "Single most specific near-term catalyst.",
-            },
-            conviction: {
-              type: "number",
-              description: "1-10 conviction. Set to 0 to skip this pick.",
-            },
-            bull_thesis: {
-              type: "string",
-              description: "2-3 sentences. Specific catalysts, numbers, time horizon.",
-            },
-            bear_thesis: {
-              type: "string",
-              description: "2-3 sentences. Specific risk, magnitude, scenario.",
-            },
+            bull_thesis: { type: "string", description: "2-3 sentences, specific." },
+            bear_thesis: { type: "string", description: "2-3 sentences, specific." },
             source_indexes: {
               type: "array",
               items: { type: "number" },
-              description: "Indexes into this candidate's FactSheet.sources. Minimum 2.",
+              description: "Indexes into the chosen candidate's FactSheet.sources. Minimum 2.",
             },
           },
           required: [
@@ -96,6 +94,7 @@ const REPORT_ALPHA_PICKS_TOOL = {
             "stop_loss",
             "catalyst",
             "conviction",
+            "position_size_pct",
             "bull_thesis",
             "bear_thesis",
             "source_indexes",
@@ -111,47 +110,45 @@ const REPORT_ALPHA_PICKS_TOOL = {
   },
 };
 
-export interface AlphaJudgeCandidate {
+export interface CIOCandidate {
   factSheet: FactSheet;
   pickerThesis: string;
+  lensScores: LensScore[];
 }
 
-export interface AlphaJudgeResult {
+export interface CIOResult {
   drafts: AlphaPickDraft[];
   costUSD: number;
   durationMs: number;
 }
 
-export async function runAlphaJudge(
-  candidates: AlphaJudgeCandidate[]
-): Promise<AlphaJudgeResult> {
-  const t0 = Date.now();
-  const anthropic = getAnthropic();
+function renderCandidate(c: CIOCandidate, i: number): string {
+  const { factSheet, pickerThesis, lensScores } = c;
+  const priceFactLines = factSheet.facts
+    .filter((f) => f.category === "price" || f.key === "price")
+    .map((f) => `  ${f.key}: ${f.value}${f.asOf ? ` (${f.asOf})` : ""} [src:${f.sourceIndex}]`)
+    .join("\n");
+  const otherFactLines = factSheet.facts
+    .filter((f) => f.category !== "price" && f.key !== "price")
+    .slice(0, 18)
+    .map((f) => `  ${f.key}: ${f.value}${f.note ? ` (${f.note})` : ""} [src:${f.sourceIndex}]`)
+    .join("\n");
+  const lensLines = lensScores
+    .map((l) => `  ${l.lens}: ${l.score}/10 (${l.signal}) — ${l.note}`)
+    .join("\n");
+  const sourceLines = factSheet.sources
+    .map((s, si) => `  [${si}] ${s.title} — ${s.url}`)
+    .join("\n");
 
-  // Build the user message: summarize each candidate's FactSheet in a compact
-  // way so the model has the cited facts it needs without burning tokens on
-  // the full JSON payload.
-  const candidateBlocks = candidates.map((c, i) => {
-    const { factSheet, pickerThesis } = c;
-    const priceFactLines = factSheet.facts
-      .filter((f) => f.category === "price" || f.key === "price")
-      .map((f) => `  ${f.key}: ${f.value}${f.asOf ? ` (${f.asOf})` : ""} [src:${f.sourceIndex}]`)
-      .join("\n");
-    const otherFactLines = factSheet.facts
-      .filter((f) => f.category !== "price" && f.key !== "price")
-      .slice(0, 20) // cap to avoid token explosion
-      .map((f) => `  ${f.key}: ${f.value}${f.note ? ` (${f.note})` : ""} [src:${f.sourceIndex}]`)
-      .join("\n");
-    const sourceLines = factSheet.sources
-      .map((s, si) => `  [${si}] ${s.title} — ${s.url}`)
-      .join("\n");
-
-    return `--- CANDIDATE ${i} ---
+  return `--- CANDIDATE ${i} ---
 Ticker: ${factSheet.ticker}
 Company: ${factSheet.companyName}
 Sector: ${factSheet.sector}
-Picker thesis: ${pickerThesis}
+Scout thesis: ${pickerThesis}
 Narrative: ${factSheet.narrative ?? "(none)"}
+
+6-Lens council scorecard:
+${lensLines || "  (none)"}
 
 Price facts:
 ${priceFactLines || "  (none)"}
@@ -161,25 +158,44 @@ ${otherFactLines || "  (none)"}
 
 Sources:
 ${sourceLines || "  (none)"}`;
-  });
+}
 
-  const userMessage = `Here are ${candidates.length} candidate(s) for today's Alpha Tracker pick. Select the single best one (or 0 if nothing clears the bar) and call report_alpha_picks.\n\n${candidateBlocks.join("\n\n")}`;
+function renderRegime(regime?: MacroRegime): string {
+  if (!regime) return "Macro regime: unavailable (treat as NEUTRAL).";
+  return `Macro regime: ${regime.stance}. ${regime.summary}
+Favored sectors: ${regime.favoredSectors.join(", ") || "(none)"}
+Avoid sectors: ${regime.avoidSectors.join(", ") || "(none)"}
+Key risks: ${regime.keyRisks.join("; ") || "(none)"}`;
+}
+
+export async function runCIO(
+  candidates: CIOCandidate[],
+  regime?: MacroRegime
+): Promise<CIOResult> {
+  const t0 = Date.now();
+  const anthropic = getAnthropic();
+
+  const userMessage = `Today's regime and ${candidates.length} candidate(s). Select the single best (or 0) and call report_cio_pick.
+
+${renderRegime(regime)}
+
+${candidates.map(renderCandidate).join("\n\n")}`;
 
   const response = await anthropic.messages.create({
-    model: MODELS.picker, // Sonnet — same budget as picker
+    model: MODELS.cio,
     max_tokens: 2000,
     system: SYSTEM,
-    tools: [REPORT_ALPHA_PICKS_TOOL],
+    tools: [REPORT_CIO_PICK_TOOL],
     tool_choice: { type: "any" as const },
     messages: [{ role: "user", content: userMessage }],
   });
 
   const toolUse = response.content.find(
-    (b) => b.type === "tool_use" && b.name === REPORT_ALPHA_PICKS_TOOL.name
+    (b) => b.type === "tool_use" && b.name === REPORT_CIO_PICK_TOOL.name
   );
   if (!toolUse || toolUse.type !== "tool_use") {
     throw new Error(
-      `[AlphaJudge] No report_alpha_picks call. stop_reason=${response.stop_reason}`
+      `[CIO] No report_cio_pick call. stop_reason=${response.stop_reason}`
     );
   }
 
@@ -193,6 +209,7 @@ ${sourceLines || "  (none)"}`;
       stop_loss: number;
       catalyst: string;
       conviction: number;
+      position_size_pct: number;
       bull_thesis: string;
       bear_thesis: string;
       source_indexes: number[];
@@ -203,31 +220,30 @@ ${sourceLines || "  (none)"}`;
   const drafts: AlphaPickDraft[] = [];
 
   for (const p of input.picks ?? []) {
-    // Skip picks the model flagged as below-bar.
     if (!p.conviction || p.conviction < 7) {
-      console.log(`[AlphaJudge] skipping ${p.ticker}: conviction=${p.conviction} < 7`);
+      console.log(`[CIO] skipping ${p.ticker}: conviction=${p.conviction} < 7`);
       continue;
     }
     if (!p.entry_price || p.entry_price <= 0) {
-      console.log(`[AlphaJudge] skipping ${p.ticker}: entry_price=${p.entry_price} invalid`);
+      console.log(`[CIO] skipping ${p.ticker}: entry_price=${p.entry_price} invalid`);
       continue;
     }
     if (p.target_price <= p.entry_price) {
-      console.log(`[AlphaJudge] skipping ${p.ticker}: target_price <= entry_price`);
+      console.log(`[CIO] skipping ${p.ticker}: target_price <= entry_price`);
       continue;
     }
     if (p.stop_loss >= p.entry_price) {
-      console.log(`[AlphaJudge] skipping ${p.ticker}: stop_loss >= entry_price`);
+      console.log(`[CIO] skipping ${p.ticker}: stop_loss >= entry_price`);
       continue;
     }
 
-    // Map source_indexes back to actual Source objects from the FactSheet.
     const candIdx = p.candidate_index ?? 0;
-    const factSheet = candidates[candIdx]?.factSheet;
-    if (!factSheet) {
-      console.log(`[AlphaJudge] skipping ${p.ticker}: bad candidate_index ${candIdx}`);
+    const candidate = candidates[candIdx];
+    if (!candidate) {
+      console.log(`[CIO] skipping ${p.ticker}: bad candidate_index ${candIdx}`);
       continue;
     }
+    const factSheet = candidate.factSheet;
 
     const resolvedSources: AlphaPickSource[] = [];
     const seenIdxs = new Set<number>();
@@ -244,9 +260,22 @@ ${sourceLines || "  (none)"}`;
     }
 
     if (resolvedSources.length < 2) {
-      console.log(`[AlphaJudge] skipping ${p.ticker}: only ${resolvedSources.length} valid source(s)`);
+      console.log(`[CIO] skipping ${p.ticker}: only ${resolvedSources.length} valid source(s)`);
       continue;
     }
+
+    // Reward:risk computed in code from the structured numbers — never the model's.
+    const reward = p.target_price - p.entry_price;
+    const risk = p.entry_price - p.stop_loss;
+    const riskReward = risk > 0 ? Math.round((reward / risk) * 100) / 100 : 0;
+
+    // Clamp position size to a sane book weight. If the model omitted it,
+    // fall back to a conviction-scaled default (7→3.5%, 10→5%).
+    const rawSize =
+      typeof p.position_size_pct === "number" && p.position_size_pct > 0
+        ? p.position_size_pct
+        : p.conviction * 0.5;
+    const positionSizePct = Math.max(1, Math.min(10, Math.round(rawSize * 10) / 10));
 
     drafts.push({
       ticker: p.ticker.trim().toUpperCase(),
@@ -259,17 +288,19 @@ ${sourceLines || "  (none)"}`;
       bullThesis: p.bull_thesis?.trim() ?? "",
       bearThesis: p.bear_thesis?.trim() ?? "",
       sources: resolvedSources,
+      positionSizePct,
+      riskReward,
+      lensScores: candidate.lensScores,
     });
 
-    // Hard cap: 1 pick per run.
-    if (drafts.length === 1) break;
+    if (drafts.length === 1) break; // hard cap: 1 pick per run
   }
 
   if (input.rationale) {
-    console.log(`[AlphaJudge] rationale: ${input.rationale}`);
+    console.log(`[CIO] rationale: ${input.rationale}`);
   }
 
-  const costUSD = estimateCallCostUSD(MODELS.picker, response.usage, 0);
+  const costUSD = estimateCallCostUSD(MODELS.cio, response.usage, 0);
 
   return { drafts, costUSD, durationMs: Date.now() - t0 };
 }

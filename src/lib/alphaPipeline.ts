@@ -2,9 +2,12 @@ import { getAlphaStore } from "./alphaStore";
 import { getAnthropic, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "./anthropic";
 import { runSweep } from "./agents/sweep";
 import { runPicker } from "./agents/picker";
-import { runAlphaJudge, type AlphaJudgeCandidate } from "./agents/alphaJudge";
+import { runMacroRegime } from "./agents/regime";
+import { runAlphaCouncil } from "./agents/alphaCouncil";
+import { runCIO, type CIOCandidate } from "./agents/alphaJudge";
 import { runSellCheck } from "./agents/sellCheck";
-import type { AlphaPick, AlphaRunResult } from "./alphaTypes";
+import type { FactSheet } from "./agents/types";
+import type { AlphaPick, AlphaRunResult, MacroRegime } from "./alphaTypes";
 
 // runId format: "YYYY-MM-DD-MON", "YYYY-MM-DD-TUE", etc.
 export function buildRunId(date: Date = new Date()): string {
@@ -61,19 +64,24 @@ async function fetchCurrentPrice(ticker: string): Promise<{ price: number; costU
   }
 }
 
-// Full alpha pipeline run.
+// Full alpha pipeline run — an institutional desk modeled on a real flow:
+//   macro regime gate → regime-aware scout → sweep → 6-lens council →
+//   CIO + portfolio constructor. (Order execution is deliberately omitted —
+//   this is a paper portfolio; we never place real trades.)
 //
 // Steps:
-// A. Fetch active positions.
+// A.  Fetch active positions.
 // A2. Update current prices of active positions (cheap: 1 search each).
-// B. Sell checks (parallel, Haiku + 1 web_search each).
-// C. Mark exited positions SOLD.
-// D. Idempotency guard — skip new picks if this run_id already has entries.
-// E. Filter tickers already in active positions.
-// F. Run picker to get candidates (Sonnet + web_searches).
-// G. Sweep candidates (parallel, Haiku + 2 web_searches each).
-// H. Alpha judge (Sonnet) — selects the single best pick.
-// I. Validate and write the pick.
+// B.  Sell checks (parallel, Haiku + 1 web_search each).
+// C.  Mark exited positions SOLD.
+// D.  Idempotency guard — skip new picks if this run_id already has entries.
+// E.  Macro regime (Haiku + web_search) — frames the hunt.
+// F.  Regime-aware scout / picker (Sonnet + web_searches).
+// G.  Filter tickers already in active positions; take top 2.
+// H.  Sweep candidates (parallel, Haiku + web_searches each) → FactSheets.
+// I.  6-lens council on each candidate (parallel, Haiku) → scorecards.
+// J.  CIO + portfolio constructor (Sonnet) — selects + sizes the single pick.
+// K.  Validate and write the pick.
 export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   const t0 = Date.now();
   const now = new Date();
@@ -163,10 +171,25 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     console.error("[alphaPipeline] idempotency check threw:", err instanceof Error ? err.message : err);
   }
 
-  // === E. Run picker ===
+  // === E. Macro regime (non-fatal) ===
+  let regime: MacroRegime | undefined;
+  try {
+    regime = await runMacroRegime();
+    totalCost += regime.costUSD;
+    console.log(
+      `[alphaPipeline] regime=${regime.stance} | favored=[${regime.favoredSectors.join(", ")}] | cost=$${regime.costUSD.toFixed(4)}`
+    );
+  } catch (err) {
+    const msg = `regime read failed: ${err instanceof Error ? err.message : String(err)}`;
+    console.error("[alphaPipeline]", msg);
+    errors.push(msg);
+    regime = undefined; // continue NEUTRAL — regime is advisory, not a hard gate
+  }
+
+  // === F. Regime-aware scout / picker ===
   let pickerResult;
   try {
-    pickerResult = await runPicker();
+    pickerResult = await runPicker(regime);
     totalCost += pickerResult.costUSD;
     console.log(`[alphaPipeline] picker returned ${pickerResult.picks.length} candidate(s)`);
   } catch (err) {
@@ -181,7 +204,7 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === F. Filter already-active tickers ===
+  // === G. Filter already-active tickers ===
   const stillActiveTickers = new Set(
     activePicks
       .filter((p) => p.status === "ACTIVE")
@@ -196,12 +219,12 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === G. Sweep candidates (parallel) ===
+  // === H. Sweep candidates (parallel) ===
   const sweepResults = await Promise.allSettled(
     topCandidates.map((p) => runSweep(p.ticker))
   );
 
-  const validCandidates: AlphaJudgeCandidate[] = [];
+  const sweptCandidates: Array<{ factSheet: FactSheet; pickerThesis: string }> = [];
   for (let i = 0; i < sweepResults.length; i++) {
     const res = sweepResults[i];
     const candidate = topCandidates[i];
@@ -212,34 +235,56 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
       continue;
     }
     totalCost += res.value.costUSD;
-    validCandidates.push({
+    sweptCandidates.push({
       factSheet: res.value.factSheet,
       pickerThesis: candidate.thesis,
     });
   }
 
-  if (validCandidates.length === 0) {
+  if (sweptCandidates.length === 0) {
     const msg = "all sweeps failed — no valid candidates";
     console.error("[alphaPipeline]", msg);
     errors.push(msg);
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === H. Alpha judge ===
-  let judgeResult;
+  // === I. 6-lens council on each candidate (parallel) ===
+  const councilResults = await Promise.allSettled(
+    sweptCandidates.map((c) => runAlphaCouncil(c.factSheet))
+  );
+  const validCandidates: CIOCandidate[] = sweptCandidates.map((c, i) => {
+    const res = councilResults[i];
+    if (res.status === "fulfilled") {
+      totalCost += res.value.costUSD;
+      return { ...c, lensScores: res.value.lensScores };
+    }
+    const msg = `council failed for ${c.factSheet.ticker}: ${res.reason}`;
+    console.error("[alphaPipeline]", msg);
+    errors.push(msg);
+    // Neutral scorecard so the CIO can still evaluate the name.
+    return {
+      ...c,
+      lensScores: (["Fundamental", "Valuation", "Catalyst", "Risk", "Technical", "Sentiment"] as const).map(
+        (lens) => ({ lens, score: 5, signal: "neutral" as const, note: "Council unavailable." })
+      ),
+    };
+  });
+
+  // === J. CIO + portfolio constructor ===
+  let cioResult;
   try {
-    judgeResult = await runAlphaJudge(validCandidates);
-    totalCost += judgeResult.costUSD;
-    console.log(`[alphaPipeline] judge selected ${judgeResult.drafts.length} pick(s)`);
+    cioResult = await runCIO(validCandidates, regime);
+    totalCost += cioResult.costUSD;
+    console.log(`[alphaPipeline] CIO selected ${cioResult.drafts.length} pick(s)`);
   } catch (err) {
-    const msg = `alpha judge failed: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `CIO failed: ${err instanceof Error ? err.message : String(err)}`;
     console.error("[alphaPipeline]", msg);
     errors.push(msg);
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === I. Validate and write ===
-  for (const draft of judgeResult.drafts) {
+  // === K. Validate and write ===
+  for (const draft of cioResult.drafts) {
     if (draft.sources.length < 2) {
       const msg = `skipping ${draft.ticker}: only ${draft.sources.length} source(s) — need ≥2`;
       console.error("[alphaPipeline]", msg);
@@ -279,12 +324,19 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
       exit_date: null,
       exit_price: null,
       exit_reason: null,
+      position_size_pct: draft.positionSizePct,
+      risk_reward: draft.riskReward,
+      lens_scores: draft.lensScores,
+      regime_stance: regime?.stance ?? null,
+      regime_summary: regime?.summary ?? null,
     };
 
     try {
       await store.insert(row);
       new_picks.push({ ticker: draft.ticker });
-      console.log(`[alphaPipeline] saved pick: ${draft.ticker} @$${draft.entryPrice}`);
+      console.log(
+        `[alphaPipeline] saved pick: ${draft.ticker} @$${draft.entryPrice} | size ${draft.positionSizePct}% | R:R ${draft.riskReward}:1 | conviction ${draft.conviction}/10`
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[alphaPipeline] insert failed:", msg);
@@ -292,8 +344,11 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
   }
 
-  if (totalCost > 0.45) {
-    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $0.45`);
+  // Richer pipeline (regime + council) than the original judge-only flow, so
+  // the warning threshold is a touch higher. A fresh pick run is typically
+  // ~$0.15-0.25; price updates + sell checks scale with active positions.
+  if (totalCost > 0.6) {
+    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $0.60`);
   }
 
   return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };

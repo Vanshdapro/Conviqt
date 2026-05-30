@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { AlphaPick, AlphaPickSource } from "@/lib/alphaTypes";
+import type {
+  AlphaPick,
+  AlphaPickSource,
+  LensScore,
+  RegimeStance,
+} from "@/lib/alphaTypes";
 
 // ── Types from the APIs ─────────────────────────────────────────────────────
 
@@ -366,8 +371,19 @@ function LockScreen({
 // ── Active picks ──────────────────────────────────────────────────────────────
 
 function ActivePicks({ picks }: { picks: AlphaPick[] }) {
+  // The regime is stamped on each pick at entry. Surface the newest one that
+  // carries a regime read as the desk's current macro framing.
+  const regimePick = picks.find((p) => p.regime_stance);
+
   return (
     <section style={{ marginBottom: 64 }}>
+      {regimePick?.regime_stance && (
+        <RegimeBanner
+          stance={regimePick.regime_stance}
+          summary={regimePick.regime_summary ?? null}
+        />
+      )}
+
       <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(232,237,248,0.4)", marginBottom: 20 }}>
         Active ({picks.length})
       </div>
@@ -468,6 +484,78 @@ function Disclaimer() {
       Paper-trading exercise for educational purposes only. Nothing published here constitutes investment advice.
       Every number has a source URL. The full track record, wins and losses, is published without omission.
     </p>
+  );
+}
+
+// ── Regime banner ────────────────────────────────────────────────────────────
+
+const REGIME_THEME: Record<RegimeStance, { label: string; color: string; bg: string; border: string }> = {
+  RISK_ON: { label: "Risk-On", color: "#34d399", bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.28)" },
+  NEUTRAL: { label: "Neutral", color: "#6eb6ff", bg: "rgba(79,135,247,0.08)", border: "rgba(79,135,247,0.28)" },
+  RISK_OFF: { label: "Risk-Off", color: "#f87171", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.28)" },
+};
+
+function RegimeBanner({ stance, summary }: { stance: RegimeStance; summary: string | null }) {
+  const t = REGIME_THEME[stance];
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      background: t.bg,
+      border: `1px solid ${t.border}`,
+      borderRadius: 12,
+      padding: "14px 18px",
+      marginBottom: 24,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.color }} />
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: t.color }}>
+          {t.label}
+        </span>
+      </div>
+      <div style={{ width: 1, alignSelf: "stretch", background: "rgba(232,237,248,0.1)" }} />
+      <div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(232,237,248,0.35)", marginBottom: 3 }}>
+          Macro regime at entry
+        </div>
+        <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 13, color: "rgba(232,237,248,0.75)", margin: 0, lineHeight: 1.55 }}>
+          {summary || "Regime read recorded for this publication."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── 6-lens council scorecard ───────────────────────────────────────────────────
+
+const LENS_SIGNAL_COLOR: Record<string, string> = {
+  bullish: "#34d399",
+  neutral: "rgba(232,237,248,0.5)",
+  bearish: "#f87171",
+};
+
+function LensScorecard({ lenses }: { lenses: LensScore[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {lenses.map((l) => {
+        const color = LENS_SIGNAL_COLOR[l.signal] ?? "rgba(232,237,248,0.5)";
+        const pct = Math.max(0, Math.min(10, l.score)) * 10;
+        return (
+          <div key={l.lens} title={l.note} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "rgba(232,237,248,0.55)", width: 78, flexShrink: 0 }}>
+              {l.lens}
+            </span>
+            <div style={{ flex: 1, height: 5, borderRadius: 3, background: "rgba(232,237,248,0.06)", overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, background: color, opacity: 0.7 }} />
+            </div>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, color, width: 30, textAlign: "right", flexShrink: 0 }}>
+              {l.score.toFixed(1)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -621,9 +709,35 @@ function PickCard({ pick, index = 0 }: { pick: AlphaPick; index?: number }) {
         </div>
       </div>
 
+      {(pick.position_size_pct != null || pick.risk_reward != null) && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>
+          <div style={{ padding: "12px 20px", borderRight: "1px solid rgba(232,237,248,0.05)" }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.35)", textTransform: "uppercase", marginBottom: 5 }}>Book Weight</div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, color: "#6eb6ff", fontWeight: 600 }}>
+              {pick.position_size_pct != null ? `${pick.position_size_pct}%` : "—"}
+            </div>
+          </div>
+          <div style={{ padding: "12px 20px" }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.35)", textTransform: "uppercase", marginBottom: 5 }}>Reward : Risk</div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, color: pick.risk_reward != null && pick.risk_reward >= 2 ? "#22c55e" : "rgba(232,237,248,0.7)", fontWeight: 600 }}>
+              {pick.risk_reward != null ? `${pick.risk_reward.toFixed(1)} : 1` : "—"}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>
         <ConvictionBar conviction={pick.conviction} />
       </div>
+
+      {pick.lens_scores && pick.lens_scores.length > 0 && (
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(110,182,255,0.7)", textTransform: "uppercase", marginBottom: 10 }}>
+            Council scorecard
+          </div>
+          <LensScorecard lenses={pick.lens_scores} />
+        </div>
+      )}
 
       <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(34,197,94,0.6)", textTransform: "uppercase", marginBottom: 6 }}>
