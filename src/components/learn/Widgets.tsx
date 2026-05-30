@@ -10,11 +10,17 @@
 import { useMemo, useState } from "react";
 import type { LessonWidget, WidgetType } from "@/lib/learn/types";
 
-const ACCENT = "#34d399";
+const ACCENT = "#4f87f7"; // Conviqt electric blue
+const BULL = "#22c55e";
+const HOLD = "#f59e0b";
+const BEAR = "#ef4444";
 const INK = "#e8edf8";
-const MUTED = "rgba(232,237,248,0.55)";
-const CARD = "rgba(232,237,248,0.04)";
-const BORDER = "1px solid rgba(232,237,248,0.1)";
+const MUTED = "#7a92b8";
+const CARD = "rgba(255,255,255,0.022)";
+const BORDER = "1px solid rgba(232,237,248,0.08)";
+const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
+const SERIF = "var(--font-serif), 'Source Serif 4', Georgia, serif";
+const DISPLAY = "var(--font-display), 'Playfair Display', Georgia, serif";
 
 function fmtUSD(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -163,17 +169,17 @@ function BudgetSplitter({ p }: { p: Record<string, number> }) {
 
   const seg = (pct: number, color: string, label: string) => ({ pct, color, label });
   const segments = [
-    seg(needs, "#60a5fa", "Needs"),
-    seg(wants, "#f59e0b", "Wants"),
-    seg(savings, ACCENT, "Save / Invest"),
+    seg(needs, ACCENT, "Needs"),
+    seg(wants, HOLD, "Wants"),
+    seg(savings, BULL, "Save / Invest"),
   ];
 
   return (
     <Shell>
       <div>
-        <Slider label="Monthly money in" value={income} min={20} max={3000} step={10} onChange={setIncome} format={fmtUSD} accent="#60a5fa" />
-        <Slider label="Needs %" value={needs} min={0} max={100} step={1} onChange={setNeeds} format={(v) => `${v}%`} accent="#60a5fa" />
-        <Slider label="Wants %" value={wants} min={0} max={100} step={1} onChange={setWants} format={(v) => `${v}%`} accent="#f59e0b" />
+        <Slider label="Monthly money in" value={income} min={20} max={3000} step={10} onChange={setIncome} format={fmtUSD} accent={ACCENT} />
+        <Slider label="Needs %" value={needs} min={0} max={100} step={1} onChange={setNeeds} format={(v) => `${v}%`} accent={ACCENT} />
+        <Slider label="Wants %" value={wants} min={0} max={100} step={1} onChange={setWants} format={(v) => `${v}%`} accent={HOLD} />
         {over && (
           <div style={{ color: "#f87171", fontSize: 12.5, marginTop: -6 }}>
             That&apos;s over 100% — nothing left to save. Pull something back.
@@ -212,7 +218,7 @@ function DiversificationMeter({ p }: { p: Record<string, number> }) {
   const single = 42, floor = 14;
   const vol = floor + (single - floor) / Math.sqrt(count);
   const pct = (vol - floor) / (single - floor); // 1 = wild, 0 = calm
-  const color = pct > 0.6 ? "#f87171" : pct > 0.3 ? "#f59e0b" : ACCENT;
+  const color = pct > 0.6 ? BEAR : pct > 0.3 ? HOLD : BULL;
   const label = pct > 0.6 ? "Wild ride" : pct > 0.3 ? "Bumpy" : "Steady";
 
   return (
@@ -347,22 +353,22 @@ export function LessonWidgetRenderer({ widget }: { widget: LessonWidget }) {
   return (
     <section
       style={{
-        background: "linear-gradient(180deg, rgba(52,211,153,0.05), rgba(232,237,248,0.02))",
-        border: "1px solid rgba(52,211,153,0.18)",
-        borderRadius: 18,
+        background: "linear-gradient(180deg, rgba(79,135,247,0.05), rgba(255,255,255,0.012))",
+        border: "1px solid rgba(79,135,247,0.2)",
+        borderRadius: 16,
         padding: "26px 28px",
         margin: "28px 0",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-        <span style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT }}>
-          Playground
+        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT }}>
+          Interactive
         </span>
       </div>
-      <h3 style={{ margin: "2px 0 4px", fontSize: 19, color: INK, fontFamily: "var(--font-display), Georgia, serif" }}>
+      <h3 style={{ margin: "2px 0 4px", fontSize: 20, fontWeight: 500, color: INK, fontFamily: DISPLAY, letterSpacing: "-0.01em" }}>
         {widget.title}
       </h3>
-      <p style={{ margin: "0 0 20px", fontSize: 13.5, color: MUTED }}>{widget.prompt}</p>
+      <p style={{ fontFamily: SERIF, margin: "0 0 20px", fontSize: 14, color: MUTED }}>{widget.prompt}</p>
       <Cmp p={widget.params} />
     </section>
   );

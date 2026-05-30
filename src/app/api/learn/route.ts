@@ -16,13 +16,13 @@
 // authoring cost — this keeps us inside the per-request cost ceiling (CLAUDE.md).
 
 import { NextResponse } from "next/server";
-import { getVerifiedUser } from "@/lib/auth";
 import {
   CREDITS_PER_INTENT,
   deductCredits,
   addCredits,
   grantFreeCreditsIfDue,
 } from "@/lib/credits";
+import { getLearnUser } from "@/lib/learn/access";
 import { findLesson } from "@/lib/learn/curriculum";
 import { authorLesson, readCachedLesson } from "@/lib/learn/author";
 
@@ -32,7 +32,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const user = await getVerifiedUser();
+    const user = await getLearnUser();
     if (!user) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
@@ -48,6 +48,37 @@ export async function POST(req: Request) {
     const found = findLesson(lessonId);
     if (!found) {
       return NextResponse.json({ error: "unknown_lesson" }, { status: 404 });
+    }
+
+    // Guest previewers (open access) don't pay credits — author/replay for free
+    // so the whole funnel is clickable locally without an account.
+    if (user.guest) {
+      const cachedGuest = await readCachedLesson(lessonId);
+      if (cachedGuest) {
+        return NextResponse.json({
+          module: cachedGuest,
+          cached: true,
+          cost: 0,
+          remaining: -1,
+          guest: true,
+        });
+      }
+      try {
+        const { module } = await authorLesson(found.lesson, found.track);
+        return NextResponse.json({
+          module,
+          cached: false,
+          cost: 0,
+          remaining: -1,
+          guest: true,
+        });
+      } catch (authorErr) {
+        console.error(
+          "[learn] guest authoring failed:",
+          authorErr instanceof Error ? authorErr.message : authorErr,
+        );
+        return NextResponse.json({ error: "author_failed" }, { status: 502 });
+      }
     }
 
     // Make sure free-tier credits exist before we try to charge.

@@ -8,7 +8,7 @@
 // user can only ever read/write their own progress.
 
 import { NextResponse } from "next/server";
-import { getVerifiedUser } from "@/lib/auth";
+import { getLearnUser } from "@/lib/learn/access";
 import { findLesson } from "@/lib/learn/curriculum";
 import { getLearnStats, recordCompletion } from "@/lib/learn/store";
 
@@ -16,17 +16,17 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const user = await getVerifiedUser();
+  const user = await getLearnUser();
   if (!user) {
     return NextResponse.json({ error: "auth_required" }, { status: 401 });
   }
   const stats = await getLearnStats(user.email);
-  return NextResponse.json(stats);
+  return NextResponse.json({ ...stats, guest: user.guest });
 }
 
 export async function POST(req: Request) {
   try {
-    const user = await getVerifiedUser();
+    const user = await getLearnUser();
     if (!user) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }

@@ -17,17 +17,27 @@ interface ProgressRow {
   completed_at: string;
 }
 
-// Reads all of a user's completed lessons and derives stats + streak.
-export async function getLearnStats(email: string): Promise<LearnStats> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("learn_progress")
-    .select("lesson_id, xp_awarded, best_quiz_pct, completed_at")
-    .eq("email", email.toLowerCase().trim());
+const EMPTY_STATS: LearnStats = { xp: 0, level: 1, streakDays: 0, completedLessonIds: [] };
 
-  if (error) {
-    console.error("[learn] getLearnStats error:", error.message);
-    return { xp: 0, level: 1, streakDays: 0, completedLessonIds: [] };
+// Reads all of a user's completed lessons and derives stats + streak.
+// Degrades to empty stats (rather than throwing) if the store is unreachable —
+// e.g. local preview without a service-role key — so the dashboard still loads.
+export async function getLearnStats(email: string): Promise<LearnStats> {
+  let data: ProgressRow[] | null = null;
+  try {
+    const supabase = getSupabaseAdmin();
+    const res = await supabase
+      .from("learn_progress")
+      .select("lesson_id, xp_awarded, best_quiz_pct, completed_at")
+      .eq("email", email.toLowerCase().trim());
+    if (res.error) {
+      console.error("[learn] getLearnStats error:", res.error.message);
+      return EMPTY_STATS;
+    }
+    data = res.data as ProgressRow[];
+  } catch (err) {
+    console.error("[learn] getLearnStats unavailable:", err instanceof Error ? err.message : err);
+    return EMPTY_STATS;
   }
 
   const rows = (data ?? []) as ProgressRow[];
@@ -47,9 +57,18 @@ export async function recordCompletion(
   xp: number,
   quizPct: number,
 ): Promise<{ awardedXp: number; stats: LearnStats }> {
-  const supabase = getSupabaseAdmin();
   const normalized = email.toLowerCase().trim();
   const pct = Math.max(0, Math.min(100, Math.round(quizPct)));
+
+  let supabase: ReturnType<typeof getSupabaseAdmin>;
+  try {
+    supabase = getSupabaseAdmin();
+  } catch (err) {
+    // Store unreachable (e.g. local preview without a service-role key) —
+    // degrade rather than 500 so the quiz still gives feedback.
+    console.error("[learn] recordCompletion unavailable:", err instanceof Error ? err.message : err);
+    return { awardedXp: 0, stats: EMPTY_STATS };
+  }
 
   const { data: existing } = await supabase
     .from("learn_progress")

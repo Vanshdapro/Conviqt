@@ -3,28 +3,38 @@
 // Conviqt Learn — renders one authored lesson module: hero infographic, concept
 // cards, key terms, the interactive playground, a real-world example, the quiz,
 // and the bridges into Chat + Alpha Tracker. Completing the quiz records XP.
+// Styled to Conviqt's institutional system — mono electric-blue accent, no emoji.
 
 import { useState } from "react";
 import Link from "next/link";
 import type { LessonModule, LearnStats } from "@/lib/learn/types";
 import { LessonWidgetRenderer } from "./Widgets";
 import { Quiz } from "./Quiz";
+import { TrackIcon, CheckIcon, ArrowRightIcon } from "./icons";
 
 const INK = "#e8edf8";
-const MUTED = "rgba(232,237,248,0.55)";
-const CARD = "rgba(232,237,248,0.04)";
-const BORDER = "1px solid rgba(232,237,248,0.1)";
+const INK_SOFT = "#c4d0e6";
+const MUTED = "#7a92b8";
+const FAINT = "#46597d";
+const ACCENT = "#4f87f7";
+const CARD = "rgba(255,255,255,0.022)";
+const CARD_BORDER = "rgba(232,237,248,0.08)";
+const RULE = "#16243f";
+const BORDER = `1px solid ${CARD_BORDER}`;
+const SERIF = "var(--font-serif), 'Source Serif 4', Georgia, serif";
+const DISPLAY = "var(--font-display), 'Playfair Display', Georgia, serif";
+const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
 
 export function LessonView({
   module,
+  trackId,
   trackName,
-  accent,
   onBack,
   onCompleted,
 }: {
   module: LessonModule;
+  trackId: string;
   trackName: string;
-  accent: string;
   onBack: () => void;
   onCompleted: (stats: LearnStats) => void;
 }) {
@@ -54,47 +64,66 @@ export function LessonView({
 
   return (
     <div style={{ maxWidth: 880, margin: "0 auto" }}>
+      <style>{`
+        .lrn-back { transition: color .15s ease, border-color .15s ease; }
+        .lrn-back:hover { color: ${INK}; border-color: rgba(79,135,247,.4); }
+        .lrn-bridge { transition: transform .15s ease, box-shadow .2s ease; }
+        .lrn-bridge:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(79,135,247,.4); }
+        @media (prefers-reduced-motion: reduce) { .lrn-bridge:hover { transform: none; } }
+      `}</style>
+
       <button
+        className="lrn-back"
         onClick={onBack}
         style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 7,
           background: "none",
           border: BORDER,
           color: MUTED,
-          borderRadius: 100,
-          padding: "7px 16px",
-          fontSize: 12.5,
+          borderRadius: 8,
+          padding: "7px 15px",
+          fontFamily: MONO,
+          fontSize: 12,
+          letterSpacing: "0.04em",
           cursor: "pointer",
-          marginBottom: 24,
+          marginBottom: 26,
         }}
       >
-        ← All lessons
+        <span style={{ transform: "rotate(180deg)", display: "inline-flex" }}><ArrowRightIcon size={14} /></span>
+        All lessons
       </button>
 
-      <div style={{ marginBottom: 6, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: accent }}>
-        {trackName}
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, color: ACCENT }}>
+        <TrackIcon trackId={trackId} size={16} />
+        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase" }}>
+          {trackName}
+        </span>
       </div>
       <h1
         style={{
-          fontFamily: "var(--font-display), Georgia, serif",
-          fontWeight: 400,
-          fontSize: 36,
-          lineHeight: 1.1,
+          fontFamily: DISPLAY,
+          fontWeight: 500,
+          fontSize: 38,
+          lineHeight: 1.08,
+          letterSpacing: "-0.01em",
           color: INK,
-          margin: "0 0 10px",
+          margin: "0 0 12px",
         }}
       >
         {module.title}
       </h1>
-      <p style={{ fontSize: 17, color: MUTED, margin: "0 0 28px", lineHeight: 1.5 }}>{module.subtitle}</p>
+      <p style={{ fontFamily: SERIF, fontSize: 17.5, color: INK_SOFT, margin: "0 0 30px", lineHeight: 1.55 }}>{module.subtitle}</p>
 
       {module.heroSvg && (
         <div
           style={{
             background: CARD,
             border: BORDER,
-            borderRadius: 18,
-            padding: 18,
-            marginBottom: 30,
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 32,
           }}
           dangerouslySetInnerHTML={{ __html: module.heroSvg }}
         />
@@ -103,9 +132,28 @@ export function LessonView({
       {/* Concept cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 8 }}>
         {module.conceptCards.map((c, i) => (
-          <div key={i} style={{ background: CARD, border: BORDER, borderRadius: 14, padding: "18px 18px" }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{c.emoji}</div>
-            <h3 style={{ margin: "0 0 6px", fontSize: 15.5, color: INK }}>{c.heading}</h3>
+          <div key={i} style={{ background: CARD, border: BORDER, borderRadius: 13, padding: "18px 18px" }}>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                color: ACCENT,
+                marginBottom: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 26,
+                height: 26,
+                borderRadius: 7,
+                background: "rgba(79,135,247,0.08)",
+                border: "1px solid rgba(79,135,247,0.2)",
+              }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </div>
+            <h3 style={{ fontFamily: SERIF, margin: "0 0 6px", fontSize: 15.5, fontWeight: 600, color: INK }}>{c.heading}</h3>
             <p style={{ margin: 0, fontSize: 13.5, color: MUTED, lineHeight: 1.55 }}>{c.body}</p>
           </div>
         ))}
@@ -118,36 +166,39 @@ export function LessonView({
       {module.realWorldExample.scenario && (
         <section
           style={{
-            background: "rgba(96,165,250,0.06)",
-            border: "1px solid rgba(96,165,250,0.2)",
-            borderRadius: 16,
+            background: "rgba(79,135,247,0.05)",
+            border: "1px solid rgba(79,135,247,0.2)",
+            borderLeft: `2px solid ${ACCENT}`,
+            borderRadius: 14,
             padding: "22px 24px",
             margin: "28px 0",
           }}
         >
-          <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "#60a5fa", marginBottom: 10 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT, marginBottom: 11 }}>
             In the real world{ticker ? ` · ${ticker}` : ""}
           </div>
-          <p style={{ margin: "0 0 10px", fontSize: 15, color: INK, lineHeight: 1.6 }}>
+          <p style={{ fontFamily: SERIF, margin: "0 0 10px", fontSize: 15.5, color: INK, lineHeight: 1.6 }}>
             {module.realWorldExample.scenario}
           </p>
           <p style={{ margin: 0, fontSize: 14, color: MUTED, lineHeight: 1.55 }}>
-            <strong style={{ color: "#60a5fa" }}>Takeaway:</strong> {module.realWorldExample.lesson}
+            <strong style={{ color: ACCENT, fontWeight: 600 }}>Takeaway:</strong> {module.realWorldExample.lesson}
           </p>
           {ticker && (
             <Link
               href={`/chat?q=${encodeURIComponent(`analyze ${ticker}`)}`}
               style={{
-                display: "inline-block",
-                marginTop: 14,
-                fontSize: 12.5,
-                color: "#60a5fa",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 15,
+                fontFamily: MONO,
+                fontSize: 12,
+                color: ACCENT,
                 textDecoration: "none",
-                borderBottom: "1px solid rgba(96,165,250,0.4)",
-                paddingBottom: 1,
               }}
             >
-              See how the Council analyzes {ticker} →
+              See how the Council analyzes {ticker}
+              <ArrowRightIcon size={13} />
             </Link>
           )}
         </section>
@@ -155,17 +206,17 @@ export function LessonView({
 
       {/* Key terms */}
       {module.keyTerms.length > 0 && (
-        <section style={{ margin: "28px 0" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, marginBottom: 14 }}>
+        <section style={{ margin: "30px 0" }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, marginBottom: 16 }}>
             Words to know
           </div>
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: 1, background: RULE, border: `1px solid ${RULE}`, borderRadius: 12, overflow: "hidden" }}>
             {module.keyTerms.map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
-                <span style={{ fontFamily: "monospace", fontSize: 13.5, color: accent, minWidth: 130, fontWeight: 600 }}>
+              <div key={i} style={{ display: "flex", gap: 16, alignItems: "baseline", background: "#050d1a", padding: "13px 18px", flexWrap: "wrap" }}>
+                <span style={{ fontFamily: MONO, fontSize: 13, color: ACCENT, minWidth: 140, fontWeight: 600 }}>
                   {t.term}
                 </span>
-                <span style={{ fontSize: 14, color: MUTED, lineHeight: 1.5 }}>{t.definition}</span>
+                <span style={{ fontSize: 14, color: INK_SOFT, lineHeight: 1.5, flex: 1 }}>{t.definition}</span>
               </div>
             ))}
           </div>
@@ -175,21 +226,23 @@ export function LessonView({
       {/* Quiz */}
       <Quiz questions={module.quiz} onComplete={handleQuizComplete} />
 
-      {/* XP celebration */}
+      {/* XP confirmation */}
       {result && (
         <div
           style={{
-            background: "linear-gradient(135deg, rgba(52,211,153,0.14), rgba(96,165,250,0.1))",
-            border: "1px solid rgba(52,211,153,0.35)",
-            borderRadius: 18,
+            background: "rgba(79,135,247,0.07)",
+            border: "1px solid rgba(79,135,247,0.3)",
+            borderRadius: 16,
             padding: "24px 26px",
             margin: "20px 0 8px",
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: 30, marginBottom: 6 }}>{result.pct >= 50 ? "🎉" : "💪"}</div>
-          <div style={{ fontFamily: "var(--font-display), Georgia, serif", fontSize: 22, color: INK, marginBottom: 4 }}>
-            {result.awardedXp > 0 ? `+${result.awardedXp} XP earned!` : "Lesson revisited"}
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 999, background: "rgba(79,135,247,0.16)", color: ACCENT, marginBottom: 12 }}>
+            <CheckIcon size={24} />
+          </div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 23, fontWeight: 500, color: INK, marginBottom: 5 }}>
+            {result.awardedXp > 0 ? `+${result.awardedXp} XP earned` : "Lesson revisited"}
           </div>
           <p style={{ margin: 0, fontSize: 13.5, color: MUTED }}>
             You scored {result.pct}%.{" "}
@@ -203,7 +256,7 @@ export function LessonView({
         style={{
           background: CARD,
           border: BORDER,
-          borderRadius: 16,
+          borderRadius: 14,
           padding: "22px 24px",
           margin: "24px 0 8px",
           display: "flex",
@@ -214,39 +267,46 @@ export function LessonView({
         }}
       >
         <div>
-          <div style={{ fontSize: 15.5, color: INK, marginBottom: 4 }}>Ready to use it for real?</div>
+          <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, color: INK, marginBottom: 4 }}>Ready to use it for real?</div>
           <p style={{ margin: 0, fontSize: 13.5, color: MUTED }}>
             Put this lesson to work on a live stock with the AI Council.
           </p>
         </div>
         <Link
+          className="lrn-bridge"
           href={chatHref}
           style={{
-            background: accent,
-            color: "#04140d",
-            borderRadius: 100,
-            padding: "12px 26px",
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: "0.03em",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: ACCENT,
+            color: "#04101f",
+            borderRadius: 8,
+            padding: "12px 24px",
+            fontFamily: SERIF,
+            fontSize: 13.5,
+            fontWeight: 600,
+            letterSpacing: "0.01em",
             textDecoration: "none",
             whiteSpace: "nowrap",
+            boxShadow: "0 4px 18px rgba(79,135,247,0.28)",
           }}
         >
-          {module.tryInChat.label} →
+          {module.tryInChat.label}
+          <ArrowRightIcon size={15} />
         </Link>
       </section>
 
       {/* Takeaways */}
       {module.takeaways.length > 0 && (
-        <section style={{ margin: "28px 0 12px" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, marginBottom: 14 }}>
+        <section style={{ margin: "30px 0 12px" }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, marginBottom: 16 }}>
             Remember this
           </div>
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 12 }}>
             {module.takeaways.map((t, i) => (
-              <li key={i} style={{ display: "flex", gap: 10, fontSize: 14.5, color: INK, lineHeight: 1.5 }}>
-                <span style={{ color: accent }}>◆</span>
+              <li key={i} style={{ display: "flex", gap: 12, fontFamily: SERIF, fontSize: 15, color: INK_SOFT, lineHeight: 1.55, alignItems: "flex-start" }}>
+                <span style={{ color: ACCENT, marginTop: 6, flexShrink: 0, width: 6, height: 6, borderRadius: 2, background: ACCENT, transform: "rotate(45deg)" }} />
                 {t}
               </li>
             ))}

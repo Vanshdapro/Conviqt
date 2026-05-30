@@ -6,9 +6,14 @@
 import { useState } from "react";
 import type { QuizQuestion } from "@/lib/learn/types";
 
-const ACCENT = "#34d399";
+const ACCENT = "#4f87f7"; // Conviqt electric blue
+const BULL = "#22c55e";
+const BEAR = "#ef4444";
+const HOLD = "#f59e0b";
 const INK = "#e8edf8";
-const MUTED = "rgba(232,237,248,0.55)";
+const MUTED = "#7a92b8";
+const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
+const SERIF = "var(--font-serif), 'Source Serif 4', Georgia, serif";
 
 export function Quiz({
   questions,
@@ -42,11 +47,11 @@ export function Quiz({
   return (
     <section style={{ margin: "32px 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <span style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT }}>
+        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT }}>
           Check yourself
         </span>
         {submitted && (
-          <span style={{ fontFamily: "monospace", fontSize: 13, color: pct >= 50 ? ACCENT : "#f59e0b" }}>
+          <span style={{ fontFamily: MONO, fontSize: 13, color: pct >= 50 ? BULL : HOLD }}>
             {correct}/{questions.length} correct
           </span>
         )}
@@ -54,29 +59,29 @@ export function Quiz({
 
       {questions.map((q, qi) => (
         <div key={qi} style={{ marginBottom: 22 }}>
-          <p style={{ margin: "0 0 12px", fontSize: 15.5, color: INK, fontWeight: 500 }}>
+          <p style={{ fontFamily: SERIF, margin: "0 0 12px", fontSize: 16, color: INK, fontWeight: 600 }}>
             {qi + 1}. {q.question}
           </p>
           <div style={{ display: "grid", gap: 8 }}>
             {q.options.map((opt, oi) => {
               const isPicked = picked[qi] === oi;
               const isAnswer = q.answerIndex === oi;
-              let bg = "rgba(232,237,248,0.04)";
+              let bg = "rgba(255,255,255,0.022)";
               let border = "1px solid rgba(232,237,248,0.1)";
               let color = INK;
               if (submitted) {
                 if (isAnswer) {
-                  bg = "rgba(52,211,153,0.12)";
-                  border = "1px solid rgba(52,211,153,0.5)";
-                  color = ACCENT;
+                  bg = "rgba(34,197,94,0.1)";
+                  border = "1px solid rgba(34,197,94,0.5)";
+                  color = BULL;
                 } else if (isPicked) {
-                  bg = "rgba(248,113,113,0.1)";
-                  border = "1px solid rgba(248,113,113,0.45)";
-                  color = "#f87171";
+                  bg = "rgba(239,68,68,0.09)";
+                  border = "1px solid rgba(239,68,68,0.45)";
+                  color = BEAR;
                 }
               } else if (isPicked) {
-                bg = "rgba(96,165,250,0.12)";
-                border = "1px solid rgba(96,165,250,0.5)";
+                bg = "rgba(79,135,247,0.12)";
+                border = "1px solid rgba(79,135,247,0.5)";
               }
               return (
                 <button
@@ -114,15 +119,17 @@ export function Quiz({
           disabled={!answeredAll}
           style={{
             marginTop: 6,
-            background: answeredAll ? ACCENT : "rgba(232,237,248,0.08)",
-            color: answeredAll ? "#04140d" : MUTED,
-            border: "none",
-            borderRadius: 100,
-            padding: "12px 30px",
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: "0.04em",
+            background: answeredAll ? ACCENT : "rgba(232,237,248,0.06)",
+            color: answeredAll ? "#04101f" : MUTED,
+            border: answeredAll ? "1px solid rgba(120,170,255,0.6)" : "1px solid rgba(232,237,248,0.1)",
+            borderRadius: 8,
+            padding: "12px 28px",
+            fontFamily: SERIF,
+            fontSize: 13.5,
+            fontWeight: 600,
+            letterSpacing: "0.01em",
             cursor: answeredAll ? "pointer" : "not-allowed",
+            boxShadow: answeredAll ? "0 4px 18px rgba(79,135,247,0.28)" : "none",
           }}
         >
           {answeredAll ? "Lock in answers" : "Answer every question"}
