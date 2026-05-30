@@ -1344,7 +1344,7 @@ export default function IntroAnimation() {
               border: "1px solid rgba(252,211,77,0.65)",
               whiteSpace: "nowrap",
             }}>
-              Start Learning Free
+              Start Learning
             </Link>
             <Link href="/chat" style={{
               fontFamily: "var(--font-serif), Georgia, serif",

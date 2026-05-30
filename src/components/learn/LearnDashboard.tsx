@@ -65,7 +65,6 @@ export function LearnDashboard() {
   const [stats, setStats] = useState<LearnStats | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [guest, setGuest] = useState<boolean>(false);
   const [active, setActive] = useState<Active>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +88,6 @@ export function LearnDashboard() {
     fetch("/api/learn/progress")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d && typeof d.guest === "boolean") setGuest(d.guest);
         if (d && typeof d.xp === "number") setStats(d as LearnStats);
         else setStats({ xp: 0, level: 1, streakDays: 0, completedLessonIds: [] });
       })
@@ -127,8 +125,7 @@ export function LearnDashboard() {
         return;
       }
 
-      const data = (await res.json()) as { module: LessonModule; remaining: number; guest?: boolean };
-      if (typeof data.guest === "boolean") setGuest(data.guest);
+      const data = (await res.json()) as { module: LessonModule; remaining: number };
       setActive({ module: data.module, track });
       if (typeof data.remaining === "number" && data.remaining >= 0) setCredits(data.remaining);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -161,8 +158,8 @@ export function LearnDashboard() {
   const firstLesson = firstTrack?.lessons[0];
   const startingOut = doneCount === 0;
 
-  const creditValue = guest ? "Open" : credits === null ? "—" : credits.toLocaleString();
-  const creditSub = guest ? "preview" : authed === false ? "sign in" : "balance";
+  const creditValue = credits === null ? "—" : credits.toLocaleString();
+  const creditSub = authed === false ? "sign in" : "balance";
 
   const trackCount = TRACKS.length;
 
@@ -195,7 +192,7 @@ export function LearnDashboard() {
             Conviqt&nbsp;·&nbsp;Research Academy
           </span>
           <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: FAINT }}>
-            {guest ? "Open Enrollment" : "Member"}&nbsp;·&nbsp;Est. MMXXVI
+            Member&nbsp;·&nbsp;Est. MMXXVI
           </span>
         </div>
         <div style={{ height: 1, background: `linear-gradient(90deg, ${GOLD_SOFT}, ${GOLD_FAINT} 42%, transparent)`, marginBottom: 30 }} />
@@ -253,7 +250,7 @@ export function LearnDashboard() {
               {loadingId !== firstLesson.id && <ArrowRightIcon size={17} />}
             </button>
             <span style={{ fontFamily: MONO, fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-              {TOTAL_LESSONS} lessons · {trackCount} chapters · no card required
+              {TOTAL_LESSONS} lessons · {trackCount} chapters · {LEARN_COST} credits each
             </span>
           </div>
         )}
@@ -271,7 +268,7 @@ export function LearnDashboard() {
           <StatCell label="Total XP" value={xp.toLocaleString()} />
           <StatCell label="Streak" value={`${stats?.streakDays ?? 0}`} sub={(stats?.streakDays ?? 0) === 1 ? "day" : "days"} />
           <StatCell label="Lessons" value={`${doneCount}`} sub={`of ${TOTAL_LESSONS}`} />
-          <StatCell label="Credits" value={creditValue} sub={creditSub} valueColor={guest ? ACCENT : INK} />
+          <StatCell label="Credits" value={creditValue} sub={creditSub} valueColor={INK} />
         </div>
 
         {error && (
@@ -292,7 +289,7 @@ export function LearnDashboard() {
             }}
           >
             <span>{error}</span>
-            {authed === false && !guest ? (
+            {authed === false ? (
               <Link href="/login" style={{ color: "#fca5a5", fontWeight: 600 }}>Sign in →</Link>
             ) : (
               <Link href="/pricing" style={{ color: "#fca5a5", fontWeight: 600 }}>Get credits →</Link>
@@ -399,13 +396,9 @@ export function LearnDashboard() {
                       <p style={{ margin: "0 0 14px", fontSize: 13, color: MUTED, lineHeight: 1.55, flex: 1 }}>{lesson.hook}</p>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${RULE}`, paddingTop: 11 }}>
                         <span style={{ fontFamily: MONO, fontSize: 11.5, color: ACCENT }}>+{lesson.xp} XP</span>
-                        {guest ? (
-                          <span className="lrn-go" style={{ color: GOLD, display: "inline-flex" }}><ArrowRightIcon size={15} /></span>
-                        ) : (
-                          <span style={{ fontFamily: MONO, fontSize: 11, color: FAINT }}>
-                            {isDone ? `${LEARN_CACHED_COST} cr` : `${LEARN_COST} cr`}
-                          </span>
-                        )}
+                        <span style={{ fontFamily: MONO, fontSize: 11, color: FAINT }}>
+                          {isDone ? `${LEARN_CACHED_COST} cr` : `${LEARN_COST} cr`}
+                        </span>
                       </div>
                       {isLoading && (
                         <div

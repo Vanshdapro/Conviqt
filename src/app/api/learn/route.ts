@@ -1,11 +1,13 @@
 // POST /api/learn
 //
 // Generates (or replays from cache) one interactive Conviqt Learn lesson and
-// meters it against the user's credits.
+// meters it against the user's credits — the same signed-in + credit gate the
+// Chat and Alpha products use. There is no free/open path: a verified account
+// is always required and every lesson is charged.
 //
 // Body: { lessonId: string }
 // Flow:
-//   1. Verified user only (free-tier provisioning happens lazily).
+//   1. Verified user only (free-tier provisioning happens lazily) → 401 if not.
 //   2. Resolve the lesson from the static curriculum (unknown id → 404).
 //   3. Cache hit  → deduct learn_cached (3 cr), return the stored module.
 //      Cache miss → deduct learn (14 cr), author via Claude, cache it.
@@ -22,7 +24,7 @@ import {
   addCredits,
   grantFreeCreditsIfDue,
 } from "@/lib/credits";
-import { getLearnUser } from "@/lib/learn/access";
+import { getVerifiedUser } from "@/lib/auth";
 import { findLesson } from "@/lib/learn/curriculum";
 import { authorLesson, readCachedLesson } from "@/lib/learn/author";
 
@@ -32,7 +34,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const user = await getLearnUser();
+    const user = await getVerifiedUser();
     if (!user) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
@@ -48,37 +50,6 @@ export async function POST(req: Request) {
     const found = findLesson(lessonId);
     if (!found) {
       return NextResponse.json({ error: "unknown_lesson" }, { status: 404 });
-    }
-
-    // Guest previewers (open access) don't pay credits — author/replay for free
-    // so the whole funnel is clickable locally without an account.
-    if (user.guest) {
-      const cachedGuest = await readCachedLesson(lessonId);
-      if (cachedGuest) {
-        return NextResponse.json({
-          module: cachedGuest,
-          cached: true,
-          cost: 0,
-          remaining: -1,
-          guest: true,
-        });
-      }
-      try {
-        const { module } = await authorLesson(found.lesson, found.track);
-        return NextResponse.json({
-          module,
-          cached: false,
-          cost: 0,
-          remaining: -1,
-          guest: true,
-        });
-      } catch (authorErr) {
-        console.error(
-          "[learn] guest authoring failed:",
-          authorErr instanceof Error ? authorErr.message : authorErr,
-        );
-        return NextResponse.json({ error: "author_failed" }, { status: 502 });
-      }
     }
 
     // Make sure free-tier credits exist before we try to charge.
