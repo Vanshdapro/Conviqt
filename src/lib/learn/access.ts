@@ -33,8 +33,11 @@ export interface LearnUser {
 // Resolves the Learn user: a real verified member when signed in, otherwise the
 // guest previewer when open access is enabled, otherwise null (gated → 401).
 export async function getLearnUser(): Promise<LearnUser | null> {
+  // Open-access mode (default in dev): always preview as a guest so the full
+  // funnel works without credits or a Supabase service-role key locally.
+  // In production LEARN_OPEN_ACCESS is off so real auth kicks in.
+  if (LEARN_OPEN_ACCESS) return { email: GUEST_EMAIL, guest: true };
   const user = await getVerifiedUser();
   if (user) return { email: user.email, guest: false };
-  if (LEARN_OPEN_ACCESS) return { email: GUEST_EMAIL, guest: true };
   return null;
 }
