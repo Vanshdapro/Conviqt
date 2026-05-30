@@ -5,11 +5,13 @@
 // two concurrent requests can deduct the same credits.
 //
 // Credit costs per intent (deducted before the pipeline runs):
-//   analyze  — 15 credits  (Full Council, 6-agent pipeline)
-//   focused  —  8 credits  (Focused sweep + Haiku judge)
-//   general  — 18 credits  (Sonnet analyst + up to 3 web_search calls)
-//   cache    —  1 credit   (any intent that hits the 4h cache)
-//   pick     —  0 credits  (text redirect only, no pipeline)
+//   analyze       — 15 credits  (Full Council, 6-agent pipeline)
+//   focused       —  8 credits  (Focused sweep + Haiku judge)
+//   general       — 18 credits  (Sonnet analyst + up to 3 web_search calls)
+//   cache         —  1 credit   (any intent that hits the 4h cache)
+//   pick          —  0 credits  (text redirect only, no pipeline)
+//   learn         — 14 credits  (Conviqt Learn: fresh Sonnet-authored lesson)
+//   learn_cached  —  3 credits  (a lesson replayed from the global cache)
 //
 // Monthly allowances:
 //   free          →  50 credits / month (reset by grant_free_credits_if_due)
@@ -23,12 +25,21 @@ import { getSupabaseAdmin } from "./supabase";
 
 export const FREE_MONTHLY_CREDITS = 50;
 
+// Starting-phase kill switch for all automated credit resets. While false,
+// no one's balance is reset or capped: free users keep whatever they have
+// (the SQL grant function only provisions brand-new users — see migration 008)
+// and Max subscription renewals skip the monthly reset below. Flip to true
+// once we're ready to enforce monthly cycles.
+export const CREDIT_RESETS_ENABLED = false;
+
 export const CREDITS_PER_INTENT = {
   analyze: 15,
   focused: 8,
   general: 18,
   cache:   1,
   pick:    0,
+  learn:        14,
+  learn_cached:  3,
 } as const;
 
 export type Intent = keyof typeof CREDITS_PER_INTENT;
@@ -232,6 +243,11 @@ export async function resetSubscriptionCredits(
   monthlyCredits: number,
   plan:           string,
 ): Promise<void> {
+  if (!CREDIT_RESETS_ENABLED) {
+    console.log(`[credits] resets paused — skipping subscription reset for ${email} (${plan})`);
+    return;
+  }
+
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.rpc("reset_subscription_credits", {
     p_email:           email.toLowerCase().trim(),

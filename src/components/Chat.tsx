@@ -104,7 +104,6 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
   const [busy,           setBusy]           = useState(false);
   const [credits,        setCredits]        = useState<number | null>(null);
   const [creditPlan,     setCreditPlan]     = useState<string | null>(null);
-  const [creditsResetAt, setCreditsResetAt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -118,7 +117,6 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
         if (d && typeof d.credits === "number") {
           setCredits(d.credits);
           setCreditPlan(typeof d.plan === "string" ? d.plan : "free");
-          setCreditsResetAt(typeof d.credits_reset_at === "string" ? d.credits_reset_at : null);
         }
       })
       .catch(() => null);
@@ -551,7 +549,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
 
         {/* Credit bar — read-only balance (identity comes from the session) */}
         <div className="mx-auto max-w-[860px] w-full px-5 lg:px-10 pb-3">
-          <CreditBar credits={credits} plan={creditPlan} creditsResetAt={creditsResetAt} />
+          <CreditBar credits={credits} plan={creditPlan} />
         </div>
       </div>
     </section>
@@ -577,20 +575,15 @@ function creditPlanLabel(plan: string | null): string {
   return "Free";
 }
 
-function CreditBar({ credits, plan, creditsResetAt }: {
+function CreditBar({ credits, plan }: {
   credits: number | null;
   plan: string | null;
-  creditsResetAt: string | null;
 }) {
   const max    = creditPlanMax(plan);
   const pct    = max !== null && credits !== null ? Math.max(0, Math.min(100, (credits / max) * 100)) : null;
   const isLow  = credits !== null && credits < 10;
   const isMid  = !isLow && pct !== null && pct < 35;
   const barColor = isLow ? "var(--bear)" : isMid ? "#f59e0b" : "var(--bull)";
-
-  const resetLabel = creditsResetAt
-    ? `resets ${new Date(creditsResetAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-    : null;
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -628,14 +621,6 @@ function CreditBar({ credits, plan, creditsResetAt }: {
         >
           {creditPlanLabel(plan)}
         </span>
-      )}
-
-      {/* Reset date */}
-      {resetLabel && (
-        <>
-          <span className="text-dim text-[10px]">·</span>
-          <span className="mono text-[10px] text-dim">{resetLabel}</span>
-        </>
       )}
 
       {/* Top-up nudge */}
