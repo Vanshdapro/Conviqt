@@ -255,7 +255,7 @@ function CreditCosts() {
 // ── Success Banner ────────────────────────────────────────────────────────────
 
 function SuccessBanner({ sessionId }: { sessionId: string }) {
-  const [info, setInfo] = useState<{ email?: string; plan?: string; credits?: number } | null>(null);
+  const [info, setInfo] = useState<{ email?: string; plan?: string; credits?: number; credited?: boolean; expectedCredits?: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -268,6 +268,10 @@ function SuccessBanner({ sessionId }: { sessionId: string }) {
 
   if (loading) return null;
 
+  // Payment verified but credits did not land — be honest instead of claiming
+  // success. The /verify route logs the failure server-side for follow-up.
+  const pending = info != null && info.credited === false;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -14 }}
@@ -276,7 +280,7 @@ function SuccessBanner({ sessionId }: { sessionId: string }) {
         maxWidth: 520,
         margin: "0 auto 48px",
         borderRadius: 14,
-        border: "1px solid rgba(232,237,248,0.12)",
+        border: pending ? "1px solid rgba(247,181,113,0.35)" : "1px solid rgba(232,237,248,0.12)",
         background: "rgba(10,19,35,0.7)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
@@ -289,11 +293,25 @@ function SuccessBanner({ sessionId }: { sessionId: string }) {
         fontWeight: 500,
         fontSize: "20px",
         letterSpacing: "-0.01em",
-        color: "#e8edf8",
+        color: pending ? "#f7b571" : "#e8edf8",
         margin: "0 0 8px",
       }}>
-        Credits added
+        {pending ? "Payment received — credits processing" : "Credits added"}
       </p>
+      {pending && (
+        <p style={{
+          fontFamily: "var(--font-serif), Georgia, serif",
+          fontSize: "13px",
+          color: "rgba(232,237,248,0.6)",
+          margin: "0 0 12px",
+          letterSpacing: "0.01em",
+          lineHeight: 1.6,
+        }}>
+          Your payment went through. Your{info?.expectedCredits ? ` ${info.expectedCredits.toLocaleString()}` : ""} credits
+          will appear shortly — refresh this page in a moment. If they don&apos;t,
+          email support and we&apos;ll add them right away.
+        </p>
+      )}
       {info?.email && (
         <p style={{
           fontFamily: "var(--font-serif), Georgia, serif",

@@ -21,6 +21,8 @@ function SignupInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,16 +55,24 @@ function SignupInner() {
     setLoading(false);
   }
 
+  async function handleResend() {
+    setResendLoading(true);
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.resend({ type: "signup", email: email.trim().toLowerCase() });
+    setResendLoading(false);
+    setResendSent(true);
+  }
+
   if (sent) {
     return (
       <AuthShell
         title="Check your inbox"
-        subtitle={`We sent a confirmation link to ${email}. Click it to activate your account and claim your 50 free credits.`}
+        subtitle={`We sent a verification link to ${email}.`}
         footer={
           <>
             Wrong email?{" "}
             <button
-              onClick={() => setSent(false)}
+              onClick={() => { setSent(false); setResendSent(false); }}
               style={{ color: "#4f87f7", background: "none", border: "none", cursor: "pointer", padding: 0, font: "inherit" }}
             >
               Go back
@@ -70,20 +80,57 @@ function SignupInner() {
           </>
         }
       >
-        <div
-          style={{
-            background: "rgba(79,135,247,0.08)",
-            border: "1px solid rgba(79,135,247,0.2)",
-            borderRadius: 10,
-            padding: "16px",
-            fontFamily: "var(--font-serif), Georgia, serif",
-            fontSize: 13,
-            color: "rgba(232,237,248,0.7)",
-            lineHeight: 1.6,
-          }}
-        >
-          You won&apos;t be able to sign in until your email is verified. The link
-          expires after a while — if it does, just sign up again.
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div
+            style={{
+              background: "rgba(79,135,247,0.08)",
+              border: "1px solid rgba(79,135,247,0.2)",
+              borderRadius: 10,
+              padding: "16px",
+              fontFamily: "var(--font-serif), Georgia, serif",
+              fontSize: 13,
+              color: "rgba(232,237,248,0.7)",
+              lineHeight: 1.7,
+            }}
+          >
+            <strong style={{ color: "#e8edf8", fontWeight: 600 }}>Click the link in your email to activate your account</strong>
+            {" "}and claim your 50 free monthly credits. You will not be able to sign in before verifying.
+          </div>
+
+          <div
+            style={{
+              background: "rgba(251,191,36,0.06)",
+              border: "1px solid rgba(251,191,36,0.18)",
+              borderRadius: 10,
+              padding: "12px 16px",
+              fontFamily: "var(--font-serif), Georgia, serif",
+              fontSize: 12,
+              color: "rgba(251,191,36,0.8)",
+              lineHeight: 1.6,
+            }}
+          >
+            <strong style={{ fontWeight: 600 }}>Don&apos;t see it?</strong>{" "}
+            Check your <strong style={{ fontWeight: 600 }}>spam or junk folder</strong> — confirmation emails sometimes land there, especially for new addresses.
+          </div>
+
+          <button
+            onClick={handleResend}
+            disabled={resendLoading || resendSent}
+            style={{
+              background: "none",
+              border: "1px solid rgba(232,237,248,0.12)",
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: "var(--font-sans), system-ui, sans-serif",
+              fontSize: 13,
+              color: resendSent ? "rgba(52,211,153,0.8)" : "rgba(232,237,248,0.55)",
+              cursor: resendLoading || resendSent ? "default" : "pointer",
+              opacity: resendLoading ? 0.6 : 1,
+              transition: "all 0.2s",
+            }}
+          >
+            {resendSent ? "✓ Resent — check your inbox again" : resendLoading ? "Resending…" : "Resend confirmation email"}
+          </button>
         </div>
       </AuthShell>
     );

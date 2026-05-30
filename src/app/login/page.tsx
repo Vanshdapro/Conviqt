@@ -36,15 +36,16 @@ function LoginInner() {
     if (error) {
       setError(
         error.message === "Email not confirmed"
-          ? "Please verify your email first — check your inbox for the confirmation link."
+          ? "Please verify your email first — check your inbox (and spam folder) for the confirmation link."
           : "Incorrect email or password."
       );
       setLoading(false);
       return;
     }
 
-    router.push(next);
-    router.refresh();
+    // Full page navigation ensures the new session cookie is read server-side
+    // on the very first request after sign-in (router.push alone can race).
+    window.location.href = next;
   }
 
   return (

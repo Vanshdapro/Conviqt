@@ -17,6 +17,7 @@ export function AuthShell({
       style={{
         minHeight: "100vh",
         background: "#050d1a",
+        backgroundImage: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79,135,247,0.07) 0%, transparent 70%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -24,30 +25,45 @@ export function AuthShell({
         padding: "40px 20px",
       }}
     >
-      <Link
-        href="/"
-        style={{
-          fontFamily: "var(--font-display), Georgia, serif",
-          fontWeight: 400,
-          fontSize: 18,
-          letterSpacing: "0.22em",
+      {/* Logo + tagline */}
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <Link
+          href="/"
+          style={{
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 400,
+            fontSize: 18,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            color: "#e8edf8",
+            textDecoration: "none",
+            display: "block",
+            marginBottom: 8,
+          }}
+        >
+          Conviqt
+        </Link>
+        <p style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10,
+          letterSpacing: "0.18em",
           textTransform: "uppercase",
-          color: "#e8edf8",
-          textDecoration: "none",
-          marginBottom: 36,
-        }}
-      >
-        Conviqt
-      </Link>
+          color: "rgba(232,237,248,0.3)",
+          margin: 0,
+        }}>
+          Institutional AI Research Platform
+        </p>
+      </div>
 
       <div
         style={{
           width: "100%",
-          maxWidth: 380,
-          background: "rgba(10,19,35,0.7)",
-          border: "1px solid rgba(232,237,248,0.08)",
+          maxWidth: 400,
+          background: "rgba(10,19,35,0.85)",
+          border: "1px solid rgba(232,237,248,0.1)",
           borderRadius: 16,
           padding: "32px 28px",
+          boxShadow: "0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,135,247,0.04)",
         }}
       >
         <h1
@@ -86,6 +102,41 @@ export function AuthShell({
         }}
       >
         {footer}
+      </div>
+
+      {/* Trust strip */}
+      <div
+        style={{
+          marginTop: 32,
+          display: "flex",
+          alignItems: "center",
+          gap: 20,
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        {[
+          "TLS 256-bit encrypted",
+          "Session-verified access",
+          "No financial advice",
+        ].map((label) => (
+          <span
+            key={label}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 9,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "rgba(232,237,248,0.2)",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(232,237,248,0.15)", flexShrink: 0 }} />
+            {label}
+          </span>
+        ))}
       </div>
     </div>
   );

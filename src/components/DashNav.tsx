@@ -82,6 +82,13 @@ function planLabel(plan: string): string {
   return "Free";
 }
 
+function planMax(plan: string | null): number | null {
+  if (!plan || plan === "free") return 50;
+  if (plan === "max_monthly") return 4000;
+  if (plan === "max_pro_monthly") return 7500;
+  return null;
+}
+
 function AccountControls() {
   const [credits, setCredits] = useState<number | null>(null);
   const [plan, setPlan] = useState<string | null>(null);
@@ -100,7 +107,6 @@ function AccountControls() {
       .finally(() => setLoaded(true));
   }, []);
 
-  // Logged out (or not yet provisioned): offer sign-in.
   if (loaded && credits === null) {
     return (
       <Link
@@ -124,41 +130,43 @@ function AccountControls() {
 
   if (credits === null) return null;
 
-  const isLow = credits < 10;
+  const isLow  = credits < 10;
+  const max    = planMax(plan);
+  const pct    = max !== null ? Math.max(0, Math.min(100, (credits / max) * 100)) : null;
+  const isMid  = !isLow && pct !== null && pct < 35;
+  const color  = isLow ? "#f87171" : isMid ? "#f59e0b" : "#34d399";
+  const bgOpacity  = isLow ? "rgba(239,68,68,0.10)" : isMid ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.08)";
+  const bdrOpacity = isLow ? "rgba(239,68,68,0.22)" : isMid ? "rgba(245,158,11,0.2)" : "rgba(16,185,129,0.2)";
 
   return (
     <>
       <Link
         href="/pricing"
-        title="View pricing and top up"
+        title="View credits and pricing"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "6px",
-          background: isLow ? "rgba(239,68,68,0.12)" : "rgba(16,185,129,0.1)",
-          border: `1px solid ${isLow ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.25)"}`,
+          gap: "8px",
+          background: bgOpacity,
+          border: `1px solid ${bdrOpacity}`,
           borderRadius: "100px",
-          padding: "5px 12px",
+          padding: "5px 14px 5px 10px",
           textDecoration: "none",
-          fontSize: "11px",
-          fontFamily: "monospace",
-          letterSpacing: "0.04em",
-          color: isLow ? "#f87171" : "#34d399",
         }}
       >
-        <span
-          style={{
-            display: "inline-block",
-            width: "5px",
-            height: "5px",
-            borderRadius: "50%",
-            background: isLow ? "#f87171" : "#34d399",
-            flexShrink: 0,
-          }}
-        />
-        {credits.toLocaleString()} cr
+        {/* Mini progress bar */}
+        {pct !== null && (
+          <div style={{ width: 36, height: 3, background: "rgba(232,237,248,0.1)", borderRadius: 999, flexShrink: 0 }}>
+            <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 999, transition: "width 0.4s ease" }} />
+          </div>
+        )}
+        <span style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "0.04em", color }}>
+          {credits.toLocaleString()} cr
+        </span>
         {plan && (
-          <span style={{ color: "rgba(232,237,248,0.4)", marginLeft: 2 }}>· {planLabel(plan)}</span>
+          <span style={{ fontFamily: "monospace", fontSize: "10px", color: "rgba(232,237,248,0.35)", letterSpacing: "0.04em" }}>
+            {planLabel(plan)}
+          </span>
         )}
       </Link>
 

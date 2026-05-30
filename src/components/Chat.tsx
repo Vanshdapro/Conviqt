@@ -99,13 +99,14 @@ function newId() {
 // ── Main component ────────────────────────────────────────────────────────
 
 const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
-  const [input,    setInput]    = useState("");
-  const [bubbles,  setBubbles]  = useState<Bubble[]>([]);
-  const [busy,     setBusy]     = useState(false);
-  const [credits,  setCredits]  = useState<number | null>(null);
+  const [input,          setInput]          = useState("");
+  const [bubbles,        setBubbles]        = useState<Bubble[]>([]);
+  const [busy,           setBusy]           = useState(false);
+  const [credits,        setCredits]        = useState<number | null>(null);
+  const [creditPlan,     setCreditPlan]     = useState<string | null>(null);
+  const [creditsResetAt, setCreditsResetAt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch the logged-in user's credit balance on mount (session-backed).
   useEffect(() => {
     fetchCredits();
   }, []);
@@ -113,7 +114,13 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
   function fetchCredits() {
     fetch("/api/credits")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d && typeof d.credits === "number") setCredits(d.credits); })
+      .then((d) => {
+        if (d && typeof d.credits === "number") {
+          setCredits(d.credits);
+          setCreditPlan(typeof d.plan === "string" ? d.plan : "free");
+          setCreditsResetAt(typeof d.credits_reset_at === "string" ? d.credits_reset_at : null);
+        }
+      })
       .catch(() => null);
   }
 
@@ -544,7 +551,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
 
         {/* Credit bar — read-only balance (identity comes from the session) */}
         <div className="mx-auto max-w-[860px] w-full px-5 lg:px-10 pb-3">
-          <CreditBar credits={credits} />
+          <CreditBar credits={credits} plan={creditPlan} creditsResetAt={creditsResetAt} />
         </div>
       </div>
     </section>
@@ -555,25 +562,83 @@ export default Chat;
 
 // ── Credit bar ────────────────────────────────────────────────────────────
 
-function CreditBar({ credits }: { credits: number | null }) {
-  const isLow = credits !== null && credits < 10;
+function creditPlanMax(plan: string | null): number | null {
+  if (!plan || plan === "free") return 50;
+  if (plan === "max_monthly") return 4000;
+  if (plan === "max_pro_monthly") return 7500;
+  return null; // one-time credit packs — no fixed ceiling
+}
+
+function creditPlanLabel(plan: string | null): string {
+  if (!plan || plan === "free") return "Free";
+  if (plan === "max_monthly") return "Max";
+  if (plan === "max_pro_monthly") return "Max Pro";
+  if (plan.startsWith("credits_")) return "Pro";
+  return "Free";
+}
+
+function CreditBar({ credits, plan, creditsResetAt }: {
+  credits: number | null;
+  plan: string | null;
+  creditsResetAt: string | null;
+}) {
+  const max    = creditPlanMax(plan);
+  const pct    = max !== null && credits !== null ? Math.max(0, Math.min(100, (credits / max) * 100)) : null;
+  const isLow  = credits !== null && credits < 10;
+  const isMid  = !isLow && pct !== null && pct < 35;
+  const barColor = isLow ? "var(--bear)" : isMid ? "#f59e0b" : "var(--bull)";
+
+  const resetLabel = creditsResetAt
+    ? `resets ${new Date(creditsResetAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+    : null;
 
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ background: isLow ? "var(--bear)" : "var(--bull)" }}
-      />
-      <span
-        className="mono text-[11px]"
-        style={{ color: isLow ? "var(--bear)" : "var(--bull)" }}
-      >
-        {credits !== null ? credits.toLocaleString() : "—"} credits
+    <div className="flex items-center gap-3 flex-wrap">
+      {/* Progress bar (only for plans with a known monthly ceiling) */}
+      {max !== null && pct !== null && (
+        <div style={{ position: "relative", width: 88, height: 3, background: "var(--rule)", borderRadius: 999, flexShrink: 0 }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: `${pct}%`,
+              background: barColor,
+              borderRadius: 999,
+              transition: "width 0.4s ease",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Count */}
+      <span className="mono text-[11px]" style={{ color: barColor }}>
+        {credits !== null ? credits.toLocaleString() : "—"}
+        {max !== null ? ` / ${max.toLocaleString()}` : ""} cr
       </span>
-      <span className="text-dim text-[10px]">·</span>
-      <span className="mono text-[10px] text-dim">
-        {credits !== null ? "deducted per query" : "loading…"}
-      </span>
+
+      {/* Plan badge */}
+      {plan && (
+        <span
+          className="mono text-[9px] tracking-[0.12em] uppercase px-1.5 py-px rounded"
+          style={{
+            color: "rgba(232,237,248,0.35)",
+            border: "1px solid rgba(232,237,248,0.1)",
+            background: "rgba(232,237,248,0.03)",
+          }}
+        >
+          {creditPlanLabel(plan)}
+        </span>
+      )}
+
+      {/* Reset date */}
+      {resetLabel && (
+        <>
+          <span className="text-dim text-[10px]">·</span>
+          <span className="mono text-[10px] text-dim">{resetLabel}</span>
+        </>
+      )}
+
+      {/* Top-up nudge */}
       {isLow && (
         <>
           <span className="text-dim text-[10px]">·</span>

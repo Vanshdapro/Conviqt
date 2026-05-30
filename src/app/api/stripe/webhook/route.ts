@@ -21,7 +21,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, type PlanId } from "@/lib/stripe";
 import { upsertSubscriber, type Plan } from "@/lib/subscription";
-import { addCredits, resetSubscriptionCredits, MAX_PLAN_MONTHLY_CREDITS } from "@/lib/credits";
+import { addCreditsOnce, resetSubscriptionCredits, MAX_PLAN_MONTHLY_CREDITS } from "@/lib/credits";
 
 export const runtime  = "nodejs";
 export const dynamic  = "force-dynamic";
@@ -89,8 +89,10 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  // Add credits (works for both one-time packs and initial subscription payment)
-  await addCredits(email, credits, `stripe_checkout_${plan}`, plan);
+  // Add credits (works for both one-time packs and initial subscription payment).
+  // Keyed on the checkout session id so the success-page /verify fallback and
+  // this webhook can both run without ever double-crediting.
+  await addCreditsOnce(email, credits, `stripe_session_${session.id}`, plan);
 
   // For subscription plans, also track in the subscribers table
   if (SUBSCRIPTION_PLANS.has(plan) && session.subscription) {

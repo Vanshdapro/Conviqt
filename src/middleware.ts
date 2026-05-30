@@ -35,11 +35,18 @@ export async function middleware(req: NextRequest) {
     },
   });
 
+  // UX guard only — read the session from the cookie instead of calling
+  // getUser(), which makes a network round-trip to Supabase's auth server on
+  // EVERY navigation to a protected route (the cause of slow sign-ins and the
+  // "refresh once and it works" behavior). getSession() decodes the cookie
+  // locally and only hits the network when an expired token needs refreshing.
+  // The real security boundary stays in the API routes, which call getUser()
+  // and fail closed.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session) {
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = `?next=${encodeURIComponent(pathname)}`;

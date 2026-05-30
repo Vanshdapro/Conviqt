@@ -103,6 +103,102 @@ export async function deductCredits(
 }
 
 /**
+ * Grants credits exactly once per (email, reason). If a credit_log row with
+ * the same reason already exists, this is a no-op. Use a stable, unique reason
+ * per payment (e.g. `stripe_session_<id>`) so the Stripe webhook and the
+ * success-page /verify fallback can both call this without double-counting.
+ *
+ * Returns { granted, credits } — `granted` is false when it was already done.
+ */
+export async function addCreditsOnce(
+  email:  string,
+  amount: number,
+  reason: string,
+  plan?:  string,
+): Promise<{ granted: boolean; credits: number }> {
+  const supabase = getSupabaseAdmin();
+  const normalized = email.toLowerCase().trim();
+
+  const { data, error } = await supabase.rpc("add_credits_once", {
+    p_email:   normalized,
+    p_credits: amount,
+    p_reason:  reason,
+    p_plan:    plan ?? null,
+  });
+
+  if (error) {
+    // Self-heal: if migration 006 (add_credits_once) hasn't been applied to
+    // this database yet, the RPC won't exist (PostgREST PGRST202 / Postgres
+    // 42883). Rather than dropping a paid grant on the floor, fall back to the
+    // base add_credits primitive (migration 004, always present) with a manual
+    // credit_log dedup so we still credit exactly once. Once 006 is applied the
+    // atomic, advisory-locked path above takes over automatically.
+    const missingFn =
+      error.code === "PGRST202" ||
+      error.code === "42883" ||
+      /add_credits_once/.test(error.message ?? "");
+
+    if (missingFn) {
+      console.warn(
+        "[credits] add_credits_once RPC missing — using add_credits fallback. " +
+        "Apply migration 006 for atomic idempotency."
+      );
+      return addCreditsWithDedup(normalized, amount, reason, plan);
+    }
+
+    console.error("[credits] addCreditsOnce RPC error:", error.message);
+    throw error;
+  }
+
+  const result = data as { granted: boolean; credits: number };
+  if (result.granted) {
+    console.log(`[credits] granted ${amount} (${reason}) for ${email} → ${result.credits}`);
+  } else {
+    console.log(`[credits] skip duplicate grant (${reason}) for ${email} — already credited`);
+  }
+  return result;
+}
+
+/**
+ * Idempotent grant built only from migration-004 primitives, for databases
+ * where add_credits_once (migration 006) hasn't been applied yet. Checks the
+ * credit_log for the reason first, then calls add_credits. Not advisory-locked,
+ * so a simultaneous webhook+verify pair could (rarely) double-grant — but for a
+ * one-time pack that's far better than never crediting a paid customer.
+ */
+async function addCreditsWithDedup(
+  email:  string,
+  amount: number,
+  reason: string,
+  plan?:  string,
+): Promise<{ granted: boolean; credits: number }> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: existing, error: logErr } = await supabase
+    .from("credit_log")
+    .select("id")
+    .eq("email", email)
+    .eq("reason", reason)
+    .limit(1);
+
+  if (logErr) {
+    console.error("[credits] dedup check failed:", logErr.message);
+    throw logErr;
+  }
+
+  if (existing && existing.length > 0) {
+    const row = await getCredits(email);
+    console.log(`[credits] skip duplicate grant (${reason}) for ${email} — already credited`);
+    return { granted: false, credits: row?.credits ?? 0 };
+  }
+
+  await addCredits(email, amount, reason, plan);
+  const row = await getCredits(email);
+  console.log(`[credits] granted ${amount} (${reason}) for ${email} via fallback → ${row?.credits ?? amount}`);
+  return { granted: true, credits: row?.credits ?? amount };
+}
+
+/**
  * Adds credits to a user's account (or creates the row).
  * Called from the Stripe webhook on successful payment.
  */
