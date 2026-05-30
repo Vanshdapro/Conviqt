@@ -167,7 +167,7 @@ const PANELS: PanelDef[] = [
 // ── Sidebar items ─────────────────────────────────────────────────────────────
 const SIDEBAR = [
   { label: "Research",     href: "/chat",        icon: "◈" },
-  { label: "Chat",         href: "/chat",        icon: "◉" },
+  { label: "Learn",        href: "/learn",       icon: "◓" },
   { label: "Alpha Tracker",href: "/alpha",       icon: "◇" },
   { label: "Pricing",      href: "/pricing",     icon: "◑" },
   { label: "Methodology",  href: "/methodology", icon: "◎" },
@@ -1050,6 +1050,7 @@ export default function IntroAnimation() {
             <ul style={{ display: "flex", gap: "44px", listStyle: "none", padding: 0, margin: 0 }}>
               {[
                 { label: "Research",     href: "/chat" },
+                { label: "Learn",        href: "/learn" },
                 { label: "Alpha",        href: "/alpha" },
                 { label: "Pricing",      href: "/pricing" },
                 { label: "Methodology",  href: "/methodology" },
@@ -1333,6 +1334,18 @@ export default function IntroAnimation() {
             justifyContent: "center",
             alignItems: "center",
           }}>
+            <Link href="/learn" style={{
+              fontFamily: "var(--font-serif), Georgia, serif",
+              fontSize: "12px", letterSpacing: "0.10em", textTransform: "uppercase",
+              color: "#1a1206", textDecoration: "none", fontWeight: 600,
+              background: "linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)",
+              borderRadius: "100px", padding: "14px 34px",
+              boxShadow: "0 0 34px rgba(245,158,11,0.6), 0 2px 8px rgba(0,0,0,0.5)",
+              border: "1px solid rgba(252,211,77,0.65)",
+              whiteSpace: "nowrap",
+            }}>
+              Start Learning Free
+            </Link>
             <Link href="/chat" style={{
               fontFamily: "var(--font-serif), Georgia, serif",
               fontSize: "12px", letterSpacing: "0.10em", textTransform: "uppercase",

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export function DashNav({ active }: { active?: "chat" | "alpha" | "methodology" | "pricing" }) {
+export function DashNav({ active }: { active?: "chat" | "alpha" | "learn" | "methodology" | "pricing" }) {
   const links = [
     { label: "Research", href: "/chat",        key: "chat"        as const },
     { label: "Alpha",    href: "/alpha",       key: "alpha"       as const },
+    { label: "Learn",    href: "/learn",       key: "learn"       as const },
     { label: "Pricing",  href: "/pricing",     key: "pricing"     as const },
     { label: "Method.",  href: "/methodology", key: "methodology" as const },
   ];
