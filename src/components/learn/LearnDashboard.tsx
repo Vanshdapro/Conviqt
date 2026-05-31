@@ -1,64 +1,34 @@
 "use client";
 
-// Conviqt Learn — the home dashboard, composed as the cover of a private-bank
-// research curriculum. A two-tier palette governs the whole surface: champagne
-// gold (PRESTIGE) is a scarce resource reserved for the masthead rule, chapter
-// numerals, seals and crests; electric blue (ACCENT) carries every interactive
-// and semantic signal — CTAs, progress, links, XP. Editorial serif headings,
-// monospace small-caps metadata, hairline rules, generous macro-whitespace.
-//
-// Clicking a lesson POSTs /api/learn (which authors/replays the module and, for
-// real members, meters credits) and swaps the grid for the full LessonView.
-// Completing a lesson's quiz updates XP here without a page reload.
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { TRACKS, TOTAL_LESSONS } from "@/lib/learn/curriculum";
 import { levelForXp, xpIntoLevel } from "@/lib/learn/types";
 import type { LearnStats, LessonModule, LessonMeta, Track } from "@/lib/learn/types";
 import { LessonView } from "./LessonView";
-import { TrackIcon, CheckIcon, ArrowRightIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, TrackIcon } from "./icons";
 
-// Display-only mirror of CREDITS_PER_INTENT (credits.ts is server-only). The
-// server route is the source of truth for what's actually charged.
-const LEARN_COST = 14;
-const LEARN_CACHED_COST = 3;
-
-// ── Conviqt design tokens (from globals.css) ─────────────────────────────────
-const INK = "#e8edf8";
-const INK_SOFT = "#c4d0e6";
-const MUTED = "#7a92b8";
-const FAINT = "#46597d";
-const ACCENT = "#4f87f7"; // electric blue — interactive + semantic only
 const BG = "#050d1a";
-const CARD = "rgba(255,255,255,0.022)";
-const CARD_BORDER = "rgba(232,237,248,0.08)";
-const RULE = "#16243f";
-const BORDER = `1px solid ${CARD_BORDER}`;
-const SERIF = "var(--font-serif), 'Source Serif 4', Georgia, serif";
-const DISPLAY = "var(--font-display), 'Playfair Display', Georgia, serif";
+const SURFACE = "#071120";
+const SURFACE_SOFT = "rgba(232,237,248,0.035)";
+const BORDER = "rgba(232,237,248,0.09)";
+const RULE = "rgba(232,237,248,0.075)";
+const INK = "#e8edf8";
+const MUTED = "#8aa0c2";
+const FAINT = "#526684";
+const ACCENT = "#4f87f7";
+const GOOD = "#22c55e";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-
-// ── Prestige layer ───────────────────────────────────────────────────────────
-// Champagne gold. Used sparingly, the way a private bank lets one metallic note
-// signal provenance. Never for body text, never for interactive affordances.
-const GOLD = "#c9a96a";
-const GOLD_SOFT = "rgba(201,169,106,0.30)";
-const GOLD_FAINT = "rgba(201,169,106,0.10)";
-
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+const SANS = "var(--font-sans), system-ui, sans-serif";
+const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
+const SERIF = "var(--font-serif), Georgia, serif";
 
 type Active = { module: LessonModule; track: Track } | null;
 
 const DIFFICULTY_LABEL: Record<LessonMeta["difficulty"], string> = {
   core: "Core",
   advanced: "Advanced",
-  mastery: "Mastery",
-};
-const DIFFICULTY_LEVEL: Record<LessonMeta["difficulty"], number> = {
-  core: 1,
-  advanced: 2,
-  mastery: 3,
+  mastery: "Deep dive",
 };
 
 export function LearnDashboard() {
@@ -94,10 +64,7 @@ export function LearnDashboard() {
       .catch(() => setStats({ xp: 0, level: 1, streakDays: 0, completedLessonIds: [] }));
   }, [refreshCredits]);
 
-  const completed = useMemo(
-    () => new Set(stats?.completedLessonIds ?? []),
-    [stats],
-  );
+  const completed = useMemo(() => new Set(stats?.completedLessonIds ?? []), [stats]);
 
   async function openLesson(lesson: LessonMeta, track: Track) {
     if (loadingId) return;
@@ -112,25 +79,24 @@ export function LearnDashboard() {
 
       if (res.status === 401) {
         setAuthed(false);
-        setError("Sign in to start learning.");
+        setError("Sign in to open lessons.");
         return;
       }
-      if (res.status === 402) {
-        const data = await res.json().catch(() => ({}));
-        setError(`Not enough credits — this lesson costs ${data.needed ?? "?"}. Top up to keep learning.`);
+      if (res.status === 503) {
+        setError("That lesson is still being prepared. Try another one for now.");
         return;
       }
       if (!res.ok) {
-        setError("Couldn't load that lesson. Try again in a moment.");
+        setError("Could not load that lesson. Try again in a moment.");
         return;
       }
 
-      const data = (await res.json()) as { module: LessonModule; remaining: number };
+      const data = (await res.json()) as { module: LessonModule; remaining?: number };
       setActive({ module: data.module, track });
       if (typeof data.remaining === "number" && data.remaining >= 0) setCredits(data.remaining);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setError("Network hiccup — try that lesson again.");
+      setError("Connection dropped. Try that lesson again.");
     } finally {
       setLoadingId(null);
     }
@@ -153,135 +119,129 @@ export function LearnDashboard() {
   const { into, needed } = xpIntoLevel(xp);
   const pct = Math.round((into / needed) * 100);
   const doneCount = completed.size;
-
-  const firstTrack = TRACKS[0];
-  const firstLesson = firstTrack?.lessons[0];
-  const startingOut = doneCount === 0;
-
-  const creditValue = credits === null ? "—" : credits.toLocaleString();
-  const creditSub = authed === false ? "sign in" : "balance";
-
   const trackCount = TRACKS.length;
+  const nextPair =
+    TRACKS.flatMap((track) => track.lessons.map((lesson) => ({ track, lesson }))).find(
+      ({ lesson }) => !completed.has(lesson.id),
+    ) ?? (TRACKS[0]?.lessons[0] ? { track: TRACKS[0], lesson: TRACKS[0].lessons[0] } : null);
 
   return (
-    <div>
+    <div style={{ fontFamily: SANS }}>
       <style>{`
-        .lrn-cta { transition: transform .18s cubic-bezier(.16,1,.3,1), box-shadow .25s ease, background .2s ease; }
-        .lrn-cta:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 34px rgba(79,135,247,.34); }
-        .lrn-cta:active:not(:disabled) { transform: scale(.985); }
-        .lrn-card { transition: border-color .2s ease, background .2s ease, transform .2s cubic-bezier(.16,1,.3,1), box-shadow .25s ease; }
-        .lrn-card:hover:not(:disabled) { border-color: ${GOLD_SOFT}; background: rgba(255,255,255,.03); transform: translateY(-2px); box-shadow: 0 14px 40px rgba(5,13,26,.5); }
-        .lrn-card:active:not(:disabled) { transform: translateY(0) scale(.995); }
-        .lrn-card:focus-visible { outline: 1px solid ${GOLD_SOFT}; outline-offset: 3px; }
-        .lrn-card .lrn-edge { transform: scaleX(0); transform-origin: left; transition: transform .25s cubic-bezier(.16,1,.3,1); }
-        .lrn-card:hover:not(:disabled) .lrn-edge { transform: scaleX(1); }
-        .lrn-card .lrn-go { opacity: 0; transform: translateX(-3px); transition: opacity .2s ease, transform .2s ease; }
-        .lrn-card:hover:not(:disabled) .lrn-go { opacity: 1; transform: translateX(0); }
+        .learn-shell * { box-sizing: border-box; }
+        .learn-primary, .learn-card, .learn-link { transition: border-color .16s ease, background .16s ease, transform .16s ease, opacity .16s ease; }
+        .learn-primary:hover:not(:disabled), .learn-card:hover:not(:disabled) { transform: translateY(-1px); }
+        .learn-card:hover:not(:disabled) { border-color: rgba(79,135,247,.28); background: rgba(232,237,248,.05); }
+        .learn-card:focus-visible, .learn-primary:focus-visible, .learn-link:focus-visible { outline: 2px solid rgba(79,135,247,.65); outline-offset: 3px; }
+        @media (max-width: 720px) {
+          .learn-hero { grid-template-columns: 1fr !important; }
+          .learn-title { font-size: 38px !important; }
+          .learn-track-head { align-items: flex-start !important; }
+          .learn-track-progress { margin-left: 0 !important; width: 100%; }
+          .learn-card-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 430px) {
+          .learn-title { font-size: 34px !important; line-height: 1.1 !important; }
+        }
         @media (prefers-reduced-motion: reduce) {
-          .lrn-cta, .lrn-card, .lrn-card .lrn-go, .lrn-card .lrn-edge { transition: none; }
-          .lrn-cta:hover, .lrn-card:hover { transform: none; }
-          .lrn-card .lrn-edge { transform: scaleX(1); }
+          .learn-primary, .learn-card, .learn-link { transition: none; }
+          .learn-primary:hover:not(:disabled), .learn-card:hover:not(:disabled) { transform: none; }
         }
       `}</style>
 
-      {/* ── Masthead ─────────────────────────────────────────────────────── */}
-      <header style={{ marginBottom: 52, paddingBottom: 38, borderBottom: `1px solid ${RULE}` }}>
-        {/* Publication line: wordmark left, provenance right, hairline gold rule */}
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 11 }}>
-          <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.28em", textTransform: "uppercase", color: GOLD }}>
-            Conviqt&nbsp;·&nbsp;Research Academy
-          </span>
-          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: FAINT }}>
-            Member&nbsp;·&nbsp;Est. MMXXVI
-          </span>
-        </div>
-        <div style={{ height: 1, background: `linear-gradient(90deg, ${GOLD_SOFT}, ${GOLD_FAINT} 42%, transparent)`, marginBottom: 30 }} />
-
-        <h1
+      <div className="learn-shell">
+        <header
           style={{
-            fontFamily: DISPLAY,
-            fontWeight: 500,
-            fontSize: 50,
-            lineHeight: 1.02,
-            letterSpacing: "-0.018em",
-            color: INK,
-            margin: "0 0 18px",
-            maxWidth: 780,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) 320px",
+            gap: 28,
+            alignItems: "end",
+            marginBottom: 42,
           }}
+          className="learn-hero"
         >
-          The investing masterclass an MBA skips.
-        </h1>
-        <p style={{ fontFamily: SERIF, fontSize: 17.5, color: INK_SOFT, maxWidth: 640, margin: "0 0 32px", lineHeight: 1.62 }}>
-          The mental models, position-sizing math, risk frameworks, and market structure that
-          professional capital actually runs on — Kelly sizing, variant perception, reverse-DCF,
-          reflexivity, drawdown discipline. Each lesson is interactive and wired into the same
-          institutional engine Conviqt uses to pick stocks.
-        </p>
-
-        {/* Primary CTA */}
-        {firstLesson && (
-          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", margin: "0 0 38px" }}>
-            <button
-              className="lrn-cta"
-              onClick={() => openLesson(firstLesson, firstTrack)}
-              disabled={loadingId !== null}
+          <div>
+            <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 18 }}>
+              Conviqt Learn
+            </div>
+            <h1
+              className="learn-title"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 9,
-                fontFamily: SERIF,
-                fontSize: 14.5,
-                letterSpacing: "0.01em",
-                color: "#04101f",
-                fontWeight: 600,
-                background: ACCENT,
-                border: "1px solid rgba(120,170,255,0.6)",
-                borderRadius: 7,
-                padding: "13px 26px",
-                cursor: loadingId !== null ? "wait" : "pointer",
-                boxShadow: "0 4px 20px rgba(79,135,247,0.26)",
+                color: INK,
+                fontFamily: DISPLAY,
+                fontSize: 47,
+                lineHeight: 1.06,
+                letterSpacing: "-0.015em",
+                fontWeight: 500,
+                margin: "0 0 16px",
+                maxWidth: 680,
               }}
             >
-              {loadingId === firstLesson.id
-                ? "Building your lesson…"
-                : startingOut
-                  ? "Begin the first lesson"
-                  : "Resume where you left off"}
-              {loadingId !== firstLesson.id && <ArrowRightIcon size={17} />}
-            </button>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-              {TOTAL_LESSONS} lessons · {trackCount} chapters · {LEARN_COST} credits each
-            </span>
+              Investing, without the lecture voice.
+            </h1>
+            <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17, lineHeight: 1.6, margin: "0 0 24px", maxWidth: 620 }}>
+              Short lessons on how markets, risk, sizing, and valuation actually work. Read one,
+              move a slider, answer a few questions, and get back to the product.
+            </p>
+            {nextPair && (
+              <button
+                className="learn-primary"
+                onClick={() => openLesson(nextPair.lesson, nextPair.track)}
+                disabled={loadingId !== null}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 9,
+                  minHeight: 42,
+                  border: "1px solid rgba(79,135,247,0.58)",
+                  borderRadius: 8,
+                  background: ACCENT,
+                  color: "#04101f",
+                  padding: "0 18px",
+                  fontSize: 14,
+                  fontWeight: 650,
+                  cursor: loadingId !== null ? "wait" : "pointer",
+                }}
+              >
+                {loadingId === nextPair.lesson.id ? "Opening..." : doneCount === 0 ? "Start learning" : "Continue"}
+                {loadingId !== nextPair.lesson.id && <ArrowRightIcon size={16} />}
+              </button>
+            )}
           </div>
-        )}
 
-        {/* Ledger — XP / level / streak readout */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))", gap: 1, background: RULE, border: `1px solid ${RULE}`, borderRadius: 10, overflow: "hidden" }}>
-          <StatCell label="Level" value={`${level}`} crest>
-            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ height: 3, flex: 1, background: "rgba(232,237,248,0.08)", borderRadius: 999, overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: ACCENT, borderRadius: 999, transition: "width 0.6s cubic-bezier(0.16,1,0.3,1)" }} />
-              </div>
-              <span style={{ fontFamily: MONO, fontSize: 10.5, color: FAINT }}>{into}/{needed}</span>
+          <aside
+            style={{
+              background: SURFACE_SOFT,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 8,
+              padding: 18,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+              <Metric label="Level" value={String(level)} />
+              <Metric label="XP" value={xp.toLocaleString()} align="right" />
             </div>
-          </StatCell>
-          <StatCell label="Total XP" value={xp.toLocaleString()} />
-          <StatCell label="Streak" value={`${stats?.streakDays ?? 0}`} sub={(stats?.streakDays ?? 0) === 1 ? "day" : "days"} />
-          <StatCell label="Lessons" value={`${doneCount}`} sub={`of ${TOTAL_LESSONS}`} />
-          <StatCell label="Credits" value={creditValue} sub={creditSub} valueColor={INK} />
-        </div>
+            <div style={{ height: 5, borderRadius: 999, background: "rgba(232,237,248,0.09)", overflow: "hidden", marginBottom: 16 }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: ACCENT, borderRadius: 999 }} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, paddingTop: 14, borderTop: `1px solid ${RULE}` }}>
+              <Metric label="Lessons" value={`${doneCount}/${TOTAL_LESSONS}`} />
+              <Metric label={authed === false ? "Account" : "Credits"} value={authed === false ? "Sign in" : credits === null ? "-" : credits.toLocaleString()} align="right" />
+            </div>
+          </aside>
+        </header>
 
         {error && (
           <div
             role="alert"
             style={{
-              marginTop: 18,
+              marginBottom: 28,
               background: "rgba(239,68,68,0.08)",
-              border: "1px solid rgba(239,68,68,0.3)",
+              border: "1px solid rgba(239,68,68,0.26)",
               color: "#fca5a5",
-              borderRadius: 10,
-              padding: "12px 16px",
-              fontSize: 13.5,
+              borderRadius: 8,
+              padding: "12px 14px",
+              fontSize: 14,
               display: "flex",
               gap: 14,
               alignItems: "center",
@@ -290,203 +250,148 @@ export function LearnDashboard() {
           >
             <span>{error}</span>
             {authed === false ? (
-              <Link href="/login" style={{ color: "#fca5a5", fontWeight: 600 }}>Sign in →</Link>
+              <Link href="/login" style={{ color: "#fecaca", fontWeight: 650 }}>Sign in</Link>
             ) : (
-              <Link href="/pricing" style={{ color: "#fca5a5", fontWeight: 600 }}>Get credits →</Link>
+              <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>Get credits</Link>
             )}
           </div>
         )}
-      </header>
 
-      {/* ── Chapters ─────────────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gap: 60 }}>
-        {TRACKS.map((track, ti) => {
-          const trackDone = track.lessons.filter((l) => completed.has(l.id)).length;
-          const trackPct = Math.round((trackDone / track.lessons.length) * 100);
-          const trackComplete = trackDone === track.lessons.length && track.lessons.length > 0;
-          return (
-            <section key={track.id}>
-              {/* Chapter header: roman numeral · glyph · title ··· progress */}
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: DISPLAY, fontSize: 22, fontStyle: "italic", color: GOLD, minWidth: 22, letterSpacing: "0.02em" }}>
-                  {ROMAN[ti] ?? ti + 1}
-                </span>
-                <span
+        <div style={{ display: "grid", gap: 38 }}>
+          {TRACKS.map((track) => {
+            const trackDone = track.lessons.filter((l) => completed.has(l.id)).length;
+            const trackPct = Math.round((trackDone / track.lessons.length) * 100);
+            return (
+              <section key={track.id} aria-labelledby={`${track.id}-title`}>
+                <div
+                  className="learn-track-head"
                   style={{
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    width: 38,
-                    height: 38,
-                    borderRadius: 8,
-                    background: "rgba(255,255,255,0.025)",
-                    border: `1px solid ${GOLD_SOFT}`,
-                    color: GOLD,
+                    gap: 14,
+                    marginBottom: 14,
+                    flexWrap: "wrap",
                   }}
                 >
-                  <TrackIcon trackId={track.id} size={19} />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: "0.22em", textTransform: "uppercase", color: FAINT, marginBottom: 3 }}>
-                    Chapter {ROMAN[ti] ?? ti + 1}
-                  </div>
-                  <h2 style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: 25, color: INK, margin: 0, letterSpacing: "-0.012em", lineHeight: 1.05 }}>
-                    {track.name}
-                  </h2>
-                </div>
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
-                  <div style={{ width: 60, height: 3, background: "rgba(232,237,248,0.08)", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ width: `${trackPct}%`, height: "100%", background: trackComplete ? GOLD : ACCENT, borderRadius: 999, transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
-                  </div>
-                  <span style={{ fontFamily: MONO, fontSize: 12, color: trackComplete ? GOLD : MUTED }}>
-                    {trackDone}/{track.lessons.length}
+                  <span
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: track.accent,
+                      background: "rgba(232,237,248,0.04)",
+                      border: `1px solid ${BORDER}`,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <TrackIcon trackId={track.id} size={18} />
                   </span>
+                  <div style={{ minWidth: 0 }}>
+                    <h2 id={`${track.id}-title`} style={{ color: INK, fontFamily: DISPLAY, fontSize: 23, margin: "0 0 5px", fontWeight: 500, letterSpacing: "-0.01em" }}>
+                      {track.name}
+                    </h2>
+                    <p style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em", lineHeight: 1.45, margin: 0 }}>
+                      {track.lessons.length} lessons
+                    </p>
+                  </div>
+                  <div className="learn-track-progress" style={{ marginLeft: "auto", minWidth: 160 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: FAINT, fontFamily: MONO, fontSize: 11, marginBottom: 7 }}>
+                      <span>{trackDone} done</span>
+                      <span>{trackPct}%</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden" }}>
+                      <div style={{ width: `${trackPct}%`, height: "100%", background: trackDone === track.lessons.length ? GOOD : track.accent, borderRadius: 999 }} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              {/* Hairline rule with tagline riding it */}
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22, paddingLeft: 46 }}>
-                <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, color: MUTED, margin: 0, minWidth: 0 }}>{track.tagline}</p>
-                <div style={{ height: 1, flex: 1, minWidth: 16, background: RULE }} />
-              </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(272px, 1fr))", gap: 14 }}>
-                {track.lessons.map((lesson, li) => {
-                  const isDone = completed.has(lesson.id);
-                  const isLoading = loadingId === lesson.id;
-                  return (
-                    <button
-                      key={lesson.id}
-                      className="lrn-card"
-                      onClick={() => openLesson(lesson, track)}
-                      disabled={loadingId !== null}
-                      style={{
-                        textAlign: "left",
-                        background: CARD,
-                        border: isDone ? `1px solid ${GOLD_SOFT}` : BORDER,
-                        borderRadius: 12,
-                        padding: "17px 18px 14px",
-                        cursor: loadingId !== null ? "wait" : "pointer",
-                        opacity: loadingId !== null && !isLoading ? 0.45 : 1,
-                        position: "relative",
-                        minHeight: 162,
-                        display: "flex",
-                        flexDirection: "column",
-                        color: INK,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {/* hover edge — gold hairline that draws in from the left */}
-                      <span className="lrn-edge" style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: GOLD }} />
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 13 }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 11, color: FAINT, letterSpacing: "0.06em" }}>
-                            {String(li + 1).padStart(2, "0")}
-                          </span>
-                          <span style={{ width: 1, height: 11, background: RULE }} />
-                          <DifficultyMark level={DIFFICULTY_LEVEL[lesson.difficulty]} label={DIFFICULTY_LABEL[lesson.difficulty]} />
-                        </span>
-                        {isDone && (
-                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 19, height: 19, borderRadius: 999, background: GOLD_FAINT, border: `1px solid ${GOLD_SOFT}`, color: GOLD }}>
-                            <CheckIcon size={12} />
-                          </span>
-                        )}
-                      </div>
-                      <h3 style={{ fontFamily: SERIF, margin: "0 0 6px", fontSize: 17, fontWeight: 600, color: INK, lineHeight: 1.28 }}>{lesson.title}</h3>
-                      <p style={{ margin: "0 0 14px", fontSize: 13, color: MUTED, lineHeight: 1.55, flex: 1 }}>{lesson.hook}</p>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${RULE}`, paddingTop: 11 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 11.5, color: ACCENT }}>+{lesson.xp} XP</span>
-                        <span style={{ fontFamily: MONO, fontSize: 11, color: FAINT }}>
-                          {isDone ? `${LEARN_CACHED_COST} cr` : `${LEARN_COST} cr`}
-                        </span>
-                      </div>
-                      {isLoading && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            borderRadius: 12,
-                            background: "rgba(5,13,26,0.66)",
-                            backdropFilter: "blur(2px)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontFamily: MONO,
-                            fontSize: 12,
-                            color: GOLD,
-                            letterSpacing: "0.06em",
-                          }}
-                        >
-                          Authoring lesson…
+                <div className="learn-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(238px, 1fr))", gap: 10 }}>
+                  {track.lessons.map((lesson, index) => {
+                    const isDone = completed.has(lesson.id);
+                    const isLoading = loadingId === lesson.id;
+                    return (
+                      <button
+                        key={lesson.id}
+                        className="learn-card"
+                        onClick={() => openLesson(lesson, track)}
+                        disabled={loadingId !== null}
+                        style={{
+                          minHeight: 138,
+                          textAlign: "left",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          gap: 18,
+                          background: isDone ? "rgba(34,197,94,0.055)" : SURFACE,
+                          border: `1px solid ${isDone ? "rgba(34,197,94,0.22)" : BORDER}`,
+                          borderRadius: 8,
+                          padding: 16,
+                          color: INK,
+                          cursor: loadingId !== null ? "wait" : "pointer",
+                          opacity: loadingId !== null && !isLoading ? 0.48 : 1,
+                          position: "relative",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+                            <span style={{ fontFamily: MONO, color: FAINT, fontSize: 12 }}>
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
+                            {isDone ? (
+                              <span style={{ color: GOOD, display: "inline-flex" }} aria-label="Completed">
+                                <CheckIcon size={16} />
+                              </span>
+                            ) : (
+                              <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>
+                                {DIFFICULTY_LABEL[lesson.difficulty]}
+                              </span>
+                            )}
+                          </div>
+                          <h3 style={{ color: INK, fontFamily: SERIF, fontSize: 16.5, lineHeight: 1.32, margin: 0, fontWeight: 600, letterSpacing: 0 }}>
+                            {lesson.title}
+                          </h3>
                         </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: FAINT, fontSize: 12 }}>
+                          <span style={{ fontFamily: MONO, letterSpacing: "0.02em" }}>{lesson.xp} XP</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: isLoading ? MUTED : ACCENT }}>
+                            {isLoading ? "Opening" : isDone ? "Review" : "Open"}
+                            {!isLoading && <ArrowRightIcon size={13} />}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
 
-      <div style={{ marginTop: 64, paddingTop: 26, borderTop: `1px solid ${RULE}`, textAlign: "center" }}>
-        <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: "0.26em", textTransform: "uppercase", color: GOLD }}>Conviqt Research Academy</span>
-        <p style={{ fontFamily: SERIF, color: FAINT, fontSize: 12.5, marginTop: 12, lineHeight: 1.6, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-          Financial education, not financial advice. Lessons are AI-authored to build understanding —
-          always do your own research before committing real capital.
-        </p>
+        <footer style={{ marginTop: 54, paddingTop: 18, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
+          {trackCount} tracks, {TOTAL_LESSONS} lessons. Educational material only, not financial advice.
+        </footer>
       </div>
     </div>
   );
 }
 
-// ── Pieces ───────────────────────────────────────────────────────────────────
-
-function StatCell({
-  label, value, sub, valueColor = INK, crest = false, children,
+function Metric({
+  label,
+  value,
+  align = "left",
 }: {
   label: string;
   value: string;
-  sub?: string;
-  valueColor?: string;
-  crest?: boolean;
-  children?: React.ReactNode;
+  align?: "left" | "right";
 }) {
   return (
-    <div style={{ background: BG, padding: "15px 18px 16px" }}>
-      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, marginBottom: 8 }}>
-        {label}
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span style={{ fontFamily: crest ? DISPLAY : MONO, fontSize: crest ? 27 : 24, fontWeight: crest ? 500 : 600, color: crest ? GOLD : valueColor, letterSpacing: "-0.01em" }}>{value}</span>
-        {sub && <span style={{ fontSize: 11.5, color: FAINT }}>{sub}</span>}
-      </div>
-      {children}
+    <div style={{ textAlign: align }}>
+      <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 6 }}>{label}</div>
+      <div style={{ color: INK, fontFamily: MONO, fontSize: 20, fontWeight: 650, letterSpacing: 0 }}>{value}</div>
     </div>
-  );
-}
-
-// Difficulty rendered as graded serifs (I / II / III) — a refined ledger mark
-// rather than candy dots. Gold fill scales with tier.
-function DifficultyMark({ level, label }: { level: number; label: string }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-      <span style={{ display: "inline-flex", gap: 2.5 }}>
-        {[1, 2, 3].map((i) => (
-          <span
-            key={i}
-            style={{
-              width: 4,
-              height: 9,
-              borderRadius: 1,
-              background: i <= level ? GOLD : "rgba(232,237,248,0.13)",
-            }}
-          />
-        ))}
-      </span>
-      <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED }}>
-        {label}
-      </span>
-    </span>
   );
 }
