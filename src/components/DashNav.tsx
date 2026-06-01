@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export function DashNav({ active }: { active?: "chat" | "alpha" | "learn" | "methodology" | "pricing" }) {
+export function DashNav({ active }: { active?: "chat" | "alpha" | "academy" | "methodology" | "pricing" }) {
   const links = [
     { label: "Research", href: "/chat",        key: "chat"        as const },
     { label: "Alpha",    href: "/alpha",       key: "alpha"       as const },
-    { label: "Learn",    href: "/learn",       key: "learn"       as const },
+    { label: "Academy",  href: "/academy",     key: "academy"     as const },
     { label: "Pricing",  href: "/pricing",     key: "pricing"     as const },
     { label: "Method.",  href: "/methodology", key: "methodology" as const },
   ];
 
   return (
     <nav
+      className="dash-nav"
       style={{
         display:              "flex",
         alignItems:           "center",
         justifyContent:       "space-between",
+        gap:                  "24px",
         padding:              "24px 52px",
         background:           "rgba(5,13,26,0.95)",
         backdropFilter:       "blur(20px)",
@@ -28,6 +30,34 @@ export function DashNav({ active }: { active?: "chat" | "alpha" | "learn" | "met
         zIndex:               50,
       }}
     >
+      <style>{`
+        @media (max-width: 760px) {
+          .dash-nav {
+            flex-wrap: wrap;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            padding: 18px 24px !important;
+            gap: 16px !important;
+            overflow-x: hidden;
+            max-width: 100vw;
+          }
+          .dash-nav-links {
+            order: 3;
+            width: 100%;
+            min-width: 0;
+            gap: 24px !important;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 2px !important;
+          }
+          .dash-nav-links::-webkit-scrollbar {
+            display: none;
+          }
+          .dash-nav-account {
+            margin-left: auto;
+          }
+        }
+      `}</style>
       <Link
         href="/"
         style={{
@@ -43,7 +73,7 @@ export function DashNav({ active }: { active?: "chat" | "alpha" | "learn" | "met
         Conviqt
       </Link>
 
-      <ul style={{ display: "flex", gap: "44px", listStyle: "none", padding: 0, margin: 0 }}>
+      <ul className="dash-nav-links" style={{ display: "flex", gap: "44px", listStyle: "none", padding: 0, margin: 0 }}>
         {links.map(({ label, href, key }) => (
           <li key={key}>
             <Link
@@ -66,7 +96,7 @@ export function DashNav({ active }: { active?: "chat" | "alpha" | "learn" | "met
       </ul>
 
       {/* Right side: live credit balance + account */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <div className="dash-nav-account" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <AccountControls />
       </div>
     </nav>

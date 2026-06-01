@@ -167,7 +167,7 @@ const PANELS: PanelDef[] = [
 // ── Sidebar items ─────────────────────────────────────────────────────────────
 const SIDEBAR = [
   { label: "Research",     href: "/chat",        icon: "◈" },
-  { label: "Learn",        href: "/learn",       icon: "◓" },
+  { label: "Academy",      href: "/academy",     icon: "◓" },
   { label: "Alpha Tracker",href: "/alpha",       icon: "◇" },
   { label: "Pricing",      href: "/pricing",     icon: "◑" },
   { label: "Methodology",  href: "/methodology", icon: "◎" },
@@ -1050,8 +1050,8 @@ export default function IntroAnimation() {
             <ul style={{ display: "flex", gap: "44px", listStyle: "none", padding: 0, margin: 0 }}>
               {[
                 { label: "Research",     href: "/chat" },
-                { label: "Learn",        href: "/learn" },
                 { label: "Alpha",        href: "/alpha" },
+                { label: "Academy",      href: "/academy" },
                 { label: "Pricing",      href: "/pricing" },
                 { label: "Methodology",  href: "/methodology" },
               ].map(({ label, href }) => (
@@ -1334,7 +1334,7 @@ export default function IntroAnimation() {
             justifyContent: "center",
             alignItems: "center",
           }}>
-            <Link href="/learn" style={{
+            <Link href="/academy" style={{
               fontFamily: "var(--font-serif), Georgia, serif",
               fontSize: "12px", letterSpacing: "0.10em", textTransform: "uppercase",
               color: "#1a1206", textDecoration: "none", fontWeight: 600,
@@ -1344,7 +1344,7 @@ export default function IntroAnimation() {
               border: "1px solid rgba(252,211,77,0.65)",
               whiteSpace: "nowrap",
             }}>
-              Start Learning
+              Enter the Academy
             </Link>
             <Link href="/chat" style={{
               fontFamily: "var(--font-serif), Georgia, serif",

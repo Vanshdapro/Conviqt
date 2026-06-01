@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth";
 import { findLesson } from "@/lib/learn/curriculum";
 import { getLearnStats, recordCompletion } from "@/lib/learn/store";
+import { getUnlockedLessonIds } from "@/lib/learn/unlock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +21,11 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "auth_required" }, { status: 401 });
   }
-  const stats = await getLearnStats(user.email);
-  return NextResponse.json(stats);
+  const [stats, unlockedLessonIds] = await Promise.all([
+    getLearnStats(user.email),
+    getUnlockedLessonIds(user.email),
+  ]);
+  return NextResponse.json({ ...stats, unlockedLessonIds });
 }
 
 export async function POST(req: Request) {

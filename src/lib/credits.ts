@@ -10,8 +10,11 @@
 //   general       — 18 credits  (Sonnet analyst + up to 3 web_search calls)
 //   cache         —  1 credit   (any intent that hits the 4h cache)
 //   pick          —  0 credits  (text redirect only, no pipeline)
-//   learn         — 14 credits  (Conviqt Learn: fresh Sonnet-authored lesson)
-//   learn_cached  —  3 credits  (a lesson replayed from the global cache)
+//   learn         —  0 credits  (Conviqt Learn lessons are pre-authored)
+//   learn_cached  —  0 credits  (legacy key; lesson replays are free)
+//   practice      —  0 credits  (episode drills replay pre-fetched price series)
+//   thesis        — 10 credits  (AI grades a written thesis — one fresh Sonnet call)
+//   paper_mark    —  4 credits  (mark-to-market a live paper account via web_search)
 //
 // Monthly allowances:
 //   free          →  50 credits / month (reset by grant_free_credits_if_due)
@@ -38,8 +41,11 @@ export const CREDITS_PER_INTENT = {
   general: 18,
   cache:   1,
   pick:    0,
-  learn:        14,
-  learn_cached:  3,
+  learn:         0,
+  learn_cached: 0,
+  practice:    0,
+  thesis:     10,
+  paper_mark:  4,
 } as const;
 
 export type Intent = keyof typeof CREDITS_PER_INTENT;

@@ -55,6 +55,17 @@ export function SearchIcon(p: IconProps) {
   );
 }
 
+export function FileTextIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M6 3h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <polyline points="13 3 13 8 18 8" />
+      <line x1="8.5" y1="13" x2="15.5" y2="13" />
+      <line x1="8.5" y1="16.5" x2="15.5" y2="16.5" />
+    </Svg>
+  );
+}
+
 export function NetworkIcon(p: IconProps) {
   return (
     <Svg {...p}>
@@ -161,9 +172,23 @@ export function BookIcon(p: IconProps) {
   );
 }
 
+export function LockIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="5" y="10.5" width="14" height="10" rx="1.6" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+      <circle cx="12" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
 // Maps a curriculum track id to its glyph. Falls back to the book.
 export function TrackIcon({ trackId, size = 20, ...rest }: IconProps & { trackId: string }) {
   switch (trackId) {
+    case "financial-statements":
+      return <FileTextIcon size={size} {...rest} />;
+    case "fundamental-analysis":
+      return <SearchIcon size={size} {...rest} />;
     case "mental-models":
       return <NetworkIcon size={size} {...rest} />;
     case "position-sizing":

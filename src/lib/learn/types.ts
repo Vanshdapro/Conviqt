@@ -1,15 +1,14 @@
 // Conviqt Learn — shared types for the gamified financial academy.
 //
-// A "lesson module" is authored on demand by Claude (see author.ts) and rendered
-// by the LessonView client component. It is intentionally a closed schema: the
-// model fills slots, the client renders trusted widgets. The only free-form HTML
-// is heroSvg, which is sanitized server-side before it ever reaches the client.
+// Lessons are STATIC. Every lesson's content is written once, by hand, and
+// committed to the repo (see content/). Opening a lesson is a plain data read:
+// no Anthropic call, no per-click spend, ever — like opening a page in a
+// textbook. The only paid moment is the one-time credit unlock (see unlock.ts).
 
 // ── Interactive widget allowlist ─────────────────────────────────────────────
-// The author model may attach ONE interactive simulator to a lesson. It chooses
-// a type from this allowlist and supplies starting parameters; the actual
-// interactivity (sliders, drag) lives in trusted React components. Unknown types
-// render nothing — never eval'd.
+// A lesson may embed ONE interactive simulator. The math/interactivity lives in
+// trusted React components (Widgets.tsx); the lesson only supplies a type from
+// this allowlist plus starting numbers. Unknown types render nothing.
 
 export type WidgetType =
   | "compound_interest"
@@ -30,6 +29,41 @@ export interface LessonWidget {
   /** Starting parameters. Shape depends on type; the widget validates/defaults. */
   params: Record<string, number>;
 }
+
+// ── Static figure allowlist ──────────────────────────────────────────────────
+// Each lesson may reference ONE diagram by key. The diagrams are hand-built,
+// reusable React/SVG components (Figures.tsx) — no model-authored SVG, nothing
+// to sanitize. A lesson with no natural diagram simply omits this.
+
+export type FigureKey =
+  | "three-statements"
+  | "income-statement"
+  | "balance-sheet"
+  | "cash-flow"
+  | "accruals"
+  | "working-capital"
+  | "dupont"
+  | "margins"
+  | "roic-spread"
+  | "dcf-bridge"
+  | "reverse-dcf"
+  | "multiples"
+  | "margin-of-safety"
+  | "compounding"
+  | "moat"
+  | "drawdown"
+  | "kelly"
+  | "correlation"
+  | "barbell"
+  | "expected-value"
+  | "base-rate"
+  | "second-order"
+  | "rates-gravity"
+  | "credit-cycle"
+  | "reflexivity"
+  | "sentiment"
+  | "pipeline"
+  | "disagreement";
 
 export interface QuizQuestion {
   question: string;
@@ -56,36 +90,48 @@ export interface RealWorldExample {
   lesson: string; // the takeaway from the scenario
 }
 
-// The full authored module returned by /api/learn and rendered by LessonView.
-export interface LessonModule {
-  lessonId: string;
+// ── Difficulty / XP ──────────────────────────────────────────────────────────
+
+export type Difficulty = "core" | "advanced" | "mastery";
+
+export const LESSON_XP_BY_DIFFICULTY: Record<Difficulty, number> = {
+  core: 60,
+  advanced: 100,
+  mastery: 160,
+};
+
+// ── Static lesson (authored content + catalog meta) ──────────────────────────
+// This is the single source of truth for a lesson. Content files export these.
+
+export interface StaticLesson {
+  id: string;            // stable, permanent — also the progress + unlock key
   title: string;
-  subtitle: string;
-  /** Sanitized SVG infographic string (server-sanitized). May be empty. */
-  heroSvg: string;
+  hook: string;          // one-line teaser on the card
+  difficulty: Difficulty;
+  subtitle: string;      // one clear sentence under the title
+  figure?: FigureKey;    // optional hand-built diagram
   conceptCards: ConceptCard[];
   keyTerms: KeyTerm[];
-  widget: LessonWidget | null;
+  widget?: LessonWidget | null;
   realWorldExample: RealWorldExample;
   quiz: QuizQuestion[];
   /** Deep-link into the Chat product to apply the concept on a real ticker. */
   tryInChat: { label: string; prompt: string };
   takeaways: string[];
+}
+
+/** A lesson as exposed by the assembled catalog: xp derived from difficulty. */
+export interface CatalogLesson extends StaticLesson {
   xp: number;
 }
 
-// ── Curriculum (static catalog) ──────────────────────────────────────────────
-
-export type Difficulty = "core" | "advanced" | "mastery";
-
-export interface LessonMeta {
-  id: string; // stable, also the global cache key
-  title: string;
-  hook: string; // one-line teaser on the card
-  difficulty: Difficulty;
-  xp: number;
-  /** Seed objective handed to the author model. Defines what the lesson teaches. */
-  objective: string;
+export interface RawTrack {
+  id: string;
+  name: string;
+  tagline: string;
+  emoji: string;
+  accent: string; // hex accent for the track
+  lessons: StaticLesson[];
 }
 
 export interface Track {
@@ -93,8 +139,26 @@ export interface Track {
   name: string;
   tagline: string;
   emoji: string;
-  accent: string; // hex accent for the track
-  lessons: LessonMeta[];
+  accent: string;
+  lessons: CatalogLesson[];
+}
+
+// ── Rendered module (what LessonView consumes) ───────────────────────────────
+// Assembled from a CatalogLesson by curriculum.getLessonModule().
+
+export interface LessonModule {
+  lessonId: string;
+  title: string;
+  subtitle: string;
+  figure: FigureKey | null;
+  conceptCards: ConceptCard[];
+  keyTerms: KeyTerm[];
+  widget: LessonWidget | null;
+  realWorldExample: RealWorldExample;
+  quiz: QuizQuestion[];
+  tryInChat: { label: string; prompt: string };
+  takeaways: string[];
+  xp: number;
 }
 
 // ── Progress ─────────────────────────────────────────────────────────────────
@@ -105,12 +169,6 @@ export interface LearnStats {
   streakDays: number;
   completedLessonIds: string[];
 }
-
-export const LESSON_XP_BY_DIFFICULTY: Record<Difficulty, number> = {
-  core: 60,
-  advanced: 100,
-  mastery: 160,
-};
 
 // Level curve: simple, legible thresholds. Level N requires 250*(N-1) cumulative XP.
 export function levelForXp(xp: number): number {

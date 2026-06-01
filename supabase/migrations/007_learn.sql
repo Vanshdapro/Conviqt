@@ -1,11 +1,10 @@
 -- Migration 007: Conviqt Learn — gamified financial academy.
 --
 -- Two tables:
---   learn_lesson_cache — globally cached, Claude-authored lesson modules.
---                        Keyed by the static curriculum lesson_id. The first
---                        learner to open a lesson pays full authoring credits;
---                        everyone after replays the cached JSON for fewer
---                        credits. This is the margin-protection lever.
+--   learn_lesson_cache — globally cached, pre-authored lesson modules.
+--                        Keyed by the static curriculum lesson_id. Lesson opens
+--                        replay cached JSON for free, so reading the academy
+--                        never triggers per-click model spend.
 --   learn_progress     — one row per (email, lesson_id) marking completion,
 --                        XP awarded (once), and best quiz score. XP / level /
 --                        streak are all derived from these rows at read time.

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 const SITE_URL = "https://www.conviqt.com";
@@ -86,6 +86,12 @@ export const metadata: Metadata = {
   category: "finance",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#050d1a",
+};
+
 const FONT_VARS = {
   "--font-sans":
     "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -155,7 +161,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased" style={FONT_VARS}>
       <head>
-        <meta name="theme-color" content="#050508" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

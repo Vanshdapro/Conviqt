@@ -10,17 +10,17 @@
 import { useMemo, useState } from "react";
 import type { LessonWidget, WidgetType } from "@/lib/learn/types";
 
-const ACCENT = "#4f87f7"; // Conviqt electric blue
+const ACCENT = "#4f87f7";
 const BULL = "#22c55e";
 const HOLD = "#f59e0b";
 const BEAR = "#ef4444";
 const INK = "#e8edf8";
-const MUTED = "#7a92b8";
-const CARD = "rgba(255,255,255,0.022)";
-const BORDER = "1px solid rgba(232,237,248,0.08)";
+const MUTED = "#8aa0c2";
+const CARD = "#071120";
+const BORDER = "1px solid rgba(232,237,248,0.09)";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SERIF = "var(--font-serif), 'Source Serif 4', Georgia, serif";
-const DISPLAY = "var(--font-display), 'Playfair Display', Georgia, serif";
+const SANS = "var(--font-sans), system-ui, sans-serif";
+const SERIF = "var(--font-serif), Georgia, serif";
 
 function fmtUSD(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -43,8 +43,8 @@ function Slider({
   return (
     <label style={{ display: "block", marginBottom: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-        <span style={{ fontSize: 12.5, letterSpacing: "0.04em", color: MUTED }}>{label}</span>
-        <span style={{ fontFamily: "monospace", fontSize: 13, color: accent, fontWeight: 600 }}>
+        <span style={{ fontSize: 12.5, color: MUTED }}>{label}</span>
+        <span style={{ fontFamily: MONO, fontSize: 13, color: accent, fontWeight: 650 }}>
           {format(value)}
         </span>
       </div>
@@ -64,10 +64,11 @@ function Slider({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
+      className="learn-widget-shell"
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(0,1fr) minmax(0,1.1fr)",
-        gap: 28,
+        gap: 24,
         alignItems: "center",
       }}
     >
@@ -78,11 +79,11 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Stat({ label, value, accent = INK }: { label: string; value: string; accent?: string }) {
   return (
-    <div style={{ background: CARD, border: BORDER, borderRadius: 12, padding: "12px 14px" }}>
-      <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>
+    <div style={{ background: "rgba(232,237,248,0.03)", border: BORDER, borderRadius: 8, padding: "12px 14px" }}>
+      <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>
         {label}
       </div>
-      <div style={{ fontFamily: "monospace", fontSize: 19, fontWeight: 700, color: accent }}>{value}</div>
+      <div style={{ fontFamily: MONO, fontSize: 18, fontWeight: 650, color: accent }}>{value}</div>
     </div>
   );
 }
@@ -248,8 +249,8 @@ function DiversificationMeter({ p }: { p: Record<string, number> }) {
           ))}
         </div>
         <div style={{ marginTop: 16, textAlign: "center" }}>
-          <span style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: MUTED }}>Risk feels</span>
-          <div style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 700, color }}>{label}</div>
+          <span style={{ fontSize: 12, color: MUTED }}>Risk feels</span>
+          <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 650, color }}>{label}</div>
         </div>
       </div>
     </Shell>
@@ -378,7 +379,7 @@ function PositionSizingLab({ p }: { p: Record<string, number> }) {
           <Stat label="Risk on this trade" value={fmtUSD(capital * halfK)} accent={positive ? ACCENT : BEAR} />
         </div>
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>
             Bet size vs your bankroll
           </div>
           <div style={{ height: 22, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
@@ -433,7 +434,7 @@ function RecoveryBar({ label, pct, max, color, caption }: { label: string; pct: 
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <span style={{ fontSize: 11.5, color: MUTED }}>{label}</span>
-        <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color }}>{caption}</span>
+        <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 650, color }}>{caption}</span>
       </div>
       <div style={{ height: 20, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
         <div style={{ width: `${Math.min(100, (pct / max) * 100)}%`, height: "100%", background: color, transition: "width .25s ease" }} />
@@ -471,7 +472,7 @@ function ExpectedValueLab({ p }: { p: Record<string, number> }) {
           <Stat label="Payoff ratio" value={`${payoff.toFixed(1)}×`} accent={payoff >= 1 ? BULL : HOLD} />
         </div>
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: MUTED, marginBottom: 10 }}>
             Probability-weighted outcomes
           </div>
           <ProbBar label="Win" prob={wp} value={winPct} color={BULL} />
@@ -492,7 +493,7 @@ function ProbBar({ label, prob, value, color }: { label: string; prob: number; v
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
         <span style={{ fontSize: 11.5, color: MUTED }}>{label} · {(prob * 100).toFixed(0)}% of the time</span>
-        <span style={{ fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color }}>{value >= 0 ? "+" : ""}{value}%</span>
+        <span style={{ fontFamily: MONO, fontSize: 12.5, fontWeight: 650, color }}>{value >= 0 ? "+" : ""}{value}%</span>
       </div>
       <div style={{ height: 16, borderRadius: 5, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
         <div style={{ width: `${prob * 100}%`, height: "100%", background: color, opacity: 0.85, transition: "width .25s ease" }} />
@@ -551,7 +552,7 @@ function ReverseDcfLab({ p }: { p: Record<string, number> }) {
           <Stat label={overvalued ? "Priced above model" : "Priced below model"} value={`${overvalued ? "+" : ""}${premium.toFixed(0)}%`} accent={valColor} />
         </div>
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: MUTED, marginBottom: 10 }}>
             Price vs intrinsic value
           </div>
           <RecoveryBar label="Market price" pct={price} max={Math.max(price, fairValue)} color={INK} caption={fmtUSD(price)} />
@@ -589,22 +590,26 @@ export function LessonWidgetRenderer({ widget }: { widget: LessonWidget }) {
   return (
     <section
       style={{
-        background: "linear-gradient(180deg, rgba(79,135,247,0.05), rgba(255,255,255,0.012))",
-        border: "1px solid rgba(79,135,247,0.2)",
-        borderRadius: 16,
-        padding: "26px 28px",
+        background: CARD,
+        border: BORDER,
+        borderRadius: 8,
+        padding: "22px 24px",
         margin: "28px 0",
+        fontFamily: SANS,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT }}>
-          Interactive
-        </span>
+      <style>{`
+        @media (max-width: 780px) {
+          .learn-widget-shell { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+      <div style={{ color: MUTED, fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 8 }}>
+        Interactive
       </div>
-      <h3 style={{ margin: "2px 0 4px", fontSize: 20, fontWeight: 500, color: INK, fontFamily: DISPLAY, letterSpacing: "-0.01em" }}>
+      <h3 style={{ margin: "0 0 6px", fontFamily: SERIF, fontSize: 19, fontWeight: 600, color: INK, letterSpacing: 0 }}>
         {widget.title}
       </h3>
-      <p style={{ fontFamily: SERIF, margin: "0 0 20px", fontSize: 14, color: MUTED }}>{widget.prompt}</p>
+      <p style={{ margin: "0 0 20px", fontFamily: SERIF, fontSize: 14.5, color: MUTED, lineHeight: 1.55 }}>{widget.prompt}</p>
       <Cmp p={widget.params} />
     </section>
   );

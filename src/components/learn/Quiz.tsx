@@ -6,14 +6,17 @@
 import { useState } from "react";
 import type { QuizQuestion } from "@/lib/learn/types";
 
-const ACCENT = "#4f87f7"; // Conviqt electric blue
+const ACCENT = "#4f87f7";
 const BULL = "#22c55e";
 const BEAR = "#ef4444";
 const HOLD = "#f59e0b";
 const INK = "#e8edf8";
-const MUTED = "#7a92b8";
+const MUTED = "#8aa0c2";
+const SURFACE = "#071120";
+const BORDER = "rgba(232,237,248,0.09)";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SERIF = "var(--font-serif), 'Source Serif 4', Georgia, serif";
+const SANS = "var(--font-sans), system-ui, sans-serif";
+const SERIF = "var(--font-serif), Georgia, serif";
 
 export function Quiz({
   questions,
@@ -45,10 +48,10 @@ export function Quiz({
   }
 
   return (
-    <section style={{ margin: "32px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: ACCENT }}>
-          Check yourself
+    <section style={{ margin: "32px 0", fontFamily: SANS }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
+        <span style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 600, color: INK }}>
+          Quick check
         </span>
         {submitted && (
           <span style={{ fontFamily: MONO, fontSize: 13, color: pct >= 50 ? BULL : HOLD }}>
@@ -59,15 +62,15 @@ export function Quiz({
 
       {questions.map((q, qi) => (
         <div key={qi} style={{ marginBottom: 22 }}>
-          <p style={{ fontFamily: SERIF, margin: "0 0 12px", fontSize: 16, color: INK, fontWeight: 600 }}>
+          <p style={{ margin: "0 0 12px", fontFamily: SERIF, fontSize: 16, color: INK, fontWeight: 600, lineHeight: 1.5 }}>
             {qi + 1}. {q.question}
           </p>
           <div style={{ display: "grid", gap: 8 }}>
             {q.options.map((opt, oi) => {
               const isPicked = picked[qi] === oi;
               const isAnswer = q.answerIndex === oi;
-              let bg = "rgba(255,255,255,0.022)";
-              let border = "1px solid rgba(232,237,248,0.1)";
+              let bg = SURFACE;
+              let border = `1px solid ${BORDER}`;
               let color = INK;
               if (submitted) {
                 if (isAnswer) {
@@ -93,7 +96,7 @@ export function Quiz({
                     background: bg,
                     border,
                     color,
-                    borderRadius: 10,
+                    borderRadius: 8,
                     padding: "11px 14px",
                     fontSize: 14,
                     cursor: submitted ? "default" : "pointer",
@@ -106,7 +109,7 @@ export function Quiz({
             })}
           </div>
           {submitted && (
-            <p style={{ margin: "10px 2px 0", fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+            <p style={{ margin: "10px 2px 0", fontSize: 13, color: MUTED, lineHeight: 1.55 }}>
               {q.explanation}
             </p>
           )}
@@ -124,15 +127,15 @@ export function Quiz({
             border: answeredAll ? "1px solid rgba(120,170,255,0.6)" : "1px solid rgba(232,237,248,0.1)",
             borderRadius: 8,
             padding: "12px 28px",
-            fontFamily: SERIF,
+            fontFamily: SANS,
             fontSize: 13.5,
-            fontWeight: 600,
-            letterSpacing: "0.01em",
+            fontWeight: 650,
+            letterSpacing: 0,
             cursor: answeredAll ? "pointer" : "not-allowed",
-            boxShadow: answeredAll ? "0 4px 18px rgba(79,135,247,0.28)" : "none",
+            boxShadow: "none",
           }}
         >
-          {answeredAll ? "Lock in answers" : "Answer every question"}
+          {answeredAll ? "Submit answers" : "Answer all questions"}
         </button>
       )}
     </section>
