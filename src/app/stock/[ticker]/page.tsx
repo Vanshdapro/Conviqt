@@ -67,6 +67,15 @@ export async function generateMetadata({
   const title = `${TICK} Stock Analysis ${year}: ${verdict} — ${name}`;
   const description = `Conviqt's AI Council rates ${TICK} a ${stored.verdict} with ${stored.conviction}/100 conviction. ${stored.report.judge.bottomLine} Every figure is source-linked.`;
 
+  // The shareable verdict card — its mtime busts crawler/CDN caches so the
+  // image tracks the latest Council run rather than a stale snapshot.
+  const ogImage = {
+    url: `${BASE}/api/og/${TICK.toLowerCase()}?v=${Date.parse(stored.updatedAt)}`,
+    width: 1200,
+    height: 630,
+    alt: `${TICK} — Conviqt Council verdict: ${stored.verdict}, ${stored.conviction}/100 conviction`,
+  };
+
   return {
     title,
     description,
@@ -78,11 +87,13 @@ export async function generateMetadata({
       type: "article",
       publishedTime: stored.asOf,
       modifiedTime: stored.updatedAt,
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title: `${TICK} — AI Council verdict: ${stored.verdict}`,
       description,
+      images: [ogImage],
     },
   };
 }
