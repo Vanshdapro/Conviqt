@@ -5,7 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 // redirects to /login. NOTE: this middleware is a UX guard only — the real
 // security boundary is the per-request auth check inside the API routes, which
 // fail closed. So if env is missing we fail OPEN here to avoid bricking the site.
-const PROTECTED_PREFIXES = ["/chat", "/alpha"];
+const PROTECTED_PREFIXES = ["/chat", "/alpha", "/research"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -57,5 +57,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/chat/:path*", "/alpha/:path*"],
+  matcher: ["/chat/:path*", "/alpha/:path*", "/research/:path*"],
 };

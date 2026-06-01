@@ -15,6 +15,9 @@
 //   practice      —  0 credits  (episode drills replay pre-fetched price series)
 //   thesis        — 10 credits  (AI grades a written thesis — one fresh Sonnet call)
 //   paper_mark    —  4 credits  (mark-to-market a live paper account via web_search)
+//   portfolio_audit — 45 credits (batched sweep + 5 risk agents + Sonnet synthesis;
+//                     the heaviest pipeline. Re-viewing a SAVED audit is free — a DB
+//                     read costs no credits; only a fresh run is charged.)
 //
 // Monthly allowances:
 //   free          →  50 credits / month (reset by grant_free_credits_if_due)
@@ -46,6 +49,7 @@ export const CREDITS_PER_INTENT = {
   practice:    0,
   thesis:     10,
   paper_mark:  4,
+  portfolio_audit: 45,
 } as const;
 
 export type Intent = keyof typeof CREDITS_PER_INTENT;
