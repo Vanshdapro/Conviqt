@@ -10,6 +10,7 @@ const INK = "#e8edf8";
 const MUTED = "#8aa0c2";
 const FAINT = "#526684";
 const ACCENT = "#4f87f7";
+const SKY = "#38bdf8";
 const GOOD = "#22c55e";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
 const SANS = "var(--font-sans), system-ui, sans-serif";
@@ -52,7 +53,11 @@ export function ResearchHub() {
         .rh-card { transition: border-color .18s ease, transform .18s ease; }
         .rh-card:hover { transform: translateY(-3px); }
         .rh-analyst-card:hover { border-color: rgba(79,135,247,.35) !important; }
+        .rh-allocator-card:hover { border-color: rgba(56,189,248,.35) !important; }
         .rh-portfolio-card:hover { border-color: rgba(34,197,94,.35) !important; }
+        @media (max-width: 1000px) {
+          .rh-paths { grid-template-columns: 1fr 1fr !important; }
+        }
         @media (max-width: 760px) {
           .rh-paths { grid-template-columns: 1fr !important; }
           .rh-title { font-size: 36px !important; }
@@ -70,13 +75,14 @@ export function ResearchHub() {
           One stock, or your whole book.
         </h1>
         <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17.5, lineHeight: 1.64, margin: 0, maxWidth: 680 }}>
-          The same Council that fractures over a single ticker can now turn on your entire portfolio.{" "}
+          The same Council, pointed at three different questions.{" "}
           <strong style={{ color: INK, fontWeight: 600 }}>Analyst</strong> runs an on-demand thesis on any name.{" "}
-          <strong style={{ color: INK, fontWeight: 600 }}>Portfolio Auditor</strong> runs five risk agents across everything you own — concentration, sector overlap, macro, correlation, and the exposures hiding in plain sight — and shows you exactly where they disagree.
+          <strong style={{ color: INK, fontWeight: 600 }}>Allocator</strong> turns your capacity, risk, and goals into a cited allocation plan.{" "}
+          <strong style={{ color: INK, fontWeight: 600 }}>Portfolio Auditor</strong> stress-tests everything you already own — and each shows you exactly where the agents disagree.
         </p>
       </header>
 
-      <div className="rh-paths" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 36 }}>
+      <div className="rh-paths" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 36 }}>
         {/* Analyst */}
         <Link href="/chat" className="rh-card rh-analyst-card" style={cardStyle}>
           <div style={{ padding: "24px 24px 0" }}>
@@ -96,6 +102,28 @@ export function ResearchHub() {
           <div style={cardFootStyle}>
             <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>Chat-first · cited</span>
             <span style={ctaStyle(ACCENT)}>Open the Analyst <ArrowSvg /></span>
+          </div>
+        </Link>
+
+        {/* Allocator */}
+        <Link href="/research/allocator" className="rh-card rh-allocator-card" style={cardStyle}>
+          <div style={{ padding: "24px 24px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div>
+                <div style={{ color: SKY, fontFamily: MONO, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
+                  Plan — from scratch
+                </div>
+                <h2 style={cardTitleStyle}>Allocator</h2>
+              </div>
+              <CompassGlyph accent={SKY} />
+            </div>
+            <p style={cardBodyStyle}>
+              Enter how much you&rsquo;re investing, your risk tolerance, timeline, and goals. Four planning agents debate the mix and a judge reconciles them into exact tickers, dollar splits, account priority, and a SIP — every figure cited.
+            </p>
+          </div>
+          <div style={cardFootStyle}>
+            <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>Capacity → cited plan</span>
+            <span style={ctaStyle(SKY)}>Build my plan <ArrowSvg /></span>
           </div>
         </Link>
 
@@ -194,6 +222,15 @@ function SearchGlyph({ accent }: { accent: string }) {
       <circle cx="27" cy="27" r="16" stroke={`${accent}55`} strokeWidth="2" fill={`${accent}0d`} />
       <line x1="39" y1="39" x2="52" y2="52" stroke={`${accent}66`} strokeWidth="2.4" strokeLinecap="round" />
       <polyline points="20,30 25,23 30,27 35,19" stroke={`${accent}80`} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CompassGlyph({ accent }: { accent: string }) {
+  return (
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <circle cx="32" cy="32" r="22" stroke={`${accent}55`} strokeWidth="2" fill={`${accent}0d`} />
+      <polygon points="32,16 38,32 32,48 26,32" fill={`${accent}33`} stroke={`${accent}88`} strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="32" cy="32" r="2.6" fill={`${accent}aa`} />
     </svg>
   );
 }

@@ -18,6 +18,8 @@
 //   portfolio_audit — 45 credits (batched sweep + 5 risk agents + Sonnet synthesis;
 //                     the heaviest pipeline. Re-viewing a SAVED audit is free — a DB
 //                     read costs no credits; only a fresh run is charged.)
+//   allocator      — 40 credits (profile → batched sweep + 4 planning agents +
+//                     Sonnet plan synthesis; the forward-looking sibling of the audit.)
 //
 // Monthly allowances:
 //   free          →  50 credits / month (reset by grant_free_credits_if_due)
@@ -50,6 +52,7 @@ export const CREDITS_PER_INTENT = {
   thesis:     10,
   paper_mark:  4,
   portfolio_audit: 45,
+  allocator:   40,
 } as const;
 
 export type Intent = keyof typeof CREDITS_PER_INTENT;
