@@ -310,17 +310,23 @@ export function renderProfileBrief(p: InvestorProfile): string {
 
 export function renderBaselineBrief(b: Baseline): string {
   const lines: string[] = [];
+  // Explicitly frame equityPct as a starting point, not a fixed answer.
+  // The dollar capacity amounts (amountUSD/monthlyUSD) ARE fixed to the user's
+  // inputs and should not change. The equity/bond/cash split is the DEBATE.
   lines.push(
-    `DETERMINISTIC SKELETON (exact, from the user's capacity — do not contradict the dollar math):`
+    `FRAMEWORK SKELETON — capacity tier ${b.capacityTier}:`
   );
   lines.push(
-    `Top-level: equity ${b.equityPct}%, bonds ${b.bondPct}%, cash ${b.cashPct}%, hedge ${b.altPct}%. Capacity tier ${b.capacityTier}.`
+    `Starting-point equity: ${b.equityPct}% (THIS IS YOUR ARGUMENT SEED — push it up or down based on your lane. See your instructions.)`
   );
-  lines.push("Target sleeves:");
+  lines.push(
+    `Starting splits: equity ${b.equityPct}% / bonds ${b.bondPct}% / cash ${b.cashPct}% / hedge ${b.altPct}%.`
+  );
+  lines.push("Capacity sleeves (dollar amounts are fixed by user's inputs — do not change these):");
   for (const s of b.sleeves) {
     lines.push(
       `- ${s.assetClass}: ${s.targetPct}%` +
-        (s.amountUSD > 0 ? ` ($${s.amountUSD.toLocaleString()} of the lump)` : "") +
+        (s.amountUSD > 0 ? ` ($${s.amountUSD.toLocaleString()} capacity)` : "") +
         (s.monthlyUSD > 0 ? ` + $${s.monthlyUSD.toLocaleString()}/mo` : "")
     );
   }
