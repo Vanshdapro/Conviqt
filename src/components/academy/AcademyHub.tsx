@@ -3,14 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-// The Academy hub. The Academy has two halves: Learn (build the model) and
-// Practice (prove you can run it). This page frames that arc and routes the
-// learner into either side, with their live progress in each. Beyond the
-// Academy sit the real tools — Research and Alpha — which is where a learner
-// graduates to once the model is internalized.
-
-const SURFACE = "#071120";
-const SURFACE_SOFT = "rgba(232,237,248,0.035)";
+const SURFACE = "#07121f";
 const BORDER = "rgba(232,237,248,0.09)";
 const RULE = "rgba(232,237,248,0.075)";
 const INK = "#e8edf8";
@@ -25,7 +18,8 @@ const SERIF = "var(--font-serif), Georgia, serif";
 
 type LearnProgress = { xp: number; completedLessonIds?: string[] };
 type PracticeSnapshot = {
-  stats: { xp: number; rank: { title: string }; clearedDrillIds: string[] };
+  stats: { xp: number; rank: { title: string; minXp: number }; clearedDrillIds: string[] };
+  nextRank: { title: string; minXp: number } | null;
   totals: { totalDrills: number; cleared: number };
   signedIn: boolean;
 };
@@ -52,26 +46,35 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
   const drillsTotal = practice?.totals.totalDrills ?? null;
   const rank = practice?.stats.rank.title ?? "Intern";
 
+  const rankFloor = practice?.stats.rank.minXp ?? 0;
+  const rankCeil = practice?.nextRank?.minXp ?? (practice?.stats.xp ?? 0);
+  const rankXp = practice?.stats.xp ?? 0;
+  const rankPct = practice?.nextRank
+    ? Math.max(0, Math.min(100, ((rankXp - rankFloor) / Math.max(1, rankCeil - rankFloor)) * 100))
+    : 100;
+
   return (
     <div style={{ fontFamily: SANS }}>
       <style>{`
-        .ac-path { transition: border-color .16s ease, background .16s ease, transform .16s ease; }
-        .ac-path:hover { transform: translateY(-2px); border-color: rgba(79,135,247,.32); background: rgba(232,237,248,.05); }
-        .ac-path:focus-visible { outline: 2px solid rgba(79,135,247,.6); outline-offset: 3px; }
+        .ac-card { transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+        .ac-card:hover { transform: translateY(-3px); }
+        .ac-card:focus-visible { outline: 2px solid rgba(79,135,247,.6); outline-offset: 3px; }
+        .ac-learn-card:hover { border-color: rgba(79,135,247,.35) !important; }
+        .ac-practice-card:hover { border-color: rgba(34,197,94,.35) !important; }
         @media (max-width: 760px) {
           .ac-paths { grid-template-columns: 1fr !important; }
-          .ac-title { font-size: 40px !important; }
-          .ac-arc { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-          .ac-arc-sep { display: none !important; }
+          .ac-title { font-size: 36px !important; line-height: 1.1 !important; }
+          .ac-arc { flex-wrap: wrap !important; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .ac-path { transition: none; }
-          .ac-path:hover { transform: none; }
+          .ac-card { transition: none; }
+          .ac-card:hover { transform: none; }
         }
       `}</style>
 
-      <header style={{ marginBottom: 40, maxWidth: 720 }}>
-        <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.24em", textTransform: "uppercase", marginBottom: 18 }}>
+      {/* Header */}
+      <header style={{ marginBottom: 52, maxWidth: 780 }}>
+        <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.26em", textTransform: "uppercase", marginBottom: 18 }}>
           Conviqt Academy
         </div>
         <h1
@@ -79,164 +82,268 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
           style={{
             color: INK,
             fontFamily: DISPLAY,
-            fontSize: 50,
-            lineHeight: 1.04,
-            letterSpacing: "-0.018em",
+            fontSize: 52,
+            lineHeight: 1.03,
+            letterSpacing: "-0.02em",
             fontWeight: 500,
-            margin: "0 0 18px",
+            margin: "0 0 20px",
           }}
         >
-          Learn the model. Then prove you can run it.
+          Learn the model.<br />Then prove you can run it.
         </h1>
-        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17.5, lineHeight: 1.62, margin: 0 }}>
-          The Academy has two halves. <strong style={{ color: INK, fontWeight: 600 }}>Learn</strong> builds the
-          mental model — how risk, sizing, valuation, and markets actually work. <strong style={{ color: INK, fontWeight: 600 }}>Practice</strong> makes
-          you do it: trade real historical episodes bar by bar and write theses an AI grades like a portfolio
-          manager. Master both, and the real tools — Research and Alpha — stop being a black box.
+        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17.5, lineHeight: 1.64, margin: 0, maxWidth: 680 }}>
+          The Academy has two halves.{" "}
+          <strong style={{ color: INK, fontWeight: 600 }}>Learn</strong> builds the mental model — how risk, sizing,
+          valuation, and markets actually work.{" "}
+          <strong style={{ color: INK, fontWeight: 600 }}>Practice</strong> makes you do it: trade real historical
+          episodes bar by bar and write theses an AI grades like a portfolio manager. Master both, and the real tools —
+          Research and Alpha — stop being a black box.
         </p>
       </header>
 
+      {/* Path cards */}
       <div
         className="ac-paths"
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 34 }}
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 36 }}
       >
-        <PathCard
+        {/* Learn Card */}
+        <Link
           href="/academy/learn"
-          eyebrow="Part one — the curriculum"
-          title="Learn"
-          blurb="Short, interactive lessons on budgeting, markets, risk, sizing, and valuation. Read one, move a slider, answer a few questions. Built for everyone from finance students to the merely curious."
-          metricLabel="Lessons completed"
-          metricValue={`${lessonsDone} / ${learnTotal}`}
-          progress={learnTotal ? Math.round((lessonsDone / learnTotal) * 100) : 0}
-          cta="Open the curriculum"
-          accent={ACCENT}
-        />
-        <PathCard
+          className="ac-card ac-learn-card"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            background: SURFACE,
+            border: `1px solid ${BORDER}`,
+            borderRadius: 14,
+            overflow: "hidden",
+            textDecoration: "none",
+            minHeight: 310,
+          }}
+        >
+          <div style={{ padding: "24px 24px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div>
+                <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
+                  Part One — The Curriculum
+                </div>
+                <h2 style={{ color: INK, fontFamily: DISPLAY, fontSize: 34, fontWeight: 500, margin: "0 0 12px", letterSpacing: "-0.01em" }}>
+                  Learn
+                </h2>
+              </div>
+              <BookIllustration accent={ACCENT} />
+            </div>
+            <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 15, lineHeight: 1.62, margin: 0 }}>
+              Short, interactive lessons on budgeting, markets, risk, sizing, and valuation. Read one,
+              move a slider, answer a few questions. Built for everyone from finance students to the merely curious.
+            </p>
+          </div>
+          <div style={{ marginTop: "auto", padding: "18px 24px", borderTop: `1px solid rgba(232,237,248,0.06)`, background: "rgba(232,237,248,0.018)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>Lessons completed</span>
+              <span style={{ color: INK, fontFamily: MONO, fontSize: 12, fontWeight: 650 }}>
+                {lessonsDone} / {learnTotal} lessons
+              </span>
+            </div>
+            <div style={{ height: 3, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden", marginBottom: 16 }}>
+              <div style={{ width: `${learnTotal ? Math.round((lessonsDone / learnTotal) * 100) : 0}%`, height: "100%", background: ACCENT, borderRadius: 999, transition: "width .4s ease" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>
+                {learnTotal ? Math.round((lessonsDone / learnTotal) * 100) : 0}%
+              </span>
+              <span style={{ color: ACCENT, fontFamily: SANS, fontSize: 14, fontWeight: 650, display: "inline-flex", alignItems: "center", gap: 7 }}>
+                Explore the curriculum
+                <ArrowSvg />
+              </span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Practice Card */}
+        <Link
           href="/academy/practice"
-          eyebrow="Part two — the desk"
-          title="Practice"
-          blurb="Apply every lesson. Trade the COVID crash, Nvidia's AI run, and the SVB collapse bar by bar; climb a boss-fight ladder toward a PM certification; write theses an AI grades section by section."
-          metricLabel={`Rank — ${rank}`}
-          metricValue={drillsTotal !== null ? `${drillsDone} / ${drillsTotal} drills` : `${drillsDone} drills`}
-          progress={drillsTotal ? Math.round((drillsDone / drillsTotal) * 100) : 0}
-          cta="Enter the desk"
-          accent={GOOD}
-        />
+          className="ac-card ac-practice-card"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            background: SURFACE,
+            border: `1px solid ${BORDER}`,
+            borderRadius: 14,
+            overflow: "hidden",
+            textDecoration: "none",
+            minHeight: 310,
+          }}
+        >
+          <div style={{ padding: "24px 24px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div>
+                <div style={{ color: GOOD, fontFamily: MONO, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
+                  Part Two — The Desk
+                </div>
+                <h2 style={{ color: INK, fontFamily: DISPLAY, fontSize: 34, fontWeight: 500, margin: "0 0 12px", letterSpacing: "-0.01em" }}>
+                  Practice
+                </h2>
+              </div>
+              <DeskIllustration accent={GOOD} />
+            </div>
+            <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 15, lineHeight: 1.62, margin: 0 }}>
+              Apply every lesson. Trade the COVID crash, Nvidia&apos;s AI run, and the SVB collapse bar by bar;
+              climb a boss-fight ladder toward a PM certification; write theses an AI grades section by section.
+            </p>
+          </div>
+          <div style={{ marginTop: "auto", padding: "18px 24px", borderTop: `1px solid rgba(232,237,248,0.06)`, background: "rgba(232,237,248,0.018)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>Rank — {rank}</span>
+              <span style={{ color: INK, fontFamily: MONO, fontSize: 12, fontWeight: 650 }}>
+                {drillsTotal !== null ? `${drillsDone} / ${drillsTotal} drills` : `${drillsDone} drills`}
+              </span>
+            </div>
+            <RankTrack pct={rankPct} accent={GOOD} />
+            <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+              <span style={{ color: GOOD, fontFamily: SANS, fontSize: 14, fontWeight: 650, display: "inline-flex", alignItems: "center", gap: 7 }}>
+                Start practicing
+                <ArrowSvg />
+              </span>
+            </div>
+          </div>
+        </Link>
       </div>
 
-      {/* The arc into the real product */}
+      {/* How it fits together */}
       <div
         style={{
-          background: SURFACE,
+          background: "rgba(232,237,248,0.025)",
           border: `1px solid ${BORDER}`,
           borderRadius: 12,
-          padding: "20px 22px",
+          padding: "20px 24px",
         }}
       >
-        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 14 }}>
+        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 18 }}>
           How it fits together
         </div>
-        <div className="ac-arc" style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <ArcStep n="01" label="Learn" sub="Build the model" />
+        <div className="ac-arc" style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <ArcStep n="01" icon={<BookSvg />} label="Learn" sub="Build the mental model" accent={ACCENT} />
           <ArcSep />
-          <ArcStep n="02" label="Practice" sub="Run it under fire" />
+          <ArcStep n="02" icon={<ChartSvg />} label="Practice" sub="Run it under fire" accent={GOOD} />
           <ArcSep />
-          <ArcStep n="03" label="Research / Alpha" sub="The real tools" muted />
+          <ArcStep n="03" icon={<SearchSvg />} label="Research / Alpha" sub="The real tools" faded />
         </div>
       </div>
 
-      <footer style={{ marginTop: 30, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
-        Educational material only, not financial advice. Practice uses real historical prices, each carrying a
-        source link. {practice && !practice.signedIn ? (
+      <footer style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
+        Educational material only, not financial advice. Practice uses real historical prices, each carrying a source link.{" "}
+        {practice && !practice.signedIn && (
           <>
-            {" "}
-            <Link href="/login" style={{ color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Sign in</Link> to
-            save your progress and rank.
+            <Link href="/login" style={{ color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Sign in</Link>{" "}
+            to save your progress and rank.
           </>
-        ) : null}
+        )}
       </footer>
     </div>
   );
 }
 
-function PathCard({
-  href, eyebrow, title, blurb, metricLabel, metricValue, progress, cta, accent,
-}: {
-  href: string;
-  eyebrow: string;
-  title: string;
-  blurb: string;
-  metricLabel: string;
-  metricValue: string;
-  progress: number;
-  cta: string;
-  accent: string;
-}) {
+function BookIllustration({ accent }: { accent: string }) {
   return (
-    <Link
-      href={href}
-      className="ac-path"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 18,
-        background: SURFACE,
-        border: `1px solid ${BORDER}`,
-        borderRadius: 12,
-        padding: 24,
-        textDecoration: "none",
-        minHeight: 280,
-      }}
-    >
-      <div>
-        <div style={{ color: accent, fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 12 }}>
-          {eyebrow}
-        </div>
-        <h2 style={{ color: INK, fontFamily: DISPLAY, fontSize: 30, fontWeight: 500, letterSpacing: "-0.01em", margin: "0 0 12px" }}>
-          {title}
-        </h2>
-        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 15, lineHeight: 1.6, margin: 0 }}>
-          {blurb}
-        </p>
-      </div>
-
-      <div style={{ marginTop: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-          <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>{metricLabel}</span>
-          <span style={{ color: INK, fontFamily: MONO, fontSize: 13, fontWeight: 650 }}>{metricValue}</span>
-        </div>
-        <div style={{ height: 4, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden", marginBottom: 18 }}>
-          <div style={{ width: `${Math.max(0, Math.min(100, progress))}%`, height: "100%", background: accent, borderRadius: 999, transition: "width .4s ease" }} />
-        </div>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            color: accent,
-            fontFamily: SANS,
-            fontSize: 14,
-            fontWeight: 650,
-          }}
-        >
-          {cta}
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="4" y1="12" x2="18.5" y2="12" />
-            <polyline points="12.5 6 18.5 12 12.5 18" />
-          </svg>
-        </span>
-      </div>
-    </Link>
+    <svg width="96" height="68" viewBox="0 0 120 88" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
+      <path d="M8 16 C8 16 54 9 54 16 L54 78 C54 78 8 72 8 72 Z"
+        fill={`${accent}0d`} stroke={`${accent}44`} strokeWidth="1.4" />
+      <path d="M66 16 C66 16 112 9 112 16 L112 72 C112 72 66 78 66 78 Z"
+        fill={`${accent}0d`} stroke={`${accent}44`} strokeWidth="1.4" />
+      <path d="M54 14 L66 14 L66 80 L54 80 Z" fill={`${accent}20`} />
+      <line x1="16" y1="30" x2="48" y2="29" stroke={`${accent}28`} strokeWidth="1.6" />
+      <line x1="16" y1="40" x2="48" y2="39" stroke={`${accent}28`} strokeWidth="1.6" />
+      <line x1="16" y1="50" x2="48" y2="49" stroke={`${accent}28`} strokeWidth="1.6" />
+      <line x1="16" y1="60" x2="40" y2="59" stroke={`${accent}1a`} strokeWidth="1.6" />
+      <line x1="16" y1="70" x2="45" y2="69" stroke={`${accent}1a`} strokeWidth="1.6" />
+      <line x1="72" y1="30" x2="106" y2="29" stroke={`${accent}28`} strokeWidth="1.6" />
+      <line x1="72" y1="40" x2="106" y2="39" stroke={`${accent}28`} strokeWidth="1.6" />
+      <line x1="72" y1="50" x2="106" y2="49" stroke={`${accent}28`} strokeWidth="1.6" />
+      <line x1="72" y1="60" x2="96" y2="59" stroke={`${accent}1a`} strokeWidth="1.6" />
+      <line x1="72" y1="70" x2="102" y2="69" stroke={`${accent}1a`} strokeWidth="1.6" />
+    </svg>
   );
 }
 
-function ArcStep({ n, label, sub, muted }: { n: string; label: string; sub: string; muted?: boolean }) {
+function DeskIllustration({ accent }: { accent: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <span style={{ color: muted ? FAINT : ACCENT, fontFamily: MONO, fontSize: 12, fontWeight: 650 }}>{n}</span>
-      <div>
-        <div style={{ color: muted ? MUTED : INK, fontFamily: SERIF, fontSize: 15, fontWeight: 600 }}>{label}</div>
-        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.04em" }}>{sub}</div>
+    <svg width="110" height="68" viewBox="0 0 136 88" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
+      {/* Monitor */}
+      <rect x="4" y="6" width="72" height="54" rx="4" stroke={`${accent}44`} strokeWidth="1.4" fill={`${accent}0a`} />
+      <line x1="40" y1="60" x2="40" y2="70" stroke={`${accent}30`} strokeWidth="1.4" />
+      <line x1="28" y1="70" x2="52" y2="70" stroke={`${accent}30`} strokeWidth="1.4" />
+      <text x="12" y="24" fill={`${accent}66`} fontSize="8" fontFamily="monospace">$_</text>
+      <line x1="12" y1="34" x2="66" y2="34" stroke={`${accent}18`} strokeWidth="1.3" />
+      <line x1="12" y1="42" x2="56" y2="42" stroke={`${accent}18`} strokeWidth="1.3" />
+      <line x1="12" y1="50" x2="60" y2="50" stroke={`${accent}18`} strokeWidth="1.3" />
+      {/* Keyboard */}
+      <rect x="84" y="46" width="48" height="30" rx="3" stroke={`${accent}38`} strokeWidth="1.4" fill={`${accent}08`} />
+      <rect x="88" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="96" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="104" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="112" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="88" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="96" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="104" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="112" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="91" y="66" width="22" height="5" rx="1" fill={`${accent}14`} stroke={`${accent}28`} strokeWidth="0.6" />
+      {/* Chart lines inside monitor - small candlestick-ish */}
+      <polyline points="14,26 22,16 30,20 42,11 54,18 64,13" stroke={`${accent}50`} strokeWidth="1.2" fill="none" />
+    </svg>
+  );
+}
+
+function RankTrack({ pct, accent }: { pct: number; accent: string }) {
+  const SEGMENTS = 10;
+  const filled = Math.round((pct / 100) * SEGMENTS);
+  return (
+    <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+      {Array.from({ length: SEGMENTS }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            flex: 1,
+            height: 4,
+            borderRadius: 2,
+            background: i < filled ? accent : "rgba(232,237,248,0.1)",
+            transition: "background .3s ease",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ArcStep({
+  n, icon, label, sub, accent, faded,
+}: {
+  n: string; icon: React.ReactNode; label: string; sub: string; accent?: string; faded?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 9,
+          background: faded ? "rgba(232,237,248,0.03)" : `${accent}12`,
+          border: `1px solid ${faded ? "rgba(232,237,248,0.07)" : `${accent}28`}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: faded ? FAINT : accent,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+          <span style={{ color: faded ? FAINT : accent, fontFamily: MONO, fontSize: 11, fontWeight: 650 }}>{n}</span>
+          <span style={{ color: faded ? MUTED : INK, fontFamily: SERIF, fontSize: 15, fontWeight: 600 }}>{label}</span>
+        </div>
+        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.03em", marginTop: 2 }}>{sub}</div>
       </div>
     </div>
   );
@@ -244,11 +351,47 @@ function ArcStep({ n, label, sub, muted }: { n: string; label: string; sub: stri
 
 function ArcSep() {
   return (
-    <span className="ac-arc-sep" style={{ color: FAINT, flex: "0 0 auto" }} aria-hidden="true">
-      <svg width={22} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+    <span style={{ color: FAINT, flexShrink: 0 }} aria-hidden="true">
+      <svg width={20} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="18.5" y2="12" />
         <polyline points="12.5 6 18.5 12 12.5 18" />
       </svg>
     </span>
+  );
+}
+
+function ArrowSvg() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="12" x2="18.5" y2="12" />
+      <polyline points="12.5 6 18.5 12 12.5 18" />
+    </svg>
+  );
+}
+
+function BookSvg() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H12v15.5H5.5A1.5 1.5 0 0 0 4 21V5.5Z" />
+      <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H12v15.5h6.5A1.5 1.5 0 0 1 20 21V5.5Z" />
+    </svg>
+  );
+}
+
+function ChartSvg() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4v16h16" />
+      <polyline points="7 14 11 9 14 12 19 6" />
+    </svg>
+  );
+}
+
+function SearchSvg() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <line x1="20.5" y1="20.5" x2="15.5" y2="15.5" />
+    </svg>
   );
 }

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function AcademyPracticePage() {
   return (
-    <div style={{ minHeight: "100vh", background: "#050d1a" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at 18% 55%, rgba(60,45,28,0.11) 0%, transparent 52%), radial-gradient(ellipse at 82% 25%, rgba(30,28,56,0.14) 0%, transparent 52%), linear-gradient(175deg, #060b12 0%, #0b1120 60%, #07090f 100%)" }}>
       <DashNav active="academy" />
       <AcademyTabs active="practice" />
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>

@@ -7,7 +7,7 @@ import { ThesisRunner, type PlayThesisDrill } from "./ThesisRunner";
 import { PaperDesk } from "./PaperDesk";
 import { StarIcon, LockIcon, ChartIcon, PenIcon, TrophyIcon, ChevronRightIcon } from "./icons";
 
-const SURFACE = "#071120";
+const SURFACE = "#07121f";
 const BORDER = "rgba(232,237,248,0.09)";
 const RULE = "rgba(232,237,248,0.075)";
 const INK = "#e8edf8";
@@ -40,10 +40,10 @@ interface Dashboard {
   signedIn: boolean;
 }
 
-const DIFFICULTY: Record<DrillCard["difficulty"], { label: string; color: string }> = {
-  core: { label: "Core", color: ACCENT },
-  advanced: { label: "Advanced", color: CREDIT },
-  mastery: { label: "Mastery", color: VIOLET },
+const DIFFICULTY_COLOR: Record<DrillCard["difficulty"], string> = {
+  core: ACCENT,
+  advanced: CREDIT,
+  mastery: VIOLET,
 };
 
 export function PracticeDashboard() {
@@ -98,7 +98,6 @@ export function PracticeDashboard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // ── Active drill takes over the page ────────────────────────────────────────────
   if (active) {
     if (active.kind === "episode") {
       return <EpisodeRunner drill={active} onExit={exitDrill} onGraded={() => fetchDashboard()} />;
@@ -115,7 +114,12 @@ export function PracticeDashboard() {
         <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 15.5, lineHeight: 1.6 }}>
           The desk couldn&apos;t load right now. Refresh to try again.
         </p>
-        <button onClick={() => { setLoading(true); fetchDashboard(); }} style={primaryBtn(ACCENT)}>Retry</button>
+        <button
+          onClick={() => { setLoading(true); fetchDashboard(); }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, border: `1px solid ${ACCENT}`, borderRadius: 9, background: ACCENT, color: "#04101f", padding: "0 20px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -123,66 +127,116 @@ export function PracticeDashboard() {
   const { stats, nextRank, totals, signedIn } = data;
   const rankFloor = stats.rank.minXp;
   const rankCeil = nextRank?.minXp ?? stats.xp;
-  const rankPct = nextRank ? Math.max(0, Math.min(100, ((stats.xp - rankFloor) / Math.max(1, rankCeil - rankFloor)) * 100)) : 100;
+  const rankPct = nextRank
+    ? Math.max(0, Math.min(100, ((stats.xp - rankFloor) / Math.max(1, rankCeil - rankFloor)) * 100))
+    : 100;
+  const xpToNext = nextRank ? rankCeil - stats.xp : 0;
 
   return (
     <div style={{ fontFamily: SANS }}>
       <style>{`
         .pr-card { transition: border-color .16s ease, background .16s ease, transform .16s ease; text-align: left; }
-        .pr-card:not(:disabled):hover { transform: translateY(-2px); border-color: rgba(79,135,247,.32); background: rgba(232,237,248,.05); }
+        .pr-card:not(:disabled):hover { transform: translateY(-2px); border-color: rgba(79,135,247,.3); background: rgba(232,237,248,.04); }
         .pr-card:focus-visible { outline: 2px solid rgba(79,135,247,.6); outline-offset: 3px; }
-        @media (max-width: 760px) { .pr-cards { grid-template-columns: 1fr !important; } .pr-hero { font-size: 38px !important; } }
-        @media (prefers-reduced-motion: reduce) { .pr-card { transition: none; } .pr-card:hover { transform: none; } }
+        @media (max-width: 760px) {
+          .pr-cards { grid-template-columns: 1fr !important; }
+          .pr-hero { font-size: 36px !important; }
+          .pr-rank-bar { flex-direction: column !important; gap: 14px !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pr-card { transition: none; }
+          .pr-card:hover { transform: none; }
+        }
       `}</style>
 
-      {/* ── Header ─────────────────────────────────────────────────────────────── */}
-      <header style={{ marginBottom: 32 }}>
+      {/* Header */}
+      <header style={{ marginBottom: 34 }}>
         <div style={{ color: GOOD, fontFamily: MONO, fontSize: 10, letterSpacing: "0.24em", textTransform: "uppercase", marginBottom: 16 }}>
-          Conviqt Academy · The desk
+          Conviqt Academy · The Desk
         </div>
-        <h1 className="pr-hero" style={{ color: INK, fontFamily: DISPLAY, fontSize: 46, lineHeight: 1.05, letterSpacing: "-0.018em", fontWeight: 500, margin: "0 0 14px", maxWidth: 720 }}>
+        <h1 className="pr-hero" style={{ color: INK, fontFamily: DISPLAY, fontSize: 46, lineHeight: 1.05, letterSpacing: "-0.018em", fontWeight: 500, margin: "0 0 14px", maxWidth: 680 }}>
           Prove you can run the model.
         </h1>
-        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17, lineHeight: 1.6, margin: "0 0 26px", maxWidth: 700 }}>
+        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17, lineHeight: 1.6, margin: "0 0 28px", maxWidth: 680 }}>
           Trade real historical episodes bar by bar, then write theses an AI grades like an investment committee.
           Clear a tier to unlock the next and climb the PM career ladder.
         </p>
 
-        {/* rank + progress strip */}
-        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "20px 22px", display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span style={{ width: 46, height: 46, borderRadius: 12, background: "rgba(79,135,247,0.1)", border: "1px solid rgba(79,135,247,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: ACCENT }}>
+        {/* Rank card */}
+        <div
+          className="pr-rank-bar"
+          style={{
+            background: SURFACE,
+            border: `1px solid ${BORDER}`,
+            borderRadius: 14,
+            padding: "20px 22px",
+            display: "flex",
+            gap: 20,
+            alignItems: "center",
+          }}
+        >
+          {/* Trophy + rank name */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: "rgba(79,135,247,0.1)",
+              border: "1px solid rgba(79,135,247,0.22)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: ACCENT,
+            }}>
               <TrophyIcon size={24} />
-            </span>
+            </div>
             <div>
-              <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 4 }}>Rank</div>
-              <div style={{ color: INK, fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{stats.rank.title}</div>
+              <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 4 }}>
+                Career Rank
+              </div>
+              <div style={{ color: INK, fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
+                {stats.rank.title}
+              </div>
             </div>
           </div>
 
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
+          {/* XP progress bar */}
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
               <span style={{ color: MUTED, fontFamily: MONO, fontSize: 12 }}>{stats.xp.toLocaleString()} XP</span>
               <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>
-                {nextRank ? `${(rankCeil - stats.xp).toLocaleString()} XP to ${nextRank.title}` : "Top rank reached"}
+                {nextRank
+                  ? `${xpToNext.toLocaleString()} XP to ${nextRank.title}`
+                  : "Top rank reached"}
               </span>
             </div>
             <div style={{ height: 6, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden" }}>
-              <div style={{ width: `${rankPct}%`, height: "100%", background: `linear-gradient(90deg, ${ACCENT}, ${GOOD})`, borderRadius: 999, transition: "width .4s ease" }} />
+              <div style={{
+                width: `${rankPct}%`,
+                height: "100%",
+                background: `linear-gradient(90deg, ${ACCENT}, ${GOOD})`,
+                borderRadius: 999,
+                transition: "width .4s ease",
+              }} />
             </div>
           </div>
 
-          <div style={{ textAlign: "right" }}>
-            <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 4 }}>Cleared</div>
-            <div style={{ color: INK, fontFamily: MONO, fontSize: 20, fontWeight: 700 }}>{totals.cleared} / {totals.totalDrills}</div>
+          {/* Cleared count */}
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 4 }}>
+              Cleared
+            </div>
+            <div style={{ color: INK, fontFamily: MONO, fontSize: 22, fontWeight: 700 }}>
+              {totals.cleared} / {totals.totalDrills}
+            </div>
           </div>
         </div>
 
         {!signedIn && (
-          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", color: FAINT, fontFamily: MONO, fontSize: 12 }}>
-            Episodes are free to play.
+          <div style={{ marginTop: 12, color: FAINT, fontFamily: MONO, fontSize: 12 }}>
+            Episodes are free to play.{" "}
             <Link href="/login" style={{ color: ACCENT, fontWeight: 650, textDecoration: "none" }}>Sign in</Link>
-            to save your rank, XP, and progress.
+            {" "}to save your rank, XP, and progress.
           </div>
         )}
       </header>
@@ -193,26 +247,51 @@ export function PracticeDashboard() {
         </div>
       )}
 
-      {/* ── Tier ladder ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gap: 28 }}>
+      {/* Tier ladder */}
+      <div style={{ display: "grid", gap: 32 }}>
         {data.tiers.map((tier) => (
           <section key={tier.tier}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 4, flexWrap: "wrap" }}>
-              <span style={{ color: tier.unlocked ? ACCENT : FAINT, fontFamily: MONO, fontSize: 11, fontWeight: 650, letterSpacing: "0.1em" }}>
-                TIER {tier.tier}
-              </span>
-              <h2 style={{ color: tier.unlocked ? INK : MUTED, fontFamily: DISPLAY, fontSize: 24, fontWeight: 500, letterSpacing: "-0.01em", margin: 0 }}>
-                {tier.name}
-              </h2>
-              {!tier.unlocked && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: FAINT, fontFamily: MONO, fontSize: 11 }}>
-                  <LockIcon size={13} /> Clear Tier {tier.tier - 1} to unlock
+            {/* Tier header */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{
+                  fontFamily: MONO,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase",
+                  color: tier.unlocked ? ACCENT : FAINT,
+                  background: tier.unlocked ? "rgba(79,135,247,0.1)" : "rgba(232,237,248,0.04)",
+                  border: `1px solid ${tier.unlocked ? "rgba(79,135,247,0.28)" : "rgba(232,237,248,0.08)"}`,
+                  borderRadius: 4,
+                  padding: "3px 8px",
+                }}>
+                  Tier {tier.tier}
                 </span>
-              )}
+                <h2 style={{ color: tier.unlocked ? INK : MUTED, fontFamily: DISPLAY, fontSize: 24, fontWeight: 500, letterSpacing: "-0.01em", margin: 0 }}>
+                  {tier.name}
+                </h2>
+                {!tier.unlocked && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: FAINT, fontFamily: MONO, fontSize: 11 }}>
+                    <LockIcon size={12} /> Clear Tier {tier.tier - 1} to unlock
+                  </span>
+                )}
+              </div>
+              <p style={{ color: tier.unlocked ? MUTED : FAINT, fontFamily: SERIF, fontSize: 14.5, lineHeight: 1.5, margin: 0, maxWidth: 620 }}>
+                {tier.tagline}
+              </p>
             </div>
-            <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 14.5, lineHeight: 1.5, margin: "0 0 16px", maxWidth: 640 }}>{tier.tagline}</p>
 
-            <div className="pr-cards" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, opacity: tier.unlocked ? 1 : 0.62 }}>
+            {/* Drill cards */}
+            <div
+              className="pr-cards"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 14,
+                opacity: tier.unlocked ? 1 : 0.55,
+              }}
+            >
               {tier.drills.map((card) => (
                 <DrillCardView
                   key={card.id}
@@ -227,7 +306,7 @@ export function PracticeDashboard() {
         ))}
       </div>
 
-      {/* ── Live paper desk ───────────────────────────────────────────────────────── */}
+      {/* Live paper desk */}
       <PaperDesk signedIn={signedIn} />
 
       <footer style={{ marginTop: 40, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
@@ -238,10 +317,15 @@ export function PracticeDashboard() {
   );
 }
 
-function DrillCardView({ card, locked, busy, onOpen }: { card: DrillCard; locked: boolean; busy: boolean; onOpen: () => void }) {
-  const diff = DIFFICULTY[card.difficulty];
+function DrillCardView({
+  card, locked, busy, onOpen,
+}: {
+  card: DrillCard; locked: boolean; busy: boolean; onOpen: () => void;
+}) {
   const isEpisode = card.kind === "episode";
   const cleared = (card.progress?.bestStars ?? 0) > 0;
+  const kindColor = isEpisode ? GOOD : ACCENT;
+  const diffColor = DIFFICULTY_COLOR[card.difficulty];
 
   return (
     <button
@@ -252,68 +336,99 @@ function DrillCardView({ card, locked, busy, onOpen }: { card: DrillCard; locked
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 14,
         background: SURFACE,
         border: `1px solid ${cleared ? "rgba(34,197,94,0.28)" : BORDER}`,
         borderRadius: 12,
-        padding: 20,
+        padding: "18px 20px",
         cursor: locked ? "default" : busy ? "wait" : "pointer",
-        minHeight: 196,
+        minHeight: 186,
         font: "inherit",
       }}
     >
-      {/* top row: kind + difficulty */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: isEpisode ? GOOD : ACCENT, fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 650 }}>
-          {isEpisode ? <ChartIcon size={14} /> : <PenIcon size={14} />}
+      {/* Top row: kind + difficulty + xp */}
+      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          color: kindColor, fontFamily: MONO, fontSize: 10, letterSpacing: "0.1em",
+          textTransform: "uppercase", fontWeight: 700,
+          background: `${kindColor}12`,
+          border: `1px solid ${kindColor}28`,
+          borderRadius: 4, padding: "3px 8px",
+        }}>
+          {isEpisode ? <ChartIcon size={12} /> : <PenIcon size={12} />}
           {isEpisode ? "Trade" : "Write"}
         </span>
-        <span style={{ color: diff.color, fontFamily: MONO, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", border: `1px solid ${diff.color}44`, borderRadius: 100, padding: "2px 8px" }}>
-          {diff.label}
+        {card.conceptTags.slice(0, 1).map((tag) => (
+          <span key={tag} style={{
+            color: diffColor, fontFamily: MONO, fontSize: 10, letterSpacing: "0.06em",
+            textTransform: "uppercase", border: `1px solid ${diffColor}38`, borderRadius: 4, padding: "3px 8px",
+          }}>
+            {tag}
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto", color: FAINT, fontFamily: MONO, fontSize: 11, fontWeight: 650 }}>
+          +{card.xp} XP
         </span>
-        <span style={{ marginLeft: "auto", color: FAINT, fontFamily: MONO, fontSize: 11 }}>+{card.xp} XP</span>
       </div>
 
-      {/* title + hook */}
-      <div>
-        <h3 style={{ color: locked ? MUTED : INK, fontFamily: DISPLAY, fontSize: 20, fontWeight: 550, letterSpacing: "-0.01em", margin: "0 0 6px" }}>
+      {/* Title + hook */}
+      <div style={{ flex: 1 }}>
+        <h3 style={{
+          color: locked ? MUTED : INK,
+          fontFamily: DISPLAY, fontSize: 20, fontWeight: 550,
+          letterSpacing: "-0.01em", margin: "0 0 6px",
+        }}>
           {card.title}
         </h3>
-        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 13.5, lineHeight: 1.5, margin: 0 }}>{card.hook}</p>
+        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 13.5, lineHeight: 1.5, margin: 0 }}>
+          {card.hook}
+        </p>
       </div>
 
-      {/* meta footer */}
-      <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      {/* Meta footer */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {isEpisode && card.ticker && (
-          <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>{card.ticker} · {card.period}</span>
+          <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>
+            {card.ticker} · {card.period}
+          </span>
         )}
         {card.progress && card.progress.bestStars > 0 ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: CREDIT, marginLeft: isEpisode && card.ticker ? "auto" : 0 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: CREDIT, marginLeft: "auto" }}>
             {[0, 1, 2].map((i) => (
               <StarIcon key={i} size={14} filled={i < card.progress!.bestStars} style={{ opacity: i < card.progress!.bestStars ? 1 : 0.25 }} />
             ))}
-            <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, marginLeft: 5 }}>best {card.progress.bestScore}</span>
+            <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, marginLeft: 5 }}>
+              best {card.progress.bestScore}
+            </span>
           </span>
         ) : (
-          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, color: locked ? FAINT : ACCENT, fontFamily: SANS, fontSize: 13, fontWeight: 650 }}>
-            {locked ? <LockIcon size={14} /> : busy ? "Loading…" : <>Start <ChevronRightIcon size={14} /></>}
+          <span style={{
+            marginLeft: "auto",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            color: locked ? FAINT : (isEpisode ? GOOD : ACCENT),
+            fontFamily: SANS, fontSize: 13, fontWeight: 650,
+          }}>
+            {locked
+              ? <LockIcon size={14} />
+              : busy
+                ? "Loading…"
+                : <>Start <ChevronRightIcon size={14} /></>}
           </span>
         )}
       </div>
 
+      {/* Lock overlay */}
       {locked && (
-        <span style={{ position: "absolute", inset: 0, borderRadius: 12, background: "rgba(5,13,26,0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: FAINT }}>
+        <span style={{
+          position: "absolute", inset: 0, borderRadius: 12,
+          background: "rgba(5,13,26,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: FAINT,
+        }}>
           <LockIcon size={22} />
         </span>
       )}
     </button>
   );
-}
-
-function primaryBtn(color: string): React.CSSProperties {
-  return {
-    display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44,
-    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "#04101f",
-    padding: "0 20px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer",
-  };
 }
