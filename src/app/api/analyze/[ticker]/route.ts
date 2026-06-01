@@ -14,6 +14,7 @@ import {
   COUNCIL_CACHE_TTL_MS,
   councilCacheKey,
 } from "@/lib/cache";
+import { persistStockReport } from "@/lib/stockReports";
 import type { CouncilResult } from "@/lib/agents/types";
 
 // GET /api/analyze/:ticker?focus=...
@@ -95,6 +96,11 @@ export async function GET(req: Request, ctx: RouteContext) {
     const result = await runCouncil(cleaned, { focus });
     cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
     recordSpend(result.estCostUSD);
+    // Publish canonical (unfocused) runs to the public /stock/[ticker] page.
+    // Non-blocking — a persistence failure must not break the user response.
+    if (!focus) {
+      void persistStockReport(result);
+    }
     console.log(
       `[analyze] ${cleaned} done in ${result.totalDurationMs}ms — judge=${result.judge.verdict} conviction=${result.judge.conviction} cost=$${result.estCostUSD}`
     );

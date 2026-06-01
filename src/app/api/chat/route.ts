@@ -18,6 +18,7 @@ import {
   COUNCIL_CACHE_TTL_MS,
   councilCacheKey,
 } from "@/lib/cache";
+import { persistStockReport } from "@/lib/stockReports";
 import {
   deductCredits,
   grantFreeCreditsIfDue,
@@ -380,6 +381,8 @@ function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: Strea
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
         recordSpend(result.estCostUSD);
+        // Publish canonical (unfocused) runs to the public /stock/[ticker] page.
+        if (!focus) void persistStockReport(result);
         emit({ type: "council_done", result, costUSD: result.estCostUSD + intentCostUSD, intentCostUSD });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
