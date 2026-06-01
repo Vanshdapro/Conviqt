@@ -167,7 +167,7 @@ export default async function StockPage({
           </p>
           <div className="mt-6">
             <Link
-              href={`/?q=${encodeURIComponent(`analyze ${TICK}`)}`}
+              href={`/chat?q=${encodeURIComponent(`analyze ${TICK}`)}`}
               className="mono text-[11px] uppercase tracking-[0.16em] px-5 py-3 rounded-sm text-white inline-block"
               style={{ background: "var(--accent)" }}
             >
