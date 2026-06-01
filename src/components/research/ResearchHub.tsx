@@ -55,6 +55,8 @@ export function ResearchHub() {
         .rh-analyst-card:hover { border-color: rgba(79,135,247,.35) !important; }
         .rh-allocator-card:hover { border-color: rgba(56,189,248,.35) !important; }
         .rh-portfolio-card:hover { border-color: rgba(34,197,94,.35) !important; }
+        .rh-browse { transition: border-color .18s ease, background .18s ease; }
+        .rh-browse:hover { border-color: rgba(79,135,247,.32) !important; background: rgba(79,135,247,.05) !important; }
         @media (max-width: 1000px) {
           .rh-paths { grid-template-columns: 1fr 1fr !important; }
         }
@@ -162,6 +164,34 @@ export function ResearchHub() {
           </div>
         </Link>
       </div>
+
+      {/* Browse the standing report library — the published /stock pages. */}
+      <Link
+        href="/stock"
+        className="rh-browse"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          background: SURFACE,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 12,
+          padding: "18px 22px",
+          textDecoration: "none",
+          marginBottom: 36,
+        }}
+      >
+        <span>
+          <span style={{ display: "block", color: INK, fontFamily: SERIF, fontSize: 16, fontWeight: 600 }}>
+            Browse standing stock reports
+          </span>
+          <span style={{ display: "block", color: MUTED, fontFamily: SERIF, fontSize: 14, marginTop: 3 }}>
+            The Council&rsquo;s latest verdict on the S&amp;P 500 and top Nasdaq names — already run, source-linked, ready to read.
+          </span>
+        </span>
+        <span style={ctaStyle(ACCENT)}>View all <ArrowSvg /></span>
+      </Link>
 
       <footer style={{ marginTop: 8, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
         Analysis only, not personalized financial advice. Every quantitative claim links to a source produced by the Council&rsquo;s live web search.

@@ -215,7 +215,7 @@ export default async function StockPage({
       <div className="mb-5 mono text-[11px] text-dim">
         <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
         <span className="mx-2">/</span>
-        <span className="text-muted">Stock</span>
+        <Link href="/stock" className="hover:text-foreground transition-colors">Stock</Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">{TICK}</span>
       </div>
