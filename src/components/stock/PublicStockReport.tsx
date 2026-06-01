@@ -1,7 +1,7 @@
 import type { StoredReport } from "@/lib/stockReports";
 import type { Verdict } from "@/lib/agents/types";
 import StockReportGate from "./StockReportGate";
-import ShareButton from "./ShareButton";
+import SharePanel from "./SharePanel";
 
 // Server-rendered public summary for /stock/[ticker]. Everything here ships in
 // the static HTML — it's the SEO surface Googlebot indexes. The login-gated
@@ -68,15 +68,6 @@ export default function PublicStockReport({ data }: { data: StoredReport }) {
                 <span className="mono text-[10px] text-dim w-24 text-left">disagree {disagreement}/100</span>
               </div>
             )}
-            <div className="flex justify-end mt-4">
-              <ShareButton
-                ticker={ticker}
-                companyName={companyName}
-                verdict={verdict}
-                conviction={conviction}
-                disagreement={disagreement}
-              />
-            </div>
           </div>
         </div>
       </header>
@@ -103,6 +94,17 @@ export default function PublicStockReport({ data }: { data: StoredReport }) {
 
       {/* ── Gated depth ────────────────────────────────────────────────── */}
       <StockReportGate ticker={ticker} />
+
+      {/* ── Share this verdict ─────────────────────────────────────────── */}
+      <SharePanel
+        ticker={ticker}
+        companyName={companyName}
+        verdict={verdict}
+        conviction={conviction}
+        disagreement={disagreement}
+        verdictColor={vc}
+        ogTimestamp={Date.parse(data.updatedAt)}
+      />
 
       {/* ── Sources (public — the citation moat) ───────────────────────── */}
       {citedSources.length > 0 && (
