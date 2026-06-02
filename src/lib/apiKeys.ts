@@ -154,6 +154,33 @@ export async function consumeApiCall(plaintext: string): Promise<ConsumeResult> 
   return data as ConsumeResult;
 }
 
+// Refund one call against a developer's monthly quota. Called when a billed
+// request fails downstream (e.g. the Council pipeline 503s) so developers are
+// never charged for a run that returned no result. Best-effort and low-volume,
+// so a read-modify-write is acceptable; a failure here must not mask the
+// original error the caller is already returning.
+export async function refundApiCall(email: string): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const normalized = email.toLowerCase().trim();
+    const { data, error } = await supabase
+      .from("developer_accounts")
+      .select("calls_used")
+      .eq("email", normalized)
+      .maybeSingle();
+    if (error || !data) return;
+    const used = (data as { calls_used: number }).calls_used;
+    if (used <= 0) return;
+    await supabase
+      .from("developer_accounts")
+      .update({ calls_used: used - 1 })
+      .eq("email", normalized);
+    console.log(`[apiKeys] refunded 1 call for ${normalized} (${used} → ${used - 1})`);
+  } catch (err) {
+    console.error("[apiKeys] refundApiCall failed:", err instanceof Error ? err.message : err);
+  }
+}
+
 // Provision or upgrade a developer's entitlement after a successful Stripe
 // payment / renewal. Resets the monthly usage window. Called from the webhook.
 export async function setDeveloperTier(

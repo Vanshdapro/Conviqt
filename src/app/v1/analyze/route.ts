@@ -43,6 +43,7 @@ import {
   extractApiKey,
   consumeApiCall,
   logApiCall,
+  refundApiCall,
 } from "@/lib/apiKeys";
 import type { CouncilResult } from "@/lib/agents/types";
 
@@ -236,9 +237,9 @@ export async function POST(req: Request) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[v1/analyze] ${rawTicker} failed:`, msg);
     await logApiCall({ keyId: billed.key_id!, email: billed.email!, ticker: rawTicker, status: "error", latencyMs: Date.now() - t0 });
-    // The call was billed but the pipeline failed. Refund-on-failure would be
-    // ideal; for now we surface the failure clearly and rely on the daily
-    // budget + cache to keep abuse-via-error cheap.
+    // The call was billed before the run. The pipeline failed and returned
+    // nothing, so refund the quota — developers are only charged for results.
+    await refundApiCall(billed.email!);
     return json({ error: "pipeline_failed", message: msg, ticker: rawTicker }, 503);
   }
 }

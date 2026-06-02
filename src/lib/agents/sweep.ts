@@ -42,7 +42,9 @@ Procedure:
 2. After your searches complete, call the report_fact_sheet tool ONCE with everything you found. Do not produce any other final output.
 
 Rules:
+- MANDATORY: Put every number you find into the structured "facts" array — one Fact per number. Do NOT report numbers only inside "narrative". The narrative is for 1-3 sentences of qualitative context ONLY; any quantitative claim that lives only in narrative is invisible to the analysts and will be discarded. A report with a rich narrative but an empty facts array is a FAILED report.
 - MANDATORY: The sources array must contain the URLs from your web_search results. Include at least one source per search you ran. Copy the exact URL as it appeared in the search result — do not paraphrase, abbreviate, or omit the URL. Submitting an empty sources array will cause every fact to be discarded.
+- Aim for at least 8-12 facts spanning price, fundamentals, technicals, sentiment, and macro. If a search returned the data, it belongs in a Fact.
 - Every fact MUST cite a sourceIndex pointing into the sources array.
 - Only include URLs that were actually returned by your web_search calls. Do not invent URLs. The post-processor cross-checks every URL against the real search results and drops mismatches.
 - Never invent a number. If you could not find a fact, leave it out and add the category to gaps.
@@ -235,18 +237,57 @@ export interface RunSweepOptions {
   asOf?: string; // ISO timestamp to stamp on the factSheet + sources
 }
 
+// Max sweep attempts. The Haiku sweep occasionally returns an empty facts
+// array (dumping numbers into narrative instead) or skips the report tool
+// entirely — a transient ~10% failure that, unretried, 503s the whole Council
+// on an arbitrary ticker. Retrying is the difference between "works on NVDA"
+// and "works on every stock". Bounded at 2 so a pathological ticker can't blow
+// the per-request cost ceiling (each attempt is ~5-8¢).
+const MAX_SWEEP_ATTEMPTS = 2;
+
 export async function runSweep(
   ticker: string,
   opts: RunSweepOptions = {}
 ): Promise<SweepResult> {
-  const t0 = Date.now();
   const asOf = opts.asOf ?? new Date().toISOString();
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < MAX_SWEEP_ATTEMPTS; attempt++) {
+    try {
+      return await attemptSweep(ticker, { ...opts, asOf }, attempt);
+    } catch (err) {
+      lastErr = err;
+      console.warn(
+        `[Sweep] ${ticker}: attempt ${attempt + 1}/${MAX_SWEEP_ATTEMPTS} failed: ${
+          err instanceof Error ? err.message : err
+        }`
+      );
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(`[Sweep] ${ticker}: sweep failed after ${MAX_SWEEP_ATTEMPTS} attempts.`);
+}
+
+async function attemptSweep(
+  ticker: string,
+  opts: RunSweepOptions & { asOf: string },
+  attempt: number
+): Promise<SweepResult> {
+  const t0 = Date.now();
+  const asOf = opts.asOf;
   const anthropic = getAnthropic();
 
   const focusBlock = opts.focus
     ? `\n\nUser focus for this analysis: ${opts.focus.slice(0, 240)}\n` +
       `Bias your search queries toward this focus while still covering the other lanes for the panel.\n`
     : "";
+
+  // On a retry, the previous attempt produced no usable structured facts.
+  // Tell the model explicitly so it doesn't repeat the same narrative-dump.
+  const retryBlock =
+    attempt > 0
+      ? `\n\nIMPORTANT: A previous attempt returned no usable facts. You MUST populate the "facts" array with the actual numbers (price, P/E, EPS, revenue growth, margins, RSI, analyst rating, etc.) and the "sources" array with the exact web_search URLs. Do not leave facts or sources empty.\n`
+      : "";
 
   const response = await anthropic.messages.create({
     model: MODELS.sweep,
@@ -256,7 +297,7 @@ export async function runSweep(
     messages: [
       {
         role: "user",
-        content: `Ticker: ${ticker.toUpperCase()}${focusBlock}
+        content: `Ticker: ${ticker.toUpperCase()}${focusBlock}${retryBlock}
 
 Run your searches now, then call report_fact_sheet with everything you found.`,
       },
