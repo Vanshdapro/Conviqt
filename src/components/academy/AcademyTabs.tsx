@@ -7,12 +7,6 @@ import Link from "next/link";
 // curriculum, and the Practice desk without losing the "I'm in the Academy"
 // frame. Palette matches the Learn dashboard.
 
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const ACCENT = "#4f87f7";
-const BORDER = "rgba(232,237,248,0.09)";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-
 export type AcademyTab = "overview" | "learn" | "practice" | "leaderboard";
 
 const TABS: { key: AcademyTab; label: string; href: string }[] = [
@@ -24,38 +18,37 @@ const TABS: { key: AcademyTab; label: string; href: string }[] = [
 
 export function AcademyTabs({ active }: { active: AcademyTab }) {
   return (
-    <div
-      style={{
-        borderBottom: `1px solid ${BORDER}`,
-        background: "rgba(5,13,26,0.6)",
-      }}
-    >
-      <nav
-        aria-label="Academy sections"
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-          padding: "0 24px",
-          display: "flex",
-          gap: 28,
-          alignItems: "center",
-        }}
-      >
+    <div style={{ borderBottom: "1px solid var(--rule)", background: "rgba(5,13,26,0.6)" }}>
+      <style>{`
+        .subtabs {
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 0 24px;
+          display: flex;
+          gap: 28px;
+          align-items: center;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .subtabs::-webkit-scrollbar { display: none; }
+        .subtab { flex-shrink: 0; }
+      `}</style>
+      <nav aria-label="Academy sections" className="subtabs">
         {TABS.map(({ key, label, href }) => {
           const on = key === active;
           return (
             <Link
               key={key}
               href={href}
+              className="subtab mono"
               style={{
-                fontFamily: MONO,
                 fontSize: 12,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                color: on ? INK : MUTED,
+                color: on ? "var(--foreground)" : "var(--muted)",
                 textDecoration: "none",
                 padding: "16px 2px",
-                borderBottom: on ? `2px solid ${ACCENT}` : "2px solid transparent",
+                borderBottom: on ? "2px solid var(--accent)" : "2px solid transparent",
                 marginBottom: -1,
               }}
             >

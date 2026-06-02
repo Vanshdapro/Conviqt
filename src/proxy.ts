@@ -2,12 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Routes that require an authenticated session. Visiting them while logged out
-// redirects to /login. NOTE: this middleware is a UX guard only — the real
+// redirects to /login. NOTE: this proxy is a UX guard only — the real
 // security boundary is the per-request auth check inside the API routes, which
 // fail closed. So if env is missing we fail OPEN here to avoid bricking the site.
 const PROTECTED_PREFIXES = ["/chat", "/alpha", "/research"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
