@@ -180,8 +180,8 @@ function AlphaHeader({
   return (
     <div style={{ marginBottom: 40 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <div style={{ height: 1, width: 32, background: "rgba(232,237,248,0.2)" }} />
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(232,237,248,0.45)" }}>
+        <div style={{ height: 1, width: 32, background: "rgba(232,237,248,0.3)" }} />
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(232,237,248,0.62)" }}>
           Alpha Tracker
         </span>
       </div>
@@ -450,7 +450,7 @@ function RecentlyExited({ rows }: { rows: AlphaPick[] }) {
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(232,237,248,0.06)", background: "rgba(232,237,248,0.02)" }}>
                 {["Ticker", "Company", "Added", "Exited", "Reason"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(232,237,248,0.3)", fontWeight: 500 }}>
+                  <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(232,237,248,0.55)", fontWeight: 500 }}>
                     {h}
                   </th>
                 ))}
@@ -461,8 +461,8 @@ function RecentlyExited({ rows }: { rows: AlphaPick[] }) {
                 <tr key={pick.id ?? i} style={{ borderBottom: "1px solid rgba(232,237,248,0.04)" }}>
                   <td style={{ padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: "#e8edf8" }}>{pick.ticker}</td>
                   <td style={{ padding: "10px 16px", fontFamily: "var(--font-serif), Georgia, serif", fontSize: 13, color: "rgba(232,237,248,0.55)" }}>{pick.company_name}</td>
-                  <td style={{ padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.3)" }}>{formatDate(pick.entry_date)}</td>
-                  <td style={{ padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.3)" }}>
+                  <td style={{ padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "rgba(232,237,248,0.58)" }}>{formatDate(pick.entry_date)}</td>
+                  <td style={{ padding: "10px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "rgba(232,237,248,0.58)" }}>
                     {pick.exit_date ? formatDate(pick.exit_date) : "—"}
                   </td>
                   <td style={{ padding: "10px 16px", fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12, color: "rgba(232,237,248,0.45)", maxWidth: 280 }}>
@@ -680,7 +680,7 @@ function PickCard({ pick, index = 0 }: { pick: AlphaPick; index?: number }) {
           <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12, color: "rgba(232,237,248,0.5)", marginTop: 3 }}>
             {pick.company_name}
           </div>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.3)", marginTop: 6 }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "rgba(232,237,248,0.58)", marginTop: 6 }}>
             Entry ${pick.entry_price.toFixed(2)} · {formatDate(pick.entry_date)}
           </div>
         </div>

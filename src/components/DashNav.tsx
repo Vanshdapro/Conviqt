@@ -252,11 +252,11 @@ function AccountControls() {
             <span style={{ fontFamily: "var(--font-sans), system-ui, sans-serif", fontSize: "14px", fontWeight: 600, color, fontVariantNumeric: "tabular-nums" }}>
               {credits.toLocaleString()}
             </span>
-            <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: "11px", color: "rgba(232,237,248,0.4)" }}>
+            <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: "11px", color: "rgba(232,237,248,0.6)" }}>
               credits
             </span>
           </span>
-          <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(232,237,248,0.4)" }}>
+          <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: "10.5px", letterSpacing: "0.09em", textTransform: "uppercase", color: "rgba(232,237,248,0.62)" }}>
             {planName} plan
           </span>
         </span>

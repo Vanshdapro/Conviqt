@@ -20,7 +20,7 @@ const BASE = "https://www.conviqt.com";
 
 const INK = "#e8edf8";
 const MUTED = "#8aa0c2";
-const FAINT = "#526684";
+const FAINT = "#6c82a3";
 const ACCENT = "#4f87f7";
 const RULE = "rgba(232,237,248,0.075)";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";

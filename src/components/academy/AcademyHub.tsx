@@ -8,7 +8,7 @@ const BORDER = "rgba(232,237,248,0.09)";
 const RULE = "rgba(232,237,248,0.075)";
 const INK = "#e8edf8";
 const MUTED = "#8aa0c2";
-const FAINT = "#526684";
+const FAINT = "#6c82a3";
 const ACCENT = "#4f87f7";
 const GOOD = "#22c55e";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
@@ -219,7 +219,7 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
           padding: "20px 24px",
         }}
       >
-        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 18 }}>
+        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 18 }}>
           How it fits together
         </div>
         <div className="ac-arc" style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -343,7 +343,7 @@ function ArcStep({
           <span style={{ color: faded ? FAINT : accent, fontFamily: MONO, fontSize: 11, fontWeight: 650 }}>{n}</span>
           <span style={{ color: faded ? MUTED : INK, fontFamily: SERIF, fontSize: 15, fontWeight: 600 }}>{label}</span>
         </div>
-        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.03em", marginTop: 2 }}>{sub}</div>
+        <div style={{ color: FAINT, fontFamily: MONO, fontSize: 11.5, letterSpacing: "0.02em", marginTop: 3 }}>{sub}</div>
       </div>
     </div>
   );
