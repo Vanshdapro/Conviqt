@@ -33,9 +33,6 @@ export const metadata: Metadata = {
   authors: [{ name: "Conviqt", url: SITE_URL }],
   creator: "Conviqt",
   publisher: "Conviqt",
-  verification: {
-    google: "PASTE_YOUR_GSC_CODE_HERE",
-  },
   robots: {
     index: true,
     follow: true,
@@ -80,9 +77,10 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
   },
   manifest: "/site.webmanifest",
-  alternates: {
-    canonical: SITE_URL,
-  },
+  // NOTE: no site-wide `alternates.canonical` here. A canonical set on the root
+  // layout is inherited by every child page that doesn't override it, which
+  // would wrongly point pages like /developers at the homepage and de-index
+  // them. Each page sets its own canonical; the homepage's lives in page.tsx.
   category: "finance",
 };
 
