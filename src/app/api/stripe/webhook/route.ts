@@ -19,9 +19,10 @@
 
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, type PlanId } from "@/lib/stripe";
+import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, DEVELOPER_PLANS, API_QUOTA_BY_PLAN, type PlanId, type DeveloperPlan } from "@/lib/stripe";
 import { upsertSubscriber, type Plan } from "@/lib/subscription";
 import { addCreditsOnce, resetSubscriptionCredits, MAX_PLAN_MONTHLY_CREDITS } from "@/lib/credits";
+import { setDeveloperTier, setDeveloperStatus } from "@/lib/apiKeys";
 
 export const runtime  = "nodejs";
 export const dynamic  = "force-dynamic";
@@ -80,6 +81,19 @@ async function handleCheckoutCompleted(
   const plan = planFromMetadata(session.metadata);
   if (!plan) {
     console.warn("[webhook] checkout.completed: unknown plan in metadata", session.metadata);
+    return;
+  }
+
+  // Developer (API) plans grant a call quota, not credits, and live in a
+  // separate table. Provision the entitlement and return early.
+  if (DEVELOPER_PLANS.has(plan)) {
+    const devPlan = plan as DeveloperPlan;
+    const subId =
+      typeof session.subscription === "string"
+        ? session.subscription
+        : (session.subscription as Stripe.Subscription | null)?.id ?? null;
+    await setDeveloperTier(email, devPlan, API_QUOTA_BY_PLAN[devPlan], subId);
+    console.log(`[webhook] checkout.completed: dev tier ${devPlan} (${API_QUOTA_BY_PLAN[devPlan]}/mo) for ${email}`);
     return;
   }
 
@@ -142,6 +156,15 @@ async function handleInvoicePaymentSucceeded(
   }
 
   const plan    = planFromMetadata(sub.metadata);
+
+  // Developer-plan renewal: reset the API call window for the new cycle.
+  if (plan && DEVELOPER_PLANS.has(plan)) {
+    const devPlan = plan as DeveloperPlan;
+    await setDeveloperTier(email, devPlan, API_QUOTA_BY_PLAN[devPlan], sub.id);
+    console.log(`[webhook] invoice.succeeded: renewed dev tier ${devPlan} for ${email}`);
+    return;
+  }
+
   const monthly = plan ? MAX_PLAN_MONTHLY_CREDITS[plan] : 0;
 
   if (!plan || !monthly) {
@@ -166,6 +189,21 @@ async function handleSubscriptionChange(
   }
 
   const plan = planFromMetadata(sub.metadata);
+
+  // Developer (API) plan billing-state change: suspend or restore API access.
+  // We don't write to the subscribers table for these — they're tracked in
+  // developer_accounts. A canceled/past_due account fails closed in the API.
+  if (plan && DEVELOPER_PLANS.has(plan)) {
+    const devStatus =
+      sub.status === "active" || sub.status === "trialing"
+        ? "active"
+        : sub.status === "past_due" || sub.status === "unpaid"
+          ? "past_due"
+          : "canceled";
+    await setDeveloperStatus(email, devStatus);
+    console.log(`[webhook] dev subscription ${sub.status} → ${devStatus} for ${email}`);
+    return;
+  }
 
   await upsertSubscriber({
     email,

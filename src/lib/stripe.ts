@@ -10,6 +10,12 @@
 //   Pro Power     3000 credits $24    one-time   → STRIPE_PRICE_CREDITS_3000
 //   Max           4000 cr/mo   $28/mo recurring  → STRIPE_PRICE_MAX_MONTHLY
 //   Max Pro       7500 cr/mo   $52/mo recurring  → STRIPE_PRICE_MAX_PRO_MONTHLY
+//   Developer     500 API/mo   $99/mo recurring  → STRIPE_PRICE_DEV_500
+//   Developer Pro 2000 API/mo  $299/mo recurring → STRIPE_PRICE_DEV_2000
+//
+// NOTE: the two Developer plans don't grant consumer credits — they grant a
+// monthly API CALL quota on developer_accounts (see migration 016). The webhook
+// routes them to set_developer_tier, not the credit ledger.
 
 import Stripe from "stripe";
 
@@ -65,9 +71,25 @@ export function getSiteUrl(): string {
 
 export type CreditPack      = "credits_500" | "credits_1000" | "credits_2000" | "credits_3000";
 export type SubscriptionPlan = "max_monthly" | "max_pro_monthly";
-export type PlanId           = CreditPack | SubscriptionPlan;
+export type DeveloperPlan    = "dev_500" | "dev_2000";
+export type PlanId           = CreditPack | SubscriptionPlan | DeveloperPlan;
 
-export const SUBSCRIPTION_PLANS = new Set<PlanId>(["max_monthly", "max_pro_monthly"]);
+export const SUBSCRIPTION_PLANS = new Set<PlanId>([
+  "max_monthly",
+  "max_pro_monthly",
+  "dev_500",
+  "dev_2000",
+]);
+
+// Developer (API) plans — billed monthly, grant an API call quota rather than
+// consumer credits. Kept separate so the webhook can route them correctly.
+export const DEVELOPER_PLANS = new Set<PlanId>(["dev_500", "dev_2000"]);
+
+/** Monthly API call quota granted by each developer plan. */
+export const API_QUOTA_BY_PLAN: Record<DeveloperPlan, number> = {
+  dev_500:  500,
+  dev_2000: 2000,
+};
 
 /** Credits granted on purchase (one-time packs) or per monthly cycle (subscriptions). */
 export const CREDITS_BY_PLAN: Record<PlanId, number> = {
@@ -77,6 +99,8 @@ export const CREDITS_BY_PLAN: Record<PlanId, number> = {
   credits_3000:   3000,
   max_monthly:    4000,   // 3 500 base + 500 loyalty bonus
   max_pro_monthly: 7500,  // 6 000 base + 1 500 loyalty bonus
+  dev_500:           0,   // grants API quota, not credits
+  dev_2000:          0,
 };
 
 const PLAN_ENV_MAP: Record<PlanId, string> = {
@@ -86,6 +110,8 @@ const PLAN_ENV_MAP: Record<PlanId, string> = {
   credits_3000:    "STRIPE_PRICE_CREDITS_3000",
   max_monthly:     "STRIPE_PRICE_MAX_MONTHLY",
   max_pro_monthly: "STRIPE_PRICE_MAX_PRO_MONTHLY",
+  dev_500:         "STRIPE_PRICE_DEV_500",
+  dev_2000:        "STRIPE_PRICE_DEV_2000",
 };
 
 export function getPriceId(plan: PlanId): string {
