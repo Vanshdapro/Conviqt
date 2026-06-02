@@ -55,7 +55,10 @@ export function getWebhookSecret(): string {
 }
 
 export function getSiteUrl(): string {
-  return resolveVar("NEXT_PUBLIC_SITE_URL") || "https://conviqt.com";
+  // Fallback must match the canonical host used in metadata (www). A non-www
+  // redirect after Stripe checkout lands on a different origin than the one
+  // that holds the session cookie, which silently logs the user out.
+  return resolveVar("NEXT_PUBLIC_SITE_URL") || "https://www.conviqt.com";
 }
 
 // ── Plan definitions ─────────────────────────────────────────────────────────

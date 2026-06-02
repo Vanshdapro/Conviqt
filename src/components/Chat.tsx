@@ -112,7 +112,7 @@ type Bubble =
 
 const EXAMPLES = [
   { label: "analyze NVDA", hint: "Full Council" },
-  { label: "NVDA vs AMD", hint: "Head-to-head" },
+  { label: "Compare NVDA vs AMD", hint: "Head-to-head" },
   { label: "analyze AAPL", hint: "Full Council" },
   { label: "Is the yen carry trade fully unwound?", hint: "Macro" },
   { label: "Walk me through yield curve re-steepening", hint: "Rates" },
@@ -133,6 +133,20 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
   const [credits,        setCredits]        = useState<number | null>(null);
   const [creditPlan,     setCreditPlan]     = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Persistent Compare entry point: prefill a head-to-head template and focus
+  // the input so the user just swaps tickers (no credits spent until they send).
+  function startCompare() {
+    if (busy) return;
+    setInput("Compare NVDA vs AMD");
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      el.select();
+    });
+  }
 
   useEffect(() => {
     fetchCredits();
@@ -577,7 +591,26 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
           }}
           className="mx-auto max-w-[860px] w-full px-5 lg:px-10 py-3 flex items-center gap-2.5"
         >
+          <button
+            type="button"
+            onClick={startCompare}
+            disabled={busy}
+            title="Compare two stocks head-to-head"
+            className="flex items-center gap-1.5 rounded-full border border-rule px-3.5 py-2.5 text-[12px] text-muted hover:text-foreground hover:border-[var(--accent-border)] transition-colors disabled:opacity-30 flex-shrink-0"
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="flex-shrink-0">
+              <path
+                d="M2 4.5H10M10 4.5L7 1.5M10 4.5L7 7.5M12 9.5H4M4 9.5L7 6.5M4 9.5L7 12.5"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="mono text-[10px] tracking-[0.08em] uppercase">Compare</span>
+          </button>
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}

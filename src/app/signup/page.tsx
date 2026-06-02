@@ -11,6 +11,28 @@ import {
   authButtonStyle,
 } from "@/components/AuthShell";
 
+// Supabase returns terse, sometimes technical auth errors. Map the common ones
+// to plain-language guidance so account creation never dead-ends on a raw string.
+function friendlySignupError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("already registered") || m.includes("already been registered") || m.includes("user already")) {
+    return "An account with this email already exists. Try signing in instead.";
+  }
+  if (m.includes("password")) {
+    return "Password must be at least 8 characters.";
+  }
+  if (m.includes("valid email") || m.includes("invalid") && m.includes("email")) {
+    return "Please enter a valid email address.";
+  }
+  if (m.includes("rate") || m.includes("too many") || m.includes("after")) {
+    return "Too many attempts. Please wait a minute and try again.";
+  }
+  if (m.includes("network") || m.includes("fetch")) {
+    return "Network error — check your connection and try again.";
+  }
+  return "Couldn't create your account. Please try again.";
+}
+
 function SignupInner() {
   const params = useSearchParams();
   const next = params.get("next") || "/chat";
@@ -33,34 +55,44 @@ function SignupInner() {
     setLoading(true);
     setError(null);
 
-    const supabase = createSupabaseBrowserClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        data: { full_name: name.trim() },
-        emailRedirectTo,
-      },
-    });
+      const { error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: { full_name: name.trim() },
+          emailRedirectTo,
+        },
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(friendlySignupError(error.message));
+        setLoading(false);
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      setError("Network error — check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setSent(true);
-    setLoading(false);
   }
 
   async function handleResend() {
     setResendLoading(true);
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.resend({ type: "signup", email: email.trim().toLowerCase() });
-    setResendLoading(false);
-    setResendSent(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.resend({ type: "signup", email: email.trim().toLowerCase() });
+      setResendSent(true);
+    } catch {
+      // Non-fatal: the original email may still arrive. Leave the button resettable.
+    } finally {
+      setResendLoading(false);
+    }
   }
 
   if (sent) {

@@ -42,3 +42,5 @@ next-env.d.ts
 data/alpha-picks.json
 data/stock-reports.json
 data/conviction-history.json
+data/watchlist.json
+data/watchlist-alerts.json

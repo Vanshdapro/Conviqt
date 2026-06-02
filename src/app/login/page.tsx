@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   AuthShell,
@@ -12,7 +12,6 @@ import {
 } from "@/components/AuthShell";
 
 function LoginInner() {
-  const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/chat";
   const urlError = params.get("error");
@@ -27,25 +26,30 @@ function LoginInner() {
     setLoading(true);
     setError(null);
 
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    if (error) {
-      setError(
-        error.message === "Email not confirmed"
-          ? "Please verify your email first — check your inbox (and spam folder) for the confirmation link."
-          : "Incorrect email or password."
-      );
+      if (error) {
+        setError(
+          error.message === "Email not confirmed"
+            ? "Please verify your email first — check your inbox (and spam folder) for the confirmation link."
+            : "Incorrect email or password."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Full page navigation ensures the new session cookie is read server-side
+      // on the very first request after sign-in (router.push alone can race).
+      window.location.href = next;
+    } catch {
+      setError("Network error — check your connection and try again.");
       setLoading(false);
-      return;
     }
-
-    // Full page navigation ensures the new session cookie is read server-side
-    // on the very first request after sign-in (router.push alone can race).
-    window.location.href = next;
   }
 
   return (
