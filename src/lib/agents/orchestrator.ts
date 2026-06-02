@@ -5,14 +5,17 @@ import { runSentiment } from "./sentiment";
 import { runMacro } from "./macro";
 import { runJudge } from "./judge";
 import { runFocusedJudge } from "./focusedJudge";
+import { runComparativeJudge } from "./comparativeJudge";
 import { computeDisagreement } from "../disagreement";
 import {
   AgentName,
   AgentOutput,
+  CompareResult,
   CouncilResult,
   FocusedResult,
   FactSheet,
 } from "./types";
+import { cacheGet, cacheSet, COUNCIL_CACHE_TTL_MS, councilCacheKey } from "../cache";
 import type { SpecialistRunResult } from "./_runner";
 
 // runCouncil is the single entrypoint for an on-demand stock analysis.
@@ -268,4 +271,135 @@ export async function runFocusedQuery(
   onEvent?.({ kind: "answer_done", result });
 
   return result;
+}
+
+// ── HEAD-TO-HEAD COMPARE PIPELINE ─────────────────────────────────────────────
+//
+// "Compare NVDA vs AMD" → run the full Council on BOTH tickers in parallel,
+// then a third comparative pass that issues a relative verdict.
+//
+// Cost discipline (CLAUDE.md): each side reuses the 4h Council cache. If a
+// ticker was analyzed in the last 4h, that side costs nothing and we only pay
+// for the side(s) that are cold plus the one comparative-judge synthesis. Two
+// cold councils + synthesis stays in the ~5-6¢ range — justified for a
+// 25-credit premium intent and well inside the monthly budget.
+
+// Per-side progress stage surfaced to the UI. The two sides advance
+// independently since the councils run concurrently.
+export type CompareSideStage =
+  | "queued"
+  | "sweeping"
+  | "specialists"
+  | "judging"
+  | "done";
+
+export type CompareEvent =
+  | { kind: "start"; tickerA: string; tickerB: string; runId: string; asOf: string }
+  | { kind: "side_update"; side: "a" | "b"; ticker: string; stage: CompareSideStage; cached: boolean }
+  | { kind: "side_done"; side: "a" | "b"; result: CouncilResult }
+  | { kind: "comparing" }
+  | { kind: "compare_done"; result: CompareResult };
+
+export interface RunCompareOptions {
+  onEvent?: (event: CompareEvent) => void;
+}
+
+function compareStageFromCouncil(ev: CouncilEvent): CompareSideStage | null {
+  if (ev.kind === "start") return "sweeping";
+  if (ev.kind === "sweep_done") return "specialists";
+  if (ev.kind === "specialist_done") return "specialists";
+  if (ev.kind === "judge_done") return "judging";
+  return null;
+}
+
+// Resolve one side: serve the cached Council run if warm, else run a fresh
+// council (and populate the cache so a later single-ticker analyze is free).
+// `fresh` lets the caller know whether to persist the result downstream.
+async function resolveSide(
+  side: "a" | "b",
+  ticker: string,
+  onEvent?: (event: CompareEvent) => void
+): Promise<{ result: CouncilResult; fresh: boolean }> {
+  const key = councilCacheKey(ticker);
+  const cached = cacheGet<CouncilResult>(key);
+  if (cached) {
+    onEvent?.({ kind: "side_update", side, ticker, stage: "done", cached: true });
+    onEvent?.({ kind: "side_done", side, result: { ...cached, cached: true } });
+    return { result: cached, fresh: false };
+  }
+
+  onEvent?.({ kind: "side_update", side, ticker, stage: "queued", cached: false });
+  const result = await runCouncil(ticker, {
+    onEvent: (ev) => {
+      const stage = compareStageFromCouncil(ev);
+      if (stage) onEvent?.({ kind: "side_update", side, ticker, stage, cached: false });
+    },
+  });
+  cacheSet(key, result, COUNCIL_CACHE_TTL_MS);
+  onEvent?.({ kind: "side_update", side, ticker, stage: "done", cached: false });
+  onEvent?.({ kind: "side_done", side, result });
+  return { result, fresh: true };
+}
+
+export async function runCompare(
+  tickerAInput: string,
+  tickerBInput: string,
+  options: RunCompareOptions = {}
+): Promise<CompareResult & { freshSides: Array<"a" | "b"> }> {
+  const { onEvent } = options;
+  const t0 = Date.now();
+  const tickerA = tickerAInput.toUpperCase();
+  const tickerB = tickerBInput.toUpperCase();
+  const runId = makeRunId().replace("run_", "cmp_");
+  const asOf = new Date().toISOString();
+
+  onEvent?.({ kind: "start", tickerA, tickerB, runId, asOf });
+
+  // Both councils run concurrently. A failure on either side aborts the
+  // compare — per CLAUDE.md we don't synthesize a verdict on half the data.
+  let sideA: { result: CouncilResult; fresh: boolean };
+  let sideB: { result: CouncilResult; fresh: boolean };
+  try {
+    [sideA, sideB] = await Promise.all([
+      resolveSide("a", tickerA, onEvent),
+      resolveSide("b", tickerB, onEvent),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`[Compare] Council failed for ${tickerA} vs ${tickerB}: ${msg}`);
+  }
+
+  // Third pass: the relative verdict.
+  onEvent?.({ kind: "comparing" });
+  const judge = await runComparativeJudge(sideA.result, sideB.result);
+
+  const totalCostUSD =
+    (sideA.fresh ? sideA.result.estCostUSD : 0) +
+    (sideB.fresh ? sideB.result.estCostUSD : 0) +
+    judge.costUSD;
+
+  const freshSides: Array<"a" | "b"> = [
+    ...(sideA.fresh ? (["a"] as const) : []),
+    ...(sideB.fresh ? (["b"] as const) : []),
+  ];
+
+  console.log(
+    `[Compare] ${tickerA} vs ${tickerB} done in ${Date.now() - t0}ms, winner=${judge.output.winner}, freshSides=${freshSides.join(",") || "none"}, cost=$${totalCostUSD.toFixed(4)}`
+  );
+
+  const result: CompareResult = {
+    runId,
+    tickerA,
+    tickerB,
+    asOf,
+    a: sideA.result,
+    b: sideB.result,
+    verdict: judge.output,
+    totalDurationMs: Date.now() - t0,
+    estCostUSD: Number(totalCostUSD.toFixed(4)),
+  };
+
+  onEvent?.({ kind: "compare_done", result });
+
+  return { ...result, freshSides };
 }

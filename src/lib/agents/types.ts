@@ -150,3 +150,70 @@ export interface CouncilResult {
   // a fresh council run. UI can show a "cached" pill.
   cached?: boolean;
 }
+
+// ── HEAD-TO-HEAD COMPARE ──────────────────────────────────────────────────────
+//
+// A Compare run is two full Council runs (side A and side B) plus a third,
+// comparative synthesis pass. The comparative Judge reads BOTH FactSheets and
+// BOTH verdicts and issues a relative verdict that neither single run produces:
+// which stock wins on valuation, positioning, catalysts, and risk/reward, and
+// an overall head-to-head call. Every dimension stays traceable to the
+// underlying Council citations (the two CouncilResults carry their own sources).
+
+// Which side the comparative verdict picks overall. "A"/"B" map to the order
+// the user named the tickers; "TIE" when neither has a decisive edge.
+export type CompareWinner = "A" | "B" | "TIE";
+
+// Per-dimension edge. Lowercase to mirror MetricSignal styling conventions.
+export type CompareEdge = "a" | "b" | "tie";
+
+// One row of the head-to-head scorecard. Values are short, already-formatted
+// strings (units included) so the model controls presentation, mirroring Fact.
+export interface CompareDimension {
+  dimension: string; // e.g. "Valuation", "Revenue growth", "Conviction", "Disagreement"
+  aValue: string;    // side A's value, with units — e.g. "29.4x fwd P/E"
+  bValue: string;    // side B's value, with units — e.g. "24.1x fwd P/E"
+  edge: CompareEdge; // which side this dimension favours
+  note?: string;     // optional one-clause qualifier
+}
+
+// The comparative Judge's structured output. This is the genuinely new output
+// type — a relative verdict, not two stacked single-stock notes.
+export interface ComparativeVerdict {
+  winner: CompareWinner;
+  // The shareable one-liner that creates stakes, e.g.
+  // "NVDA carries higher conviction but AMD shows lower disagreement — the cleaner setup."
+  headline: string;
+  // 3-4 sentence comparative case: where the two diverge and why the winner wins.
+  summary: string;
+  // 5-8 head-to-head scorecard rows pulled from both FactSheets/verdicts.
+  dimensions: CompareDimension[];
+  // Relative valuation — which is cheaper for what you get, with specifics.
+  valuationEdge: string;
+  // Competitive positioning — who is winning the actual business battle.
+  positioningEdge: string;
+  // Which name has the stronger / more imminent near-term catalysts.
+  catalystEdge: string;
+  // Which name offers the better risk/reward (asymmetry, downside protection).
+  riskRewardEdge: string;
+  // The trade in <= 25 words. No hedging.
+  bottomLine: string;
+  durationMs: number;
+}
+
+export interface CompareResult {
+  runId: string;
+  // Tickers in the order the user named them (A first, B second).
+  tickerA: string;
+  tickerB: string;
+  asOf: string; // ISO timestamp stamped at the start of the compare run
+  // The two full Council runs. Each carries its own FactSheet + sources, so
+  // the UI renders both columns with citations intact.
+  a: CouncilResult;
+  b: CouncilResult;
+  verdict: ComparativeVerdict;
+  totalDurationMs: number;
+  estCostUSD: number;
+  // True if the whole CompareResult was served from cache (1-credit replay).
+  cached?: boolean;
+}

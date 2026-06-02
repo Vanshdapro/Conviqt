@@ -67,6 +67,11 @@ export const MODELS = {
   sweep: "claude-haiku-4-5-20251001",
   specialist: "claude-haiku-4-5-20251001",
   judge: "claude-haiku-4-5-20251001",
+  // Head-to-head comparative synthesis. Sonnet, not Haiku: the relative
+  // verdict is the marquee output and reasons over two full FactSheets at
+  // once. Inputs are kept lean (summaries, not raw facts) so a single tight
+  // structured call stays ~1-1.5¢ — the heaviest single step in a compare run.
+  comparativeJudge: "claude-sonnet-4-6",
   picker: "claude-sonnet-4-6",
   analyst: "claude-sonnet-4-6", // general chat — Sonnet for institutional depth
   // Alpha Tracker institutional pipeline:

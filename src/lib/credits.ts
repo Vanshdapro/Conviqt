@@ -8,6 +8,9 @@
 //   analyze       — 15 credits  (Full Council, 6-agent pipeline)
 //   focused       —  8 credits  (Focused sweep + Haiku judge)
 //   general       — 18 credits  (Sonnet analyst + up to 3 web_search calls)
+//   compare       — 25 credits  (two Council runs + comparative Sonnet synthesis;
+//                    each side reuses the 4h Council cache when warm, so a compare
+//                    against two freshly-analyzed tickers only pays the synthesis.)
 //   cache         —  1 credit   (any intent that hits the 4h cache)
 //   pick          —  0 credits  (text redirect only, no pipeline)
 //   learn         —  0 credits  (Conviqt Learn lessons are pre-authored)
@@ -44,6 +47,7 @@ export const CREDITS_PER_INTENT = {
   analyze: 15,
   focused: 8,
   general: 18,
+  compare: 25,  // Head-to-head: two Council runs + comparative Sonnet synthesis
   cache:   1,
   pick:    0,
   learn:         0,

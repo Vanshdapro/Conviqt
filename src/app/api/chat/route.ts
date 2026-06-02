@@ -2,9 +2,9 @@ import {
   classifyIntent,
   RouterMessage,
 } from "@/lib/agents/router";
-import { runCouncil, runFocusedQuery, type CouncilEvent, type FocusedEvent } from "@/lib/agents/orchestrator";
+import { runCouncil, runFocusedQuery, runCompare, type CouncilEvent, type FocusedEvent, type CompareEvent } from "@/lib/agents/orchestrator";
 import { runAnalyst } from "@/lib/agents/analyst";
-import type { CouncilResult, FocusedResult } from "@/lib/agents/types";
+import type { CouncilResult, FocusedResult, CompareResult } from "@/lib/agents/types";
 import {
   checkRateLimit,
   ensureDailyBudget,
@@ -17,6 +17,7 @@ import {
   cacheSet,
   COUNCIL_CACHE_TTL_MS,
   councilCacheKey,
+  compareCacheKey,
 } from "@/lib/cache";
 import { persistStockReport } from "@/lib/stockReports";
 import {
@@ -40,6 +41,7 @@ import { getVerifiedUser } from "@/lib/auth";
 //   analyze  → 15 credits  (Full Council)
 //   focused  →  8 credits  (Focused query)
 //   general  → 18 credits  (Sonnet analyst)
+//   compare  → 25 credits  (two Councils + comparative synthesis; warm sides reuse cache)
 //   cache    →  1 credit   (any cache hit)
 //   pick     →  0 credits  (text redirect only)
 
@@ -229,6 +231,29 @@ export async function POST(req: Request) {
     return streamFocused({ ticker, question, cached, cacheKey, intentCostUSD });
   }
 
+  // ── COMPARE — head-to-head between two tickers ──────────────────────────
+  if (intent.action === "compare") {
+    const { tickerA, tickerB } = intent;
+    const cacheKey = compareCacheKey(tickerA, tickerB);
+    const cached   = cacheGet<CompareResult>(cacheKey);
+    const isCached = !!cached;
+
+    {
+      const blocked = await checkAndDeductCredits(email, "compare", isCached);
+      if (blocked) return blocked;
+    }
+
+    try {
+      // Worst case: two cold councils (~0.07 each) + comparative synthesis.
+      ensureDailyBudget(0.16);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return jsonResponse({ type: "error", error: msg }, 503);
+    }
+
+    return streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD });
+  }
+
   // ── PICK — redirect to Alpha Tracker ────────────────────────────────────
   if (intent.action === "pick") {
     return jsonResponse(
@@ -387,6 +412,58 @@ function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: Strea
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] council failed for ${ticker}:`, msg);
+        emit({ type: "error", error: msg });
+      } finally {
+        emit({ type: "done" });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
+  });
+}
+
+interface StreamCompareArgs {
+  tickerA:  string;
+  tickerB:  string;
+  cached?:  CompareResult;
+  cacheKey: string;
+  intentCostUSD: number;
+}
+
+function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD }: StreamCompareArgs): Response {
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc  = new TextEncoder();
+      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+
+      emit({ type: "intent", action: "compare", tickerA, tickerB, costUSD: intentCostUSD });
+
+      if (cached) {
+        emit({ type: "compare_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
+        emit({ type: "done" });
+        controller.close();
+        return;
+      }
+
+      try {
+        const result = await runCompare(tickerA, tickerB, {
+          onEvent: (event: CompareEvent) => emit({ type: "compare", event }),
+        });
+        const { freshSides, ...compareResult } = result;
+        cacheSet(cacheKey, compareResult, COUNCIL_CACHE_TTL_MS);
+        recordSpend(compareResult.estCostUSD);
+        // Publish each freshly-run side to its public /stock/[ticker] page —
+        // a compare warms the same per-ticker reports a direct analyze would.
+        if (freshSides.includes("a")) void persistStockReport(compareResult.a);
+        if (freshSides.includes("b")) void persistStockReport(compareResult.b);
+        emit({ type: "compare_done", result: compareResult, costUSD: compareResult.estCostUSD + intentCostUSD, intentCostUSD });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[chat] compare failed for ${tickerA} vs ${tickerB}:`, msg);
         emit({ type: "error", error: msg });
       } finally {
         emit({ type: "done" });

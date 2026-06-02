@@ -81,5 +81,15 @@ export function councilCacheKey(ticker: string, focus?: string) {
 
 export const COUNCIL_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+// Head-to-head compare cache key. Order-independent — "NVDA vs AMD" and
+// "AMD vs NVDA" share a key and a 4h bucket so a re-run is a 1-credit replay.
+// (The comparative verdict's A/B labelling is restored from the cached
+// CompareResult, which preserves the original user ordering.)
+export function compareCacheKey(tickerA: string, tickerB: string) {
+  const bucket = Math.floor(now() / (4 * 60 * 60 * 1000));
+  const [x, y] = [tickerA.toUpperCase(), tickerB.toUpperCase()].sort();
+  return `compare:${x}:${y}:${bucket}`;
+}
+
 export const PICKER_CACHE_TTL_MS = 5 * 60 * 1000;
 export const PICKER_CACHE_KEY = "picker:result";

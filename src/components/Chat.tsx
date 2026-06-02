@@ -7,14 +7,16 @@ export interface ChatHandle {
 }
 import type {
   AgentOutput,
+  CompareResult,
   CouncilResult,
   FocusedResult,
   FactSheet,
   Source,
 } from "@/lib/agents/types";
 import type { PickerResult } from "@/lib/agents/picker";
-import type { CouncilEvent, FocusedEvent } from "@/lib/agents/orchestrator";
+import type { CouncilEvent, FocusedEvent, CompareEvent, CompareSideStage } from "@/lib/agents/orchestrator";
 import CouncilReport from "./CouncilReport";
+import CompareReport from "./CompareReport";
 import PicksReport from "./PicksReport";
 
 // ── Stream event types ────────────────────────────────────────────────────
@@ -22,14 +24,17 @@ import PicksReport from "./PicksReport";
 type ChatStreamEvent =
   | {
       type: "intent";
-      action: "analyze" | "focused" | "pick" | "general" | "reject";
+      action: "analyze" | "focused" | "compare" | "pick" | "general" | "reject";
       ticker?: string;
+      tickerA?: string;
+      tickerB?: string;
       focus?: string;
       question?: string;
       costUSD: number;
     }
   | { type: "council"; event: CouncilEvent }
   | { type: "focused"; event: FocusedEvent }
+  | { type: "compare"; event: CompareEvent }
   | {
       type: "council_done";
       result: CouncilResult;
@@ -39,6 +44,12 @@ type ChatStreamEvent =
   | {
       type: "focused_done";
       result: FocusedResult;
+      costUSD: number;
+      intentCostUSD: number;
+    }
+  | {
+      type: "compare_done";
+      result: CompareResult;
       costUSD: number;
       intentCostUSD: number;
     }
@@ -69,22 +80,39 @@ interface FocusedProgress {
   stage: "starting" | "sweeping" | "answering";
 }
 
+interface CompareSideProgress {
+  ticker: string;
+  stage: CompareSideStage;
+  cached: boolean;
+}
+
+interface CompareProgress {
+  tickerA: string;
+  tickerB: string;
+  a?: CompareSideProgress;
+  b?: CompareSideProgress;
+  comparing: boolean;
+}
+
 type Bubble =
   | { id: string; kind: "user"; text: string }
   | { id: string; kind: "text"; text: string; costUSD: number }
   | { id: string; kind: "text_streaming"; text: string }
   | { id: string; kind: "council"; result: CouncilResult; costUSD: number }
   | { id: string; kind: "focused"; result: FocusedResult; costUSD: number }
+  | { id: string; kind: "compare"; result: CompareResult; costUSD: number }
   | { id: string; kind: "picks"; result: PickerResult; costUSD: number }
   | { id: string; kind: "error"; error: string }
   | { id: string; kind: "loading"; label: string }
   | { id: string; kind: "council_running"; progress: CouncilProgress }
-  | { id: string; kind: "focused_running"; progress: FocusedProgress };
+  | { id: string; kind: "focused_running"; progress: FocusedProgress }
+  | { id: string; kind: "compare_running"; progress: CompareProgress };
 
 // ── Example queries ───────────────────────────────────────────────────────
 
 const EXAMPLES = [
   { label: "analyze NVDA", hint: "Full Council" },
+  { label: "NVDA vs AMD", hint: "Head-to-head" },
   { label: "analyze AAPL", hint: "Full Council" },
   { label: "Is the yen carry trade fully unwound?", hint: "Macro" },
   { label: "Walk me through yield curve re-steepening", hint: "Rates" },
@@ -150,6 +178,19 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
           {
             role: "assistant",
             content: `${b.result.ticker}: ${b.result.keyTakeaway} ${b.result.answer}`,
+          },
+        ];
+      if (b.kind === "compare")
+        return [
+          {
+            role: "assistant",
+            content: `Head-to-head ${b.result.tickerA} vs ${b.result.tickerB}: winner ${
+              b.result.verdict.winner === "A"
+                ? b.result.tickerA
+                : b.result.verdict.winner === "B"
+                ? b.result.tickerB
+                : "tie"
+            }. ${b.result.verdict.headline}`,
           },
         ];
       if (b.kind === "picks")
@@ -278,7 +319,8 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
           (b) =>
             b.id !== loadingId &&
             b.kind !== "council_running" &&
-            b.kind !== "focused_running"
+            b.kind !== "focused_running" &&
+            b.kind !== "compare_running"
         ),
         { id: newId(), kind: "error", error: event.error },
       ]);
@@ -346,6 +388,16 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
             stage: "starting",
           },
         });
+      } else if (event.action === "compare" && event.tickerA && event.tickerB) {
+        replaceBubble(loadingId, {
+          id: loadingId,
+          kind: "compare_running",
+          progress: {
+            tickerA: event.tickerA,
+            tickerB: event.tickerB,
+            comparing: false,
+          },
+        });
       } else if (event.action === "general") {
         replaceBubble(loadingId, {
           id: loadingId,
@@ -378,6 +430,17 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
       return;
     }
 
+    if (event.type === "compare") {
+      setBubbles((prev) =>
+        prev.map((b) => {
+          if (b.kind !== "compare_running") return b;
+          const next = updateCompareProgress(b.progress, event.event);
+          return { ...b, progress: next };
+        })
+      );
+      return;
+    }
+
     if (event.type === "council_done") {
       setBubbles((prev) => [
         ...prev.filter(
@@ -401,6 +464,21 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
         {
           id: newId(),
           kind: "focused",
+          result: event.result,
+          costUSD: event.costUSD,
+        },
+      ]);
+      return;
+    }
+
+    if (event.type === "compare_done") {
+      setBubbles((prev) => [
+        ...prev.filter(
+          (b) => b.kind !== "compare_running" && b.id !== loadingId
+        ),
+        {
+          id: newId(),
+          kind: "compare",
           result: event.result,
           costUSD: event.costUSD,
         },
@@ -661,6 +739,33 @@ function updateFocusedProgress(
 ): FocusedProgress {
   if (ev.kind === "start") return { ...prev, stage: "sweeping" };
   if (ev.kind === "sweep_done") return { ...prev, stage: "answering" };
+  return prev;
+}
+
+function updateCompareProgress(
+  prev: CompareProgress,
+  ev: CompareEvent
+): CompareProgress {
+  if (ev.kind === "side_update") {
+    const side: CompareSideProgress = {
+      ticker: ev.ticker,
+      stage: ev.stage,
+      cached: ev.cached,
+    };
+    return { ...prev, [ev.side]: side };
+  }
+  if (ev.kind === "side_done") {
+    const existing = prev[ev.side];
+    return {
+      ...prev,
+      [ev.side]: {
+        ticker: ev.result.ticker,
+        stage: "done",
+        cached: existing?.cached ?? !!ev.result.cached,
+      },
+    };
+  }
+  if (ev.kind === "comparing") return { ...prev, comparing: true };
   return prev;
 }
 
@@ -959,6 +1064,10 @@ function BubbleView({
     return <FocusedRunningCard progress={bubble.progress} />;
   }
 
+  if (bubble.kind === "compare_running") {
+    return <CompareRunningCard progress={bubble.progress} />;
+  }
+
   if (bubble.kind === "error") {
     return (
       <div style={{ borderRadius: 8, overflow: "hidden", borderLeft: "2px solid var(--bear)", borderTop: "1px solid rgba(239,68,68,0.1)", borderRight: "1px solid rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.1)", background: "rgba(239,68,68,0.04)", padding: "14px 18px" }}>
@@ -1019,6 +1128,10 @@ function BubbleView({
 
   if (bubble.kind === "focused") {
     return <FocusedReport result={bubble.result} costUSD={bubble.costUSD} />;
+  }
+
+  if (bubble.kind === "compare") {
+    return <CompareReport result={bubble.result} costUSD={bubble.costUSD} />;
   }
 
   if (bubble.kind === "picks") {
@@ -1137,6 +1250,76 @@ function FocusedRunningCard({ progress }: { progress: FocusedProgress }) {
             {labels[progress.stage]}
           </span>
         </div>
+      </div>
+    </article>
+  );
+}
+
+// ── Compare running card ──────────────────────────────────────────────────
+
+const COMPARE_SIDE_LABELS: Record<CompareSideStage, string> = {
+  queued: "queued",
+  sweeping: "sweeping",
+  specialists: "specialists",
+  judging: "judging",
+  done: "done",
+};
+
+function CompareSideTrack({
+  label,
+  side,
+}: {
+  label: string;
+  side?: CompareSideProgress;
+}) {
+  const done = side?.stage === "done";
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <div className="flex items-center gap-2">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${done ? "bg-bull" : "bg-hold pulse"}`}
+        />
+        <span className="text-[15px] font-semibold text-foreground tracking-tight">
+          {label}
+        </span>
+      </div>
+      <span className="mono text-[10px] text-muted">
+        {side ? COMPARE_SIDE_LABELS[side.stage] : "queued"}
+        {side?.cached ? " · cached" : ""}
+      </span>
+    </div>
+  );
+}
+
+function CompareRunningCard({ progress }: { progress: CompareProgress }) {
+  const bothDone =
+    progress.a?.stage === "done" && progress.b?.stage === "done";
+  const status = progress.comparing
+    ? "Weighing the head-to-head verdict…"
+    : bothDone
+    ? "Both councils in — comparing…"
+    : "Running both councils in parallel…";
+
+  return (
+    <article
+      className="border border-rule overflow-hidden"
+      style={{ background: "var(--surface)" }}
+    >
+      <div className="px-5 py-4 border-b border-rule flex items-center justify-between gap-4">
+        <div className="flex items-baseline gap-2.5">
+          <span className="caps text-[9px] text-accent">Head-to-head</span>
+          <span className="text-[18px] font-semibold text-foreground tracking-tight">
+            {progress.tickerA} <span className="text-dim">vs</span> {progress.tickerB}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="h-1.5 w-1.5 rounded-full bg-hold pulse" />
+          <span className="mono text-[11px] text-muted">{status}</span>
+        </div>
+      </div>
+      <div className="px-5 py-3 divide-y divide-rule">
+        <CompareSideTrack label={progress.tickerA} side={progress.a} />
+        <CompareSideTrack label={progress.tickerB} side={progress.b} />
       </div>
     </article>
   );
