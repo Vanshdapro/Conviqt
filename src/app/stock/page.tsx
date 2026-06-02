@@ -75,9 +75,11 @@ export default async function StockIndexPage() {
             Every verdict, on the record.
           </h1>
           <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 17.5, lineHeight: 1.64, margin: 0, maxWidth: 680 }}>
-            The Council&rsquo;s standing call on the S&amp;P 500 and top Nasdaq names. Each page shows the verdict, conviction, and where the agents disagreed — with every number linked to a source. Reports refresh as users run them and on a daily cron.
+            The Council&rsquo;s standing call on the S&amp;P 500 and top Nasdaq names. Each page shows the verdict, conviction, and where the agents disagreed — with every number linked to a source. Reports refresh as users run them and on a daily cron, and every page tracks 90 days of conviction history.
           </p>
         </header>
+
+        <ConvictionTimelineCallout />
 
         <StockBrowser published={published} universe={remaining} />
 
@@ -86,5 +88,90 @@ export default async function StockIndexPage() {
         </footer>
       </main>
     </div>
+  );
+}
+
+// Names the Conviction Timeline as a first-class feature on the index, so the
+// longitudinal AI-consensus dataset is discoverable — not just stumbled upon
+// at the bottom of a single ticker page. The mini sparkline is decorative
+// (static), mirroring the real chart's conviction-down / disagreement-up story.
+function ConvictionTimelineCallout() {
+  const conviction = "10,18 70,24 130,33 190,43 234,50";
+  const disagree = "10,56 70,50 130,43 190,34 234,28";
+  const dots = [
+    [10, 18],
+    [70, 24],
+    [130, 33],
+    [190, 43],
+    [234, 50],
+  ];
+  return (
+    <section
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 24,
+        marginBottom: 36,
+        padding: "22px 26px",
+        border: `1px solid ${RULE}`,
+        borderLeft: `3px solid ${ACCENT}`,
+        borderRadius: 10,
+        background: "rgba(79,135,247,0.05)",
+      }}
+    >
+      <div style={{ minWidth: 280, flex: "1 1 420px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            color: ACCENT,
+            fontFamily: MONO,
+            fontSize: 10,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            marginBottom: 12,
+          }}
+        >
+          <span
+            style={{
+              padding: "2px 7px",
+              border: `1px solid ${ACCENT}`,
+              borderRadius: 4,
+              fontSize: 9,
+              letterSpacing: "0.16em",
+            }}
+          >
+            New
+          </span>
+          <span>Conviction Timeline</span>
+        </div>
+        <h2 style={{ color: INK, fontFamily: DISPLAY, fontSize: 25, lineHeight: 1.15, letterSpacing: "-0.01em", fontWeight: 500, margin: "0 0 10px" }}>
+          See how conviction moved — not just where it stands.
+        </h2>
+        <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 14.5, lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
+          Every report now charts the Council&rsquo;s conviction and disagreement over the trailing 90 days. Each dot is an analysis run — hover to see the verdict, who dissented, and the bull/bear case on that date. It&rsquo;s the first longitudinal dataset of AI disagreement on public equities, and it deepens with every run.
+        </p>
+      </div>
+
+      <svg
+        viewBox="0 0 244 72"
+        width={244}
+        height={72}
+        aria-hidden="true"
+        style={{ flex: "0 0 auto", overflow: "visible" }}
+      >
+        {[14, 36, 58].map((y) => (
+          <line key={y} x1={0} x2={244} y1={y} y2={y} stroke={RULE} strokeWidth={1} />
+        ))}
+        <polyline points={disagree} fill="none" stroke={MUTED} strokeWidth={1.5} strokeDasharray="3 3" opacity={0.7} />
+        <polyline points={conviction} fill="none" stroke={ACCENT} strokeWidth={2.25} />
+        {dots.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r={3} fill={ACCENT} stroke="#0b1020" strokeWidth={1.5} />
+        ))}
+      </svg>
+    </section>
   );
 }
