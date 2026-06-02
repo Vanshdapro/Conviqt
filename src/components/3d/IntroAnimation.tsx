@@ -162,6 +162,9 @@ const PANELS: PanelDef[] = [
   { start: 0.28, peak: 0.31, end: 0.37, label: "Radical Transparency",
     head: ["Disagreement", "exposed."],
     body: "When agents fracture, you see it. A disagreement score shows exactly how divided the council is — so you can weight the verdict against your own thesis." },
+  { start: 0.39, peak: 0.44, end: 0.50, label: "Head-to-Head",
+    head: ["Two tickers.", "One verdict."],
+    body: "Ask “Compare NVDA vs AMD” and the full Council runs on both sides at once. A comparative judge names a winner and breaks down the edge on valuation, positioning, catalysts, and risk-reward — an argument, not a metric table." },
 ];
 
 // ── Sidebar items ─────────────────────────────────────────────────────────────
