@@ -63,3 +63,36 @@ export function computeDisagreement(agents: AgentOutput[]): number {
     Math.max(weightedScore, spreadScore) + polarityBonus
   );
 }
+
+// Sector-level dispersion: how much a BASKET of stocks disagrees on direction.
+// Same intuition as single-stock disagreement, but the "voters" are the basket
+// constituents (each a BUY/HOLD/SELL with a 0-100 conviction) rather than the
+// four specialists. A basket where everything is a high-conviction BUY scores
+// near 0; a basket split between high-conviction BUYs and SELLs scores near
+// 100. Like disagreement, this is computed deterministically — the sector
+// judge does not self-report it.
+export function computeDispersion(
+  items: Array<{ verdict: Verdict; conviction: number }>
+): number {
+  const live = items.filter((i) => i.conviction > 0);
+  if (live.length < 2) return 0;
+
+  const weights = live.map((i) => Math.max(1, i.conviction) / 100);
+  const scores = live.map((i) => verdictScore(i.verdict));
+  const weightSum = weights.reduce((s, w) => s + w, 0);
+  const weightedMean =
+    scores.reduce((s, x, i) => s + x * weights[i], 0) / weightSum;
+  const weightedVar =
+    scores.reduce((s, x, i) => s + weights[i] * (x - weightedMean) ** 2, 0) /
+    weightSum;
+  const weightedScore = Math.min(100, Math.round(Math.sqrt(weightedVar) * 100));
+
+  const counts: Record<Verdict, number> = { BUY: 0, HOLD: 0, SELL: 0 };
+  for (const i of live) counts[i.verdict] += 1;
+  const top = Math.max(counts.BUY, counts.HOLD, counts.SELL);
+  const spreadScore = Math.round((1 - top / live.length) * 100);
+
+  const polarityBonus = counts.BUY > 0 && counts.SELL > 0 ? 15 : 0;
+
+  return Math.min(100, Math.max(weightedScore, spreadScore) + polarityBonus);
+}

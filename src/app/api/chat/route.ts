@@ -2,9 +2,10 @@ import {
   classifyIntent,
   RouterMessage,
 } from "@/lib/agents/router";
-import { runCouncil, runFocusedQuery, runCompare, type CouncilEvent, type FocusedEvent, type CompareEvent } from "@/lib/agents/orchestrator";
+import { runCouncil, runFocusedQuery, runCompare, runSector, type CouncilEvent, type FocusedEvent, type CompareEvent, type SectorEvent } from "@/lib/agents/orchestrator";
 import { runAnalyst } from "@/lib/agents/analyst";
-import type { CouncilResult, FocusedResult, CompareResult } from "@/lib/agents/types";
+import { resolveSector, type SectorBasket } from "@/lib/agents/sectors";
+import type { CouncilResult, FocusedResult, CompareResult, SectorResult } from "@/lib/agents/types";
 import {
   checkRateLimit,
   ensureDailyBudget,
@@ -18,6 +19,7 @@ import {
   COUNCIL_CACHE_TTL_MS,
   councilCacheKey,
   compareCacheKey,
+  sectorCacheKey,
 } from "@/lib/cache";
 import { persistStockReport } from "@/lib/stockReports";
 import {
@@ -42,6 +44,7 @@ import { getVerifiedUser } from "@/lib/auth";
 //   focused  →  8 credits  (Focused query)
 //   general  → 18 credits  (Sonnet analyst)
 //   compare  → 25 credits  (two Councils + comparative synthesis; warm sides reuse cache)
+//   sector   → 40 credits  (5-8 abbreviated Council passes + thematic synthesis; warm names reuse cache)
 //   cache    →  1 credit   (any cache hit)
 //   pick     →  0 credits  (text redirect only)
 
@@ -254,6 +257,32 @@ export async function POST(req: Request) {
     return streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD });
   }
 
+  // ── SECTOR — thematic snapshot across a curated basket ──────────────────
+  if (intent.action === "sector") {
+    const basket = resolveSector(intent.sectorKey);
+    if (!basket) {
+      return jsonResponse({ type: "error", error: "Unknown sector." }, 400);
+    }
+    const cacheKey = sectorCacheKey(basket.key);
+    const cached   = cacheGet<SectorResult>(cacheKey);
+    const isCached = !!cached;
+
+    {
+      const blocked = await checkAndDeductCredits(email, "sector_analyze", isCached);
+      if (blocked) return blocked;
+    }
+
+    try {
+      // Worst case: every name cold (~6 × ~2.5¢ sweep+scorecard) + Sonnet synthesis.
+      ensureDailyBudget(0.22);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return jsonResponse({ type: "error", error: msg }, 503);
+    }
+
+    return streamSector({ basket, cached, cacheKey, intentCostUSD });
+  }
+
   // ── PICK — redirect to Alpha Tracker ────────────────────────────────────
   if (intent.action === "pick") {
     return jsonResponse(
@@ -412,6 +441,59 @@ function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: Strea
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] council failed for ${ticker}:`, msg);
+        emit({ type: "error", error: msg });
+      } finally {
+        emit({ type: "done" });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
+  });
+}
+
+interface StreamSectorArgs {
+  basket:   SectorBasket;
+  cached?:  SectorResult;
+  cacheKey: string;
+  intentCostUSD: number;
+}
+
+function streamSector({ basket, cached, cacheKey, intentCostUSD }: StreamSectorArgs): Response {
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc  = new TextEncoder();
+      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+
+      emit({
+        type: "intent",
+        action: "sector",
+        sectorKey: basket.key,
+        sectorLabel: basket.label,
+        tickers: basket.constituents.map((c) => c.ticker),
+        costUSD: intentCostUSD,
+      });
+
+      if (cached) {
+        emit({ type: "sector_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
+        emit({ type: "done" });
+        controller.close();
+        return;
+      }
+
+      try {
+        const result = await runSector(basket, {
+          onEvent: (event: SectorEvent) => emit({ type: "sector", event }),
+        });
+        cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
+        recordSpend(result.estCostUSD);
+        emit({ type: "sector_done", result, costUSD: result.estCostUSD + intentCostUSD, intentCostUSD });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[chat] sector failed for ${basket.key}:`, msg);
         emit({ type: "error", error: msg });
       } finally {
         emit({ type: "done" });

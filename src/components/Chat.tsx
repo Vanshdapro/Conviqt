@@ -10,13 +10,15 @@ import type {
   CompareResult,
   CouncilResult,
   FocusedResult,
+  SectorResult,
   FactSheet,
   Source,
 } from "@/lib/agents/types";
 import type { PickerResult } from "@/lib/agents/picker";
-import type { CouncilEvent, FocusedEvent, CompareEvent, CompareSideStage } from "@/lib/agents/orchestrator";
+import type { CouncilEvent, FocusedEvent, CompareEvent, CompareSideStage, SectorEvent, SectorTickerStage } from "@/lib/agents/orchestrator";
 import CouncilReport from "./CouncilReport";
 import CompareReport from "./CompareReport";
+import SectorReport from "./SectorReport";
 import PicksReport from "./PicksReport";
 
 // ── Stream event types ────────────────────────────────────────────────────
@@ -24,17 +26,21 @@ import PicksReport from "./PicksReport";
 type ChatStreamEvent =
   | {
       type: "intent";
-      action: "analyze" | "focused" | "compare" | "pick" | "general" | "reject";
+      action: "analyze" | "focused" | "compare" | "sector" | "pick" | "general" | "reject";
       ticker?: string;
       tickerA?: string;
       tickerB?: string;
       focus?: string;
       question?: string;
+      sectorKey?: string;
+      sectorLabel?: string;
+      tickers?: string[];
       costUSD: number;
     }
   | { type: "council"; event: CouncilEvent }
   | { type: "focused"; event: FocusedEvent }
   | { type: "compare"; event: CompareEvent }
+  | { type: "sector"; event: SectorEvent }
   | {
       type: "council_done";
       result: CouncilResult;
@@ -50,6 +56,12 @@ type ChatStreamEvent =
   | {
       type: "compare_done";
       result: CompareResult;
+      costUSD: number;
+      intentCostUSD: number;
+    }
+  | {
+      type: "sector_done";
+      result: SectorResult;
       costUSD: number;
       intentCostUSD: number;
     }
@@ -94,6 +106,19 @@ interface CompareProgress {
   comparing: boolean;
 }
 
+interface SectorTickerRow {
+  ticker: string;
+  stage: SectorTickerStage;
+  cached: boolean;
+}
+
+interface SectorProgress {
+  sectorLabel: string;
+  tickers: string[];
+  rows: Record<string, SectorTickerRow>;
+  synthesizing: boolean;
+}
+
 type Bubble =
   | { id: string; kind: "user"; text: string }
   | { id: string; kind: "text"; text: string; costUSD: number }
@@ -101,18 +126,21 @@ type Bubble =
   | { id: string; kind: "council"; result: CouncilResult; costUSD: number }
   | { id: string; kind: "focused"; result: FocusedResult; costUSD: number }
   | { id: string; kind: "compare"; result: CompareResult; costUSD: number }
+  | { id: string; kind: "sector"; result: SectorResult; costUSD: number }
   | { id: string; kind: "picks"; result: PickerResult; costUSD: number }
   | { id: string; kind: "error"; error: string }
   | { id: string; kind: "loading"; label: string }
   | { id: string; kind: "council_running"; progress: CouncilProgress }
   | { id: string; kind: "focused_running"; progress: FocusedProgress }
-  | { id: string; kind: "compare_running"; progress: CompareProgress };
+  | { id: string; kind: "compare_running"; progress: CompareProgress }
+  | { id: string; kind: "sector_running"; progress: SectorProgress };
 
 // ── Example queries ───────────────────────────────────────────────────────
 
 const EXAMPLES = [
   { label: "analyze NVDA", hint: "Full Council" },
   { label: "Compare NVDA vs AMD", hint: "Head-to-head" },
+  { label: "analyze the AI infrastructure sector", hint: "Sector" },
   { label: "analyze AAPL", hint: "Full Council" },
   { label: "Is the yen carry trade fully unwound?", hint: "Macro" },
   { label: "Walk me through yield curve re-steepening", hint: "Rates" },
@@ -205,6 +233,13 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
                 ? b.result.tickerB
                 : "tie"
             }. ${b.result.verdict.headline}`,
+          },
+        ];
+      if (b.kind === "sector")
+        return [
+          {
+            role: "assistant",
+            content: `Sector snapshot on ${b.result.sectorLabel}: ${b.result.verdict.stance} (conviction ${b.result.verdict.conviction}). ${b.result.verdict.headline} Top pick ${b.result.verdict.topPick}.`,
           },
         ];
       if (b.kind === "picks")
@@ -334,7 +369,8 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
             b.id !== loadingId &&
             b.kind !== "council_running" &&
             b.kind !== "focused_running" &&
-            b.kind !== "compare_running"
+            b.kind !== "compare_running" &&
+            b.kind !== "sector_running"
         ),
         { id: newId(), kind: "error", error: event.error },
       ]);
@@ -412,6 +448,20 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
             comparing: false,
           },
         });
+      } else if (event.action === "sector") {
+        const tickers = event.tickers ?? [];
+        replaceBubble(loadingId, {
+          id: loadingId,
+          kind: "sector_running",
+          progress: {
+            sectorLabel: event.sectorLabel ?? "Sector",
+            tickers,
+            rows: Object.fromEntries(
+              tickers.map((t) => [t, { ticker: t, stage: "queued" as SectorTickerStage, cached: false }])
+            ),
+            synthesizing: false,
+          },
+        });
       } else if (event.action === "general") {
         replaceBubble(loadingId, {
           id: loadingId,
@@ -449,6 +499,17 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
         prev.map((b) => {
           if (b.kind !== "compare_running") return b;
           const next = updateCompareProgress(b.progress, event.event);
+          return { ...b, progress: next };
+        })
+      );
+      return;
+    }
+
+    if (event.type === "sector") {
+      setBubbles((prev) =>
+        prev.map((b) => {
+          if (b.kind !== "sector_running") return b;
+          const next = updateSectorProgress(b.progress, event.event);
           return { ...b, progress: next };
         })
       );
@@ -500,11 +561,27 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
       return;
     }
 
+    if (event.type === "sector_done") {
+      setBubbles((prev) => [
+        ...prev.filter(
+          (b) => b.kind !== "sector_running" && b.id !== loadingId
+        ),
+        {
+          id: newId(),
+          kind: "sector",
+          result: event.result,
+          costUSD: event.costUSD,
+        },
+      ]);
+      return;
+    }
+
     dropBubble(loadingId);
   }
 
   function detectLoadingLabel(prompt: string): string {
     const p = prompt.toLowerCase();
+    if (/\b(sector|sectors|space|theme|thematic|industry|complex)\b/.test(p)) return "Routing…";
     if (/^analyze\s+/i.test(p)) return "Routing…";
     if (/pick|setup|idea|look at/.test(p)) return "Scanning for setups…";
     if (/(?<![a-z])[A-Z]{2,5}(?![a-z])/.test(prompt)) return "Routing…";
@@ -799,6 +876,50 @@ function updateCompareProgress(
     };
   }
   if (ev.kind === "comparing") return { ...prev, comparing: true };
+  return prev;
+}
+
+function updateSectorProgress(
+  prev: SectorProgress,
+  ev: SectorEvent
+): SectorProgress {
+  if (ev.kind === "start") {
+    return {
+      ...prev,
+      tickers: ev.tickers,
+      rows: Object.fromEntries(
+        ev.tickers.map((t) => [
+          t,
+          prev.rows[t] ?? { ticker: t, stage: "queued" as SectorTickerStage, cached: false },
+        ])
+      ),
+    };
+  }
+  if (ev.kind === "ticker_update") {
+    return {
+      ...prev,
+      rows: {
+        ...prev.rows,
+        [ev.ticker]: { ticker: ev.ticker, stage: ev.stage, cached: ev.cached },
+      },
+    };
+  }
+  if (ev.kind === "ticker_done") {
+    const t = ev.constituent.ticker;
+    const existing = prev.rows[t];
+    return {
+      ...prev,
+      rows: {
+        ...prev.rows,
+        [t]: {
+          ticker: t,
+          stage: ev.constituent.error ? "failed" : "done",
+          cached: existing?.cached ?? ev.constituent.cached,
+        },
+      },
+    };
+  }
+  if (ev.kind === "synthesizing") return { ...prev, synthesizing: true };
   return prev;
 }
 
@@ -1101,6 +1222,10 @@ function BubbleView({
     return <CompareRunningCard progress={bubble.progress} />;
   }
 
+  if (bubble.kind === "sector_running") {
+    return <SectorRunningCard progress={bubble.progress} />;
+  }
+
   if (bubble.kind === "error") {
     return (
       <div style={{ borderRadius: 8, overflow: "hidden", borderLeft: "2px solid var(--bear)", borderTop: "1px solid rgba(239,68,68,0.1)", borderRight: "1px solid rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.1)", background: "rgba(239,68,68,0.04)", padding: "14px 18px" }}>
@@ -1165,6 +1290,10 @@ function BubbleView({
 
   if (bubble.kind === "compare") {
     return <CompareReport result={bubble.result} costUSD={bubble.costUSD} />;
+  }
+
+  if (bubble.kind === "sector") {
+    return <SectorReport result={bubble.result} costUSD={bubble.costUSD} onAnalyze={onAnalyze} />;
   }
 
   if (bubble.kind === "picks") {
@@ -1353,6 +1482,65 @@ function CompareRunningCard({ progress }: { progress: CompareProgress }) {
       <div className="px-5 py-3 divide-y divide-rule">
         <CompareSideTrack label={progress.tickerA} side={progress.a} />
         <CompareSideTrack label={progress.tickerB} side={progress.b} />
+      </div>
+    </article>
+  );
+}
+
+// ── Sector running card ───────────────────────────────────────────────────
+
+const SECTOR_STAGE_LABELS: Record<SectorTickerStage, string> = {
+  queued: "queued",
+  sweeping: "sweeping",
+  scoring: "scoring",
+  done: "done",
+  failed: "failed",
+};
+
+function SectorRunningCard({ progress }: { progress: SectorProgress }) {
+  const rows = progress.tickers.map(
+    (t) => progress.rows[t] ?? { ticker: t, stage: "queued" as SectorTickerStage, cached: false }
+  );
+  const doneCount = rows.filter((r) => r.stage === "done" || r.stage === "failed").length;
+  const status = progress.synthesizing
+    ? "Synthesizing the thematic verdict…"
+    : `Scoring the basket — ${doneCount}/${rows.length} in…`;
+
+  return (
+    <article className="border border-rule overflow-hidden" style={{ background: "var(--surface)" }}>
+      <div className="px-5 py-4 border-b border-rule flex items-center justify-between gap-4">
+        <div className="flex items-baseline gap-2.5">
+          <span className="caps text-[9px] text-accent">Sector Snapshot</span>
+          <span className="text-[18px] font-semibold text-foreground tracking-tight">
+            {progress.sectorLabel}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="h-1.5 w-1.5 rounded-full bg-hold pulse" />
+          <span className="mono text-[11px] text-muted">{status}</span>
+        </div>
+      </div>
+      <div className="px-5 py-3 grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-1.5">
+        {rows.map((r) => {
+          const done = r.stage === "done";
+          const failed = r.stage === "failed";
+          return (
+            <div key={r.ticker} className="flex items-center justify-between gap-2 py-0.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+                    failed ? "bg-bear" : done ? "bg-bull" : "bg-hold pulse"
+                  }`}
+                />
+                <span className="mono text-[12px] font-semibold text-foreground">{r.ticker}</span>
+              </div>
+              <span className="mono text-[9px] text-dim truncate">
+                {SECTOR_STAGE_LABELS[r.stage]}
+                {r.cached ? " · cached" : ""}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </article>
   );

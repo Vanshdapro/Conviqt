@@ -217,3 +217,103 @@ export interface CompareResult {
   // True if the whole CompareResult was served from cache (1-credit replay).
   cached?: boolean;
 }
+
+// ── SECTOR SNAPSHOT ───────────────────────────────────────────────────────────
+//
+// A Sector Snapshot runs an ABBREVIATED Council pass on each of 5-8 curated
+// tickers (sweep → a single scorecard judge, NOT the full 4-specialist debate),
+// then a sector judge synthesizes the basket into one thematic verdict: the
+// theme stance, which subsector carries the most conviction, where the basket
+// disagrees most, and what the macro picture says across the names.
+//
+// This is the genuinely new output type (per the brief): a multi-stock, cited,
+// AI-synthesized sector verdict — the thing a single-stock run can't produce.
+//
+// Citation integrity (CLAUDE.md): every constituent carries its own FactSheet
+// `sources` plus the `sourceIndexes` its scorecard relied on, so the report can
+// expose a clickable source list per name. The thematic synthesis prose is
+// explicitly relative/qualitative (like the comparative judge) and never
+// invents a number that isn't already cited at the constituent level.
+
+// One name inside a sector basket after its abbreviated Council pass. A
+// constituent that failed to produce a verdict is still returned (UI shows it
+// greyed out) but is excluded from the thematic synthesis and dispersion math.
+export interface SectorConstituent {
+  ticker: string;
+  companyName: string;
+  subSector: string; // bucket label from the basket, e.g. "Accelerators"
+  verdict: Verdict;
+  conviction: number; // 0-100
+  // 1-2 sentence cited mini-thesis from the scorecard judge.
+  thesis: string;
+  // 2-3 decision-relevant signals pulled from the FactSheet.
+  signals: KeyMetric[];
+  flags: string[]; // short labels, e.g. ["overbought", "margin expansion"]
+  sources: Source[]; // this name's own FactSheet sources
+  sourceIndexes: number[]; // which sources the scorecard cited
+  cached: boolean; // derived from a warm 4h Council cache rather than a fresh pass
+  estCostUSD: number;
+  // Populated only when the abbreviated pass failed for this name.
+  error?: string;
+}
+
+// One row of the basket ranking the sector judge emits — constituents ordered
+// by the judge's conviction in the name within the theme.
+export interface SectorRankRow {
+  ticker: string;
+  verdict: Verdict;
+  conviction: number; // 0-100
+  note: string; // one-clause justification
+}
+
+// The sector judge's structured thematic verdict. The new output type.
+export interface SectorVerdict {
+  // Overall stance on the theme: is this a sector to lean into or fade?
+  stance: Verdict;
+  // Aggregate conviction in the theme call (0-100).
+  conviction: number;
+  // The shareable one-liner that names the theme's central tension.
+  headline: string;
+  // 3-4 sentence thematic case: where conviction concentrates and why.
+  summary: string;
+  // Subsector carrying the highest conviction across the basket + why.
+  topSubSector: string;
+  topSubSectorRationale: string;
+  // The single highest-conviction name (ticker) + why it leads.
+  topPick: string;
+  topPickRationale: string;
+  // Where the basket disagrees most — the divisive / contrarian name + why.
+  mostDivisive: string;
+  mostDivisiveRationale: string;
+  // What the macro lens says across the basket — the cross-cutting tailwind
+  // or headwind that re-rates the whole theme.
+  macroRead: string;
+  // Strongest bull and bear cases for the THEME (not a single stock).
+  bullCase: string;
+  bearCase: string;
+  // Constituents ranked by within-theme conviction.
+  ranking: SectorRankRow[];
+  // The theme trade in <= 25 words. No hedging.
+  bottomLine: string;
+  durationMs: number;
+}
+
+export interface SectorResult {
+  runId: string;
+  sectorKey: string; // canonical basket key, e.g. "ai_infrastructure"
+  sectorLabel: string; // display label, e.g. "AI Infrastructure"
+  blurb: string; // basket one-liner
+  asOf: string; // ISO timestamp stamped at the start of the run
+  // All constituents in basket order, including any that failed.
+  constituents: SectorConstituent[];
+  verdict: SectorVerdict;
+  // Deterministic 0-100 dispersion across the surviving constituents'
+  // verdicts — the sector analogue of single-stock disagreement. Computed in
+  // the orchestrator; the judge does NOT self-report it.
+  dispersion: number;
+  totalDurationMs: number;
+  estCostUSD: number;
+  warnings: string[];
+  // True if the whole SectorResult was served from cache (1-credit replay).
+  cached?: boolean;
+}

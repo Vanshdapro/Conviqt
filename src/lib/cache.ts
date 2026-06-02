@@ -91,5 +91,13 @@ export function compareCacheKey(tickerA: string, tickerB: string) {
   return `compare:${x}:${y}:${bucket}`;
 }
 
+// Sector Snapshot cache key. Keyed by the canonical basket key + 4h bucket so
+// a re-run of the same theme within the window is a 1-credit replay. The basket
+// is fixed, so there's no per-name ordering to normalize.
+export function sectorCacheKey(sectorKey: string) {
+  const bucket = Math.floor(now() / (4 * 60 * 60 * 1000));
+  return `sector:${sectorKey.toLowerCase()}:${bucket}`;
+}
+
 export const PICKER_CACHE_TTL_MS = 5 * 60 * 1000;
 export const PICKER_CACHE_KEY = "picker:result";

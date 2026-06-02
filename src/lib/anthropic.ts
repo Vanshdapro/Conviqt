@@ -78,6 +78,9 @@ export const MODELS = {
   regime: "claude-haiku-4-5-20251001", // macro regime read — search-driven, structured
   council: "claude-haiku-4-5-20251001", // 6-lens scorecard — one tight structured call
   cio: "claude-sonnet-4-6", // CIO + portfolio constructor — the high-stakes synthesis
+  // Sector Snapshot pipeline:
+  sectorTicker: "claude-haiku-4-5-20251001", // abbreviated per-name scorecard — one tight structured call
+  sectorJudge: "claude-sonnet-4-6", // thematic synthesis across 5-8 names — the marquee output
 } as const;
 
 // Per-model unit costs in USD per token.

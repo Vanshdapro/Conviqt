@@ -6,7 +6,9 @@ import { runMacro } from "./macro";
 import { runJudge } from "./judge";
 import { runFocusedJudge } from "./focusedJudge";
 import { runComparativeJudge } from "./comparativeJudge";
-import { computeDisagreement } from "../disagreement";
+import { runSectorTickerScorecard, runSectorJudge } from "./sectorJudge";
+import type { SectorBasket } from "./sectors";
+import { computeDisagreement, computeDispersion } from "../disagreement";
 import {
   AgentName,
   AgentOutput,
@@ -14,6 +16,8 @@ import {
   CouncilResult,
   FocusedResult,
   FactSheet,
+  SectorConstituent,
+  SectorResult,
 } from "./types";
 import { cacheGet, cacheSet, COUNCIL_CACHE_TTL_MS, councilCacheKey } from "../cache";
 import type { SpecialistRunResult } from "./_runner";
@@ -402,4 +406,212 @@ export async function runCompare(
   onEvent?.({ kind: "compare_done", result });
 
   return { ...result, freshSides };
+}
+
+// ── SECTOR SNAPSHOT PIPELINE ──────────────────────────────────────────────────
+//
+// "analyze the AI infrastructure sector" → run an ABBREVIATED Council pass on
+// each of 5-8 curated names (sweep → a single scorecard judge, NOT the full
+// 4-specialist debate), then a sector judge synthesizes the basket into one
+// thematic verdict.
+//
+// Cost discipline (CLAUDE.md): the marquee cost lever is reusing the 4h Council
+// cache. Any name analyzed in the last 4h is reused for free (no sweep, no API
+// cost) — derived straight from its full CouncilResult. Cold names run the
+// abbreviated pass: a 2-search sweep (~2¢) + a Haiku scorecard (~0.3¢). Worst
+// case (all cold) is ~6 names × ~2.5¢ + one Sonnet synthesis ≈ 17-20¢ — well
+// inside the 40-credit premium intent and the daily budget.
+//
+// Abbreviated passes are intentionally NOT written back to the Council cache:
+// they lack the 4-specialist breakdown a real "analyze" renders, so caching one
+// under the council key would degrade a later single-stock analyze.
+
+export type SectorTickerStage =
+  | "queued"
+  | "sweeping"
+  | "scoring"
+  | "done"
+  | "failed";
+
+export type SectorEvent =
+  | { kind: "start"; sectorKey: string; sectorLabel: string; tickers: string[]; runId: string; asOf: string }
+  | { kind: "ticker_update"; ticker: string; stage: SectorTickerStage; cached: boolean }
+  | { kind: "ticker_done"; constituent: SectorConstituent }
+  | { kind: "synthesizing" }
+  | { kind: "sector_done"; result: SectorResult };
+
+export interface RunSectorOptions {
+  onEvent?: (event: SectorEvent) => void;
+}
+
+// Derive a constituent from a warm full Council run — no API cost. We compress
+// the full Judge verdict down to the scorecard shape the sector judge consumes.
+function constituentFromCouncil(
+  c: CouncilResult,
+  subSector: string
+): SectorConstituent {
+  const j = c.judge;
+  const thesis = j.bottomLine?.trim() || j.investmentCase.trim();
+  const flags = Array.from(
+    new Set(c.agents.filter((a) => a.confidence > 0).flatMap((a) => a.flags))
+  ).slice(0, 3);
+  return {
+    ticker: c.ticker,
+    companyName: c.factSheet.companyName,
+    subSector,
+    verdict: j.verdict,
+    conviction: j.conviction,
+    thesis,
+    signals: j.keyMetrics.slice(0, 3),
+    flags,
+    sources: c.factSheet.sources,
+    sourceIndexes: j.sourceIndexes.slice(0, 8),
+    cached: true,
+    estCostUSD: 0,
+  };
+}
+
+// Resolve one name: reuse the warm Council run if present, else run the
+// abbreviated sweep + scorecard pass. Never throws — a failed name comes back
+// as a constituent carrying an `error`, so one bad ticker can't sink the basket.
+async function resolveConstituent(
+  spec: { ticker: string; subSector: string },
+  asOf: string,
+  onEvent?: (event: SectorEvent) => void
+): Promise<SectorConstituent> {
+  const ticker = spec.ticker.toUpperCase();
+
+  const cached = cacheGet<CouncilResult>(councilCacheKey(ticker));
+  if (cached) {
+    const constituent = constituentFromCouncil(cached, spec.subSector);
+    onEvent?.({ kind: "ticker_update", ticker, stage: "done", cached: true });
+    onEvent?.({ kind: "ticker_done", constituent });
+    return constituent;
+  }
+
+  try {
+    onEvent?.({ kind: "ticker_update", ticker, stage: "sweeping", cached: false });
+    const sweep = await runSweep(ticker, { asOf });
+
+    onEvent?.({ kind: "ticker_update", ticker, stage: "scoring", cached: false });
+    const card = await runSectorTickerScorecard(sweep.factSheet);
+
+    const constituent: SectorConstituent = {
+      ticker,
+      companyName: sweep.factSheet.companyName || ticker,
+      subSector: spec.subSector,
+      verdict: card.verdict,
+      conviction: card.conviction,
+      thesis: card.thesis,
+      signals: card.signals,
+      flags: card.flags,
+      sources: sweep.factSheet.sources,
+      sourceIndexes: card.sourceIndexes,
+      cached: false,
+      estCostUSD: Number((sweep.costUSD + card.costUSD).toFixed(4)),
+    };
+    onEvent?.({ kind: "ticker_update", ticker, stage: "done", cached: false });
+    onEvent?.({ kind: "ticker_done", constituent });
+    return constituent;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[Sector] ${ticker} abbreviated pass failed:`, msg);
+    const constituent: SectorConstituent = {
+      ticker,
+      companyName: ticker,
+      subSector: spec.subSector,
+      verdict: "HOLD",
+      conviction: 0,
+      thesis: `Could not score ${ticker}: ${msg}`,
+      signals: [],
+      flags: ["scoring error"],
+      sources: [],
+      sourceIndexes: [],
+      cached: false,
+      estCostUSD: 0,
+      error: msg,
+    };
+    onEvent?.({ kind: "ticker_update", ticker, stage: "failed", cached: false });
+    onEvent?.({ kind: "ticker_done", constituent });
+    return constituent;
+  }
+}
+
+export async function runSector(
+  basket: SectorBasket,
+  options: RunSectorOptions = {}
+): Promise<SectorResult> {
+  const { onEvent } = options;
+  const t0 = Date.now();
+  const runId = makeRunId().replace("run_", "sec_");
+  const asOf = new Date().toISOString();
+  const warnings: string[] = [];
+
+  onEvent?.({
+    kind: "start",
+    sectorKey: basket.key,
+    sectorLabel: basket.label,
+    tickers: basket.constituents.map((c) => c.ticker),
+    runId,
+    asOf,
+  });
+
+  // All names run concurrently. Each resolves independently (warm cache reuse
+  // or a cold abbreviated pass) and never throws — failures surface as
+  // error-carrying constituents.
+  const constituents = await Promise.all(
+    basket.constituents.map((spec) => resolveConstituent(spec, asOf, onEvent))
+  );
+
+  // Survivors = names that produced a real verdict. A failed name stays in the
+  // response (UI greys it out) but is kept out of the synthesis so it can't
+  // poison the thematic call.
+  const survivors = constituents.filter((c) => !c.error && c.conviction > 0);
+  const failed = constituents.filter((c) => c.error);
+  if (failed.length > 0) {
+    warnings.push(
+      `${failed.length} name(s) failed to score: ${failed.map((c) => c.ticker).join(", ")}.`
+    );
+  }
+  if (survivors.length < 2) {
+    const err = new Error(
+      `[Sector] Only ${survivors.length} of ${constituents.length} names in "${basket.label}" produced a verdict. Need at least 2 to synthesize a theme.`
+    );
+    (err as Error & { warnings?: string[] }).warnings = warnings;
+    throw err;
+  }
+
+  // Thematic synthesis over the survivors only.
+  onEvent?.({ kind: "synthesizing" });
+  const judge = await runSectorJudge(basket, survivors);
+
+  // Deterministic basket dispersion — the sector analogue of disagreement.
+  const dispersion = computeDispersion(
+    survivors.map((c) => ({ verdict: c.verdict, conviction: c.conviction }))
+  );
+
+  const totalCostUSD =
+    constituents.reduce((s, c) => s + c.estCostUSD, 0) + judge.costUSD;
+
+  console.log(
+    `[Sector] ${basket.key} done in ${Date.now() - t0}ms, stance=${judge.output.stance}, names=${survivors.length}/${constituents.length}, dispersion=${dispersion}, cost=$${totalCostUSD.toFixed(4)}`
+  );
+
+  const result: SectorResult = {
+    runId,
+    sectorKey: basket.key,
+    sectorLabel: basket.label,
+    blurb: basket.blurb,
+    asOf,
+    constituents,
+    verdict: judge.output,
+    dispersion,
+    totalDurationMs: Date.now() - t0,
+    estCostUSD: Number(totalCostUSD.toFixed(4)),
+    warnings,
+  };
+
+  onEvent?.({ kind: "sector_done", result });
+
+  return result;
 }

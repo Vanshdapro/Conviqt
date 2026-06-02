@@ -11,6 +11,8 @@
 //   compare       — 25 credits  (two Council runs + comparative Sonnet synthesis;
 //                    each side reuses the 4h Council cache when warm, so a compare
 //                    against two freshly-analyzed tickers only pays the synthesis.)
+//   sector_analyze— 40 credits  (5-8 abbreviated Council passes + thematic Sonnet
+//                    synthesis; each name reuses the 4h Council cache when warm.)
 //   cache         —  1 credit   (any intent that hits the 4h cache)
 //   pick          —  0 credits  (text redirect only, no pipeline)
 //   learn         —  0 credits  (Conviqt Learn lessons are pre-authored)
@@ -48,6 +50,7 @@ export const CREDITS_PER_INTENT = {
   focused: 8,
   general: 18,
   compare: 25,  // Head-to-head: two Council runs + comparative Sonnet synthesis
+  sector_analyze: 40,  // Sector Snapshot: 5-8 abbreviated passes + thematic Sonnet synthesis
   cache:   1,
   pick:    0,
   learn:         0,
