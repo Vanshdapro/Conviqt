@@ -11,6 +11,10 @@
     {
       "path": "/api/watchlist/sweep",
       "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cdi/publish",
+      "schedule": "0 13 * * 1"
     }
   ],
   "redirects": [
