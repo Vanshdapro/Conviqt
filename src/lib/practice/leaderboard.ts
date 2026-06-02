@@ -194,40 +194,47 @@ function assembleRows(
 // ── Live standings (current week, computed) ──────────────────────────────────
 
 async function computeStandings(weekStart: Date): Promise<LeaderboardRow[]> {
-  const supabase = getSupabaseAdmin();
-  const startISO = `${isoDate(weekStart)}T00:00:00Z`;
-  const endISO = `${isoDate(new Date(weekStart.getTime() + 7 * DAY_MS))}T00:00:00Z`;
+  try {
+    const supabase = getSupabaseAdmin();
+    const startISO = `${isoDate(weekStart)}T00:00:00Z`;
+    const endISO = `${isoDate(new Date(weekStart.getTime() + 7 * DAY_MS))}T00:00:00Z`;
 
-  const { data: profRows, error: profErr } = await supabase
-    .from("leaderboard_profiles")
-    .select("email, handle, display_name")
-    .eq("opted_in", true);
-  if (profErr) {
-    console.error("[leaderboard] profiles error:", profErr.message);
+    const { data: profRows, error: profErr } = await supabase
+      .from("leaderboard_profiles")
+      .select("email, handle, display_name")
+      .eq("opted_in", true);
+    if (profErr) {
+      console.error("[leaderboard] profiles error:", profErr.message);
+      return [];
+    }
+    const profiles = (profRows ?? []) as OptedProfile[];
+    if (profiles.length === 0) return [];
+
+    const emails = profiles.map((p) => p.email);
+    const { data: posRows, error: posErr } = await supabase
+      .from("practice_paper_positions")
+      .select("email, ticker, qty, entry_price, last_mark, exit_price, status, opened_at")
+      .in("email", emails)
+      .gte("opened_at", startISO)
+      .lt("opened_at", endISO);
+    if (posErr) {
+      console.error("[leaderboard] positions error:", posErr.message);
+      return [];
+    }
+
+    const byEmail = new Map<string, PaperPosition[]>();
+    for (const raw of (posRows ?? []) as RawRow[]) {
+      const list = byEmail.get(raw.email) ?? [];
+      list.push(hydrate(raw));
+      byEmail.set(raw.email, list);
+    }
+    return assembleRows(profiles, byEmail);
+  } catch (err) {
+    // Degrade to an empty board if the store is unreachable, matching the rest
+    // of the desk — a 500 would just blank the public page.
+    console.error("[leaderboard] computeStandings unavailable:", msg(err));
     return [];
   }
-  const profiles = (profRows ?? []) as OptedProfile[];
-  if (profiles.length === 0) return [];
-
-  const emails = profiles.map((p) => p.email);
-  const { data: posRows, error: posErr } = await supabase
-    .from("practice_paper_positions")
-    .select("email, ticker, qty, entry_price, last_mark, exit_price, status, opened_at")
-    .in("email", emails)
-    .gte("opened_at", startISO)
-    .lt("opened_at", endISO);
-  if (posErr) {
-    console.error("[leaderboard] positions error:", posErr.message);
-    return [];
-  }
-
-  const byEmail = new Map<string, PaperPosition[]>();
-  for (const raw of (posRows ?? []) as RawRow[]) {
-    const list = byEmail.get(raw.email) ?? [];
-    list.push(hydrate(raw));
-    byEmail.set(raw.email, list);
-  }
-  return assembleRows(profiles, byEmail);
 }
 
 // ── Frozen standings (completed weeks) ───────────────────────────────────────
@@ -253,18 +260,23 @@ function rowFromFrozen(r: {
 }
 
 async function readFrozen(weekStart: Date): Promise<LeaderboardRow[] | null> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("leaderboard_weekly")
-    .select("handle, display_name, rank, sharpe, return_pct, trades, featured")
-    .eq("week_start", isoDate(weekStart))
-    .order("rank", { ascending: true });
-  if (error) {
-    console.error("[leaderboard] readFrozen error:", error.message);
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("leaderboard_weekly")
+      .select("handle, display_name, rank, sharpe, return_pct, trades, featured")
+      .eq("week_start", isoDate(weekStart))
+      .order("rank", { ascending: true });
+    if (error) {
+      console.error("[leaderboard] readFrozen error:", error.message);
+      return null;
+    }
+    if (!data || data.length === 0) return null;
+    return (data as Parameters<typeof rowFromFrozen>[0][]).map(rowFromFrozen);
+  } catch (err) {
+    console.error("[leaderboard] readFrozen unavailable:", msg(err));
     return null;
   }
-  if (!data || data.length === 0) return null;
-  return (data as Parameters<typeof rowFromFrozen>[0][]).map(rowFromFrozen);
 }
 
 // Snapshots a completed week's standings into leaderboard_weekly so the
