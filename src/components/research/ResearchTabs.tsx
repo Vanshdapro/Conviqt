@@ -14,12 +14,13 @@ const ACCENT = "#4f87f7";
 const BORDER = "rgba(232,237,248,0.09)";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
 
-export type ResearchTab = "overview" | "analyst" | "stocks" | "allocator" | "portfolio";
+export type ResearchTab = "overview" | "analyst" | "stocks" | "watchlist" | "allocator" | "portfolio";
 
 const TABS: { key: ResearchTab; label: string; href: string }[] = [
   { key: "overview", label: "Overview", href: "/research" },
   { key: "analyst", label: "Analyst", href: "/chat" },
   { key: "stocks", label: "Stocks", href: "/stock" },
+  { key: "watchlist", label: "Watchlist", href: "/watchlist" },
   { key: "allocator", label: "Allocator", href: "/research/allocator" },
   { key: "portfolio", label: "Portfolio", href: "/research/portfolio" },
 ];
