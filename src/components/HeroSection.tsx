@@ -526,7 +526,7 @@ function CouncilSection() {
 
         <FadeIn delay={0.1}>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: "clamp(36px, 5vw, 60px)", letterSpacing: "-2px", lineHeight: 1.05, color: "#e8edf8", marginBottom: 16 }}>
-            Five specialists.<br />One signal.
+            Four specialists.<br />One signal.
           </h2>
         </FadeIn>
 

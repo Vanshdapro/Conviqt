@@ -157,7 +157,7 @@ const PANELS: PanelDef[] = [
     head: ["Every claim.", "One source URL."],
     body: "No hallucinations. No black-box outputs. Every number Conviqt surfaces is traced to a live web source you can click and verify — no exceptions." },
   { start: 0.18, peak: 0.21, end: 0.26, label: "The Council Pipeline",
-    head: ["Five specialists.", "Parallel debate."],
+    head: ["Four specialists.", "Parallel debate."],
     body: "Fundamentals, Technicals, Sentiment, and Macro run simultaneously on live data. A Judge synthesises all four into one final verdict with a conviction score." },
   { start: 0.28, peak: 0.31, end: 0.37, label: "Radical Transparency",
     head: ["Disagreement", "exposed."],
@@ -1039,10 +1039,20 @@ export default function IntroAnimation() {
 
         {/* Landing overlay */}
         <div ref={landingRef} className="absolute inset-0" style={{ zIndex: 3 }}>
-          <nav style={{
+          <nav className="lp-nav" style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "28px 52px", position: "relative", zIndex: 4,
           }}>
+            <style>{`
+              @media (max-width: 900px) {
+                .lp-nav { padding: 20px 24px !important; }
+                .lp-nav-links { gap: 26px !important; }
+              }
+              @media (max-width: 680px) {
+                .lp-nav-links { display: none !important; }
+                .lp-nav-cta { padding: 9px 18px !important; }
+              }
+            `}</style>
             <span style={{
               fontFamily: "var(--font-display), Georgia, serif",
               fontWeight: 400, fontSize: "17px", letterSpacing: "0.22em",
@@ -1050,7 +1060,7 @@ export default function IntroAnimation() {
             }}>
               Conviqt
             </span>
-            <ul style={{ display: "flex", gap: "44px", listStyle: "none", padding: 0, margin: 0 }}>
+            <ul className="lp-nav-links" style={{ display: "flex", gap: "44px", listStyle: "none", padding: 0, margin: 0 }}>
               {[
                 { label: "Research",     href: "/chat" },
                 { label: "Alpha",        href: "/alpha" },
@@ -1069,14 +1079,14 @@ export default function IntroAnimation() {
                 </li>
               ))}
             </ul>
-            <Link href="/chat" style={{
+            <Link className="lp-nav-cta" href="/chat" style={{
               fontFamily: "var(--font-serif), Georgia, serif",
               fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase",
               color: "#e8edf8", background: "transparent",
               border: "1px solid rgba(232,237,248,0.55)",
               borderRadius: "100px", padding: "11px 26px",
               display: "flex", alignItems: "center", gap: "9px",
-              textDecoration: "none",
+              textDecoration: "none", whiteSpace: "nowrap",
             }}>
               Analyze a Stock <span style={{ fontSize: "18px", lineHeight: "0" }}>•</span>
             </Link>
@@ -1122,7 +1132,7 @@ export default function IntroAnimation() {
               marginBottom: "56px", letterSpacing: "0.015em",
               maxWidth: "460px", lineHeight: 1.68,
             }}>
-              Five specialist AI agents debate every stock in parallel —
+              Five AI agents debate every stock in parallel —
               every claim linked to a source you can verify.
             </p>
 

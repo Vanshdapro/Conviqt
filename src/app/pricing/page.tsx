@@ -21,7 +21,7 @@ const FREE_PLAN: PricingPlan = {
     "50 credits / month (auto-resets)",
     "~3 full stock analyses per month",
     "Unlimited general chat (within credits)",
-    "All 6 Council agents on every analysis",
+    "All 5 Council agents on every analysis",
     "Every claim cited with a source URL",
   ],
   cta: "Start free",
@@ -200,7 +200,7 @@ function CreditCosts() {
         overflow: "hidden",
       }}>
         {[
-          { action: "Full Council analysis", credits: 15, note: "6-agent debate, all sources cited" },
+          { action: "Full Council analysis", credits: 15, note: "5-agent debate, all sources cited" },
           { action: "Focused stock question", credits: 8,  note: "Targeted sweep + expert answer" },
           { action: "General analyst chat",  credits: 18, note: "Sonnet + live web search" },
           { action: "Cache hit (any)",       credits: 1,  note: "Same query within 4 hours" },

@@ -417,7 +417,7 @@ export default function MethodologyPage() {
             <span style={{ color: "rgba(232,237,248,0.45)", fontWeight: 400 }}>One judge. Every dissent published.</span>
           </h1>
           <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 16, color: "rgba(232,237,248,0.55)", lineHeight: 1.75, margin: 0, maxWidth: 520 }}>
-            When you analyze a stock, six AI agents run in sequence. Each only works with facts that have source URLs. The final verdict is a synthesis of four independent views — agreements and disagreements alike.
+            When you analyze a stock, a live web sweep feeds five AI agents that run in sequence. Each only works with facts that have source URLs. The final verdict is a synthesis of four independent specialist views — agreements and disagreements alike.
           </p>
         </motion.div>
 

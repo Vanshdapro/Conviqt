@@ -610,7 +610,7 @@ const Chat = forwardRef<ChatHandle>(function Chat(_, ref) {
 
             {/* Description */}
             <p className="serif text-[15px] text-muted leading-[1.68] mb-9 max-w-[500px]">
-              Ask about any stock, market, or macro force. Five specialist agents
+              Ask about any stock, market, or macro force. Four specialist agents
               run in parallel, cite every claim, and disagree openly when the
               evidence splits.
             </p>

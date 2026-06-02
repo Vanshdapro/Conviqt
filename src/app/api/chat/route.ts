@@ -288,7 +288,7 @@ export async function POST(req: Request) {
     return jsonResponse(
       {
         type:    "text",
-        text:    "Stock picks live in the **Alpha Tracker** — a dedicated feature built for exactly this, with a documented methodology, full track record, and every number sourced. It's coming soon.\n\nIn the meantime, ask me to analyze a specific ticker — e.g. \"analyze NVDA\" — and I'll run a full investment thesis with sourced data.",
+        text:    "Stock picks live in the **[Alpha Tracker](/alpha)** — a dedicated feature built for exactly this, with a documented methodology, a full public track record, and every number sourced.\n\nOr ask me to analyze a specific ticker right here — e.g. \"analyze NVDA\" — and I'll run a full investment thesis with sourced data.",
         costUSD: intentCostUSD,
         intentCostUSD,
       },
