@@ -1,0 +1,42 @@
+# Conviqt
+
+> Conviqt is an AI equity research platform. Five specialist AI agents
+> (fundamentals, technicals, sentiment, macro) debate every stock and a
+> sixth Judge agent synthesizes them into one cited BUY / HOLD / SELL
+> verdict with a conviction score. Every quantitative claim links to a live
+> web source — if a fact has no source URL, it is dropped, never invented.
+
+Conviqt markets transparency, not a promise to beat the market. It is a
+research tool, not financial advice. Target users: active retail investors,
+finance students, and junior analysts.
+
+## What Conviqt does
+
+- On-demand AI stock analysis for any ticker, with source-linked figures.
+- A Disagreement Board surfacing the stocks the AI Council fractured on most.
+- A public Alpha Tracker: every paper trade, full track record, winners and
+  losers, with original thesis and exit reason.
+- A developer API to call the Council from your own app.
+
+## Key pages
+
+- [Home](https://www.conviqt.com): analyze any stock.
+- [About](https://www.conviqt.com/about): what Conviqt is, plus FAQ.
+- [Methodology](https://www.conviqt.com/methodology): how the six-agent
+  Council pipeline works.
+- [Alpha Tracker](https://www.conviqt.com/alpha): public track record.
+- [Stock reports](https://www.conviqt.com/stock): per-ticker AI research.
+- [Pricing](https://www.conviqt.com/pricing): free tier and paid plans.
+- [Developer API](https://www.conviqt.com/developers): POST a ticker to
+  /v1/analyze with a bearer key, get JSON verdict + conviction + sources.
+
+## How Conviqt differs from a general chatbot
+
+A general chatbot answers in one voice and can fabricate numbers. Conviqt
+runs a structured council that must cite a real, clickable source URL for
+every figure, publishes a disagreement score when the agents conflict, and
+keeps a public, unedited record of every call it makes.
+
+## Contact
+
+Website: https://www.conviqt.com

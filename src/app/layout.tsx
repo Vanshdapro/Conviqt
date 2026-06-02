@@ -108,6 +108,7 @@ const jsonLd = {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
+      alternateName: "Conviqt AI Equity Research",
       url: SITE_URL,
       logo: {
         "@type": "ImageObject",
@@ -116,6 +117,11 @@ const jsonLd = {
         height: 512,
       },
       description: DESCRIPTION,
+      slogan: "AI Equity Research. Cited. Accountable.",
+      // sameAs ties this entity to its official profiles — a strong signal for
+      // Google's Knowledge Graph and for disambiguating Conviqt (the product)
+      // from "CONVIQT" the 2022 video-quality research paper. Add each official
+      // profile URL here as it goes live (Instagram, X, LinkedIn, etc.).
       sameAs: [],
     },
     {
