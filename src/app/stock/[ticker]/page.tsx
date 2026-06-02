@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VALID_TICKER_RE } from "@/lib/agents/router";
 import { getStockReport } from "@/lib/stockReports";
+import { getConvictionHistory } from "@/lib/convictionHistory";
 import {
   STOCK_UNIVERSE,
   universeName,
@@ -144,7 +145,10 @@ export default async function StockPage({
     notFound();
   }
 
-  const stored = await getStockReport(TICK);
+  const [stored, history] = await Promise.all([
+    getStockReport(TICK),
+    getConvictionHistory(TICK, 90),
+  ]);
   const name = stored?.companyName ?? universeName(TICK) ?? TICK;
 
   // ── Report pending: no cached Council run yet ─────────────────────────────
@@ -219,7 +223,7 @@ export default async function StockPage({
         <span className="mx-2">/</span>
         <span className="text-foreground">{TICK}</span>
       </div>
-      <PublicStockReport data={stored} />
+      <PublicStockReport data={stored} history={history} />
     </Shell>
   );
 }

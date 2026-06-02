@@ -295,4 +295,10 @@ export async function persistStockReport(result: CouncilResult): Promise<void> {
       err instanceof Error ? err.message : err
     );
   }
+
+  // Same funnel feeds the Conviction Timeline (the append-only history moat).
+  // Independent of the upsert above — a stock_reports failure shouldn't skip
+  // the history point, and vice versa.
+  const { appendConvictionPoint } = await import("./convictionHistory");
+  void appendConvictionPoint(result);
 }

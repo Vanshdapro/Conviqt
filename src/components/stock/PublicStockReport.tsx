@@ -1,7 +1,9 @@
 import type { StoredReport } from "@/lib/stockReports";
+import type { ConvictionPoint } from "@/lib/convictionHistory";
 import type { Verdict } from "@/lib/agents/types";
 import StockReportGate from "./StockReportGate";
 import SharePanel from "./SharePanel";
+import ConvictionTimeline from "./ConvictionTimeline";
 
 // Server-rendered public summary for /stock/[ticker]. Everything here ships in
 // the static HTML — it's the SEO surface Googlebot indexes. The login-gated
@@ -22,7 +24,13 @@ function freshness(asOf: string): string {
   });
 }
 
-export default function PublicStockReport({ data }: { data: StoredReport }) {
+export default function PublicStockReport({
+  data,
+  history = [],
+}: {
+  data: StoredReport;
+  history?: ConvictionPoint[];
+}) {
   const { report, verdict, conviction, disagreement, ticker, companyName, sector } = data;
   const { judge, factSheet } = report;
   const vc = verdictColor(verdict);
@@ -71,6 +79,9 @@ export default function PublicStockReport({ data }: { data: StoredReport }) {
           </div>
         </div>
       </header>
+
+      {/* ── Conviction timeline (the historical AI-consensus moat) ──────── */}
+      <ConvictionTimeline history={history} windowDays={90} />
 
       {/* ── Investment case ────────────────────────────────────────────── */}
       <section className="border border-rule px-5 py-5" style={{ background: "var(--surface)" }}>
