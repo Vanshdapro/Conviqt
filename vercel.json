@@ -15,6 +15,10 @@
     {
       "path": "/api/cdi/publish",
       "schedule": "0 13 * * 1"
+    },
+    {
+      "path": "/api/newsletter/send",
+      "schedule": "0 14 * * 1"
     }
   ],
   "redirects": [

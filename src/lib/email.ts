@@ -43,6 +43,9 @@ export interface SendEmailParams {
   // Optional plaintext fallback. Resend auto-generates one if omitted, but a
   // hand-written version improves deliverability for transactional mail.
   text?: string;
+  // Optional sender override (e.g. a "digest@" address for the newsletter).
+  // Falls back to RESEND_FROM env, then DEFAULT_FROM.
+  from?: string;
 }
 
 export interface SendEmailResult {
@@ -65,7 +68,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     return { sent: false, skipped: "not_configured" };
   }
 
-  const from = resolveVar("RESEND_FROM") || DEFAULT_FROM;
+  const from = params.from?.trim() || resolveVar("RESEND_FROM") || DEFAULT_FROM;
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {

@@ -48,6 +48,10 @@ export interface StockReportStore {
   listStale(olderThanMs: number, limit: number): Promise<string[]>;
   // All tickers that have a stored report, for the sitemap. Newest first.
   listSummaries(limit?: number): Promise<ReportSummary[]>;
+  // Reports run within the last `sinceMs`, most-contested first, capped.
+  // Full StoredReport (incl. the report blob) so callers can pull bear/bull
+  // cases. Powers the weekly Disagreement Digest (Deliverable 6).
+  listContested(sinceMs: number, limit: number): Promise<StoredReport[]>;
 }
 
 // --------------------------------------------------------------------------
@@ -122,6 +126,18 @@ class FileStockReportStore implements StockReportStore {
         disagreement: r.disagreement,
         updatedAt: r.updatedAt,
       }));
+  }
+
+  async listContested(sinceMs: number, limit: number): Promise<StoredReport[]> {
+    const cutoff = Date.now() - sinceMs;
+    return Object.values(readFile())
+      .filter((r) => new Date(r.updatedAt).getTime() >= cutoff)
+      .sort(
+        (a, b) =>
+          b.disagreement - a.disagreement ||
+          b.updatedAt.localeCompare(a.updatedAt)
+      )
+      .slice(0, limit);
   }
 }
 
@@ -229,6 +245,20 @@ class SupabaseStockReportStore implements StockReportStore {
         updatedAt: row.updated_at,
       };
     });
+  }
+
+  async listContested(sinceMs: number, limit: number): Promise<StoredReport[]> {
+    const db = await this.db();
+    const cutoff = new Date(Date.now() - sinceMs).toISOString();
+    const { data, error } = await db
+      .from("stock_reports")
+      .select("*")
+      .gte("updated_at", cutoff)
+      .order("disagreement", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(`stockReports.listContested: ${error.message}`);
+    return (data ?? []).map((r) => rowToStored(r as Row));
   }
 }
 
