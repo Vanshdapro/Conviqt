@@ -268,6 +268,65 @@ export interface PaperPosition {
   unrealizedPct: number | null;
 }
 
+// ── Notional account + leaderboard tuning ───────────────────────────────────
+// The paper desk is a $100k simulated account. Ranking, sizing limits, and the
+// anti-gaming guards all derive from these shared constants (used by both the
+// server scoring lib and the client desk/leaderboard UI, so they live here).
+
+/** Every trader's notional starting equity. Paper only — no real money. */
+export const PAPER_BASE_EQUITY = 100_000;
+
+/** Max cost basis a single ticker may hold, as a fraction of base equity.
+ *  Caps lottery-ticket behaviour: no all-in on one name. */
+export const MAX_TICKER_EXPOSURE_PCT = 0.1;
+
+/** Dollar form of the per-ticker cap (10% of $100k = $10k). */
+export const MAX_TICKER_EXPOSURE_USD = PAPER_BASE_EQUITY * MAX_TICKER_EXPOSURE_PCT;
+
+/** Minimum qualifying positions in a week before a trader is RANKED. Below this
+ *  they still appear as "building a track record" but can't top the board on a
+ *  single lucky fill. */
+export const LEADERBOARD_MIN_TRADES = 3;
+
+/** Floor on the return standard deviation used in the Sharpe denominator, so a
+ *  one-trade (zero-variance) account can't divide its way to an infinite score. */
+export const LEADERBOARD_STD_FLOOR = 0.02;
+
+// A live (notional) account summary derived from a trader's paper positions.
+export interface PaperAccount {
+  baseEquity: number;       // 100_000
+  cashDeployed: number;     // Σ open cost basis (entry × qty)
+  realizedPnl: number;      // Σ closed (exit − entry) × qty
+  unrealizedPnl: number;    // Σ open (mark − entry) × qty
+  equity: number;           // base + realized + unrealized
+  returnPct: number;        // equity / base − 1, in %
+  openCount: number;
+  closedCount: number;
+  // Per-ticker open cost basis, for the 10% exposure guard + UI.
+  exposureByTicker: Record<string, number>;
+}
+
+// One trader's standing on the weekly leaderboard.
+export interface LeaderboardRow {
+  handle: string;
+  displayName: string | null;
+  rank: number | null;        // null = unranked (below LEADERBOARD_MIN_TRADES)
+  sharpe: number;             // risk-adjusted score (the rank key)
+  returnPct: number;          // notional account return for the week, %
+  trades: number;             // qualifying positions opened in the week
+  featured: boolean;          // rank 1 → featured top-trader badge
+  isSelf?: boolean;           // marks the viewer's own row (server-set per request)
+}
+
+export interface LeaderboardWeek {
+  weekStart: string;          // ISO date (Mon, UTC)
+  weekEnd: string;            // ISO date (next Mon, exclusive)
+  label: string;              // human label, e.g. "May 26 – Jun 1, 2026"
+  isCurrent: boolean;         // live week (computed) vs frozen past week
+  rows: LeaderboardRow[];
+  featured: LeaderboardRow | null;
+}
+
 // The PM career ladder. Rank is earned by Practice XP; the title is the payoff
 // of the boss-fight progression.
 export const RANKS: Rank[] = [

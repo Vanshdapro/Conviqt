@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CoinsIcon, ArrowRightIcon, ShieldIcon, TargetIcon } from "./icons";
+import { CoinsIcon, ArrowRightIcon, ShieldIcon, TargetIcon, TrophyIcon } from "./icons";
 
 const SURFACE = "#071120";
 const SURFACE_SOFT = "rgba(232,237,248,0.035)";
@@ -30,6 +30,17 @@ interface PaperPosition {
   marketValue: number | null; unrealizedPct: number | null;
 }
 
+interface PaperAccount {
+  baseEquity: number; cashDeployed: number; realizedPnl: number; unrealizedPnl: number;
+  equity: number; returnPct: number; openCount: number; closedCount: number;
+  exposureByTicker: Record<string, number>;
+}
+interface Profile { handle: string; displayName: string | null; optedIn: boolean; }
+interface Standing {
+  handle: string; displayName: string | null; rank: number | null;
+  sharpe: number; returnPct: number; trades: number; featured: boolean;
+}
+
 function px(v: number | null): string {
   if (v == null) return "—";
   return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -37,6 +48,10 @@ function px(v: number | null): string {
 function signed(v: number | null): string {
   if (v == null) return "—";
   return `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+}
+function pnl(v: number): string {
+  const sign = v >= 0 ? "+" : "−";
+  return `${sign}$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 function realizedPct(p: PaperPosition): number | null {
   if (p.exitPrice == null || p.entryPrice <= 0) return null;
@@ -60,6 +75,25 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
   const [thesis, setThesis] = useState("");
   const [showForm, setShowForm] = useState(false);
 
+  // competition layer ($100k account + public handle/standing)
+  const [account, setAccount] = useState<PaperAccount | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [standing, setStanding] = useState<Standing | null>(null);
+
+  const refreshProfile = useCallback(async () => {
+    if (!signedIn) return;
+    try {
+      const r = await fetch("/api/leaderboard/profile");
+      if (!r.ok) return;
+      const d = (await r.json()) as { profile: Profile | null; account: PaperAccount; standing: Standing | null };
+      setAccount(d.account ?? null);
+      setProfile(d.profile ?? null);
+      setStanding(d.standing ?? null);
+    } catch {
+      // account header is best-effort; the desk still works without it
+    }
+  }, [signedIn]);
+
   useEffect(() => {
     if (!signedIn) return;
     let alive = true;
@@ -68,8 +102,9 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
       .then((d) => { if (alive && d && Array.isArray(d.positions)) setPositions(d.positions); })
       .catch(() => null)
       .finally(() => { if (alive) setLoading(false); });
+    void refreshProfile();
     return () => { alive = false; };
-  }, [signedIn]);
+  }, [signedIn, refreshProfile]);
 
   function fail(msg: string, cta?: { href: string; label: string }) {
     setError(msg);
@@ -114,6 +149,16 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
         return;
       }
       if (res.status === 502) { fail(`Couldn't source a live price for ${tk} right now — you weren't charged. Try again shortly.`); return; }
+      if (res.status === 422) {
+        const d = (await res.json().catch(() => null)) as { current?: number; incoming?: number; cap?: number; price?: number } | null;
+        if (d?.cap != null) {
+          const room = Math.max(0, d.cap - (d.current ?? 0));
+          fail(`Position cap: one ticker can hold at most $${d.cap.toLocaleString()} (10% of your $100k). ${tk} already uses $${(d.current ?? 0).toLocaleString()}, leaving ~$${room.toLocaleString(undefined, { maximumFractionDigits: 0 })} of room. You weren't charged.`);
+        } else {
+          fail(`That would exceed the 10%-per-ticker position cap. You weren't charged.`);
+        }
+        return;
+      }
       if (res.status === 400) { fail("Check the ticker and share count and try again."); return; }
       if (!res.ok) { fail("Couldn't open that position. Try again shortly."); return; }
 
@@ -122,6 +167,7 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
       if (typeof d.creditsRemaining === "number") setCredits(d.creditsRemaining);
       setTicker(""); setQty(""); setStop(""); setTarget(""); setThesis("");
       setShowForm(false);
+      void refreshProfile();
     } catch {
       fail("Connection dropped. Try opening the position again.");
     } finally {
@@ -148,6 +194,7 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
       const d = (await res.json()) as { position: PaperPosition; creditsRemaining?: number };
       upsert(d.position);
       if (typeof d.creditsRemaining === "number") setCredits(d.creditsRemaining);
+      void refreshProfile();
     } catch {
       fail("Connection dropped while marking. Try again.");
     } finally {
@@ -167,10 +214,41 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
       if (!res.ok) { fail("Couldn't close that position. Try again shortly."); return; }
       const d = (await res.json()) as { position: PaperPosition };
       upsert(d.position);
+      void refreshProfile();
     } catch {
       fail("Connection dropped while closing. Try again.");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  // handle claim / opt-in
+  const [handleInput, setHandleInput] = useState("");
+  const [displayInput, setDisplayInput] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimErr, setClaimErr] = useState<string | null>(null);
+  const [showClaim, setShowClaim] = useState(false);
+
+  async function saveProfile(opts: { handle: string; displayName?: string | null; optedIn: boolean }) {
+    setClaimErr(null);
+    setClaiming(true);
+    try {
+      const res = await fetch("/api/leaderboard/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(opts),
+      });
+      if (res.status === 400) { setClaimErr("Handles are 3–20 letters, numbers, or underscores."); return; }
+      if (res.status === 409) { setClaimErr("That handle is taken — pick another."); return; }
+      if (!res.ok) { setClaimErr("Couldn't save that. Try again shortly."); return; }
+      const d = (await res.json()) as { profile: Profile; standing: Standing | null };
+      setProfile(d.profile);
+      setStanding(d.standing);
+      setShowClaim(false);
+    } catch {
+      setClaimErr("Connection dropped. Try again.");
+    } finally {
+      setClaiming(false);
     }
   }
 
@@ -206,6 +284,94 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
         </div>
       ) : (
         <>
+          {/* $100k notional account header */}
+          {account && (
+            <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 20, marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6 }}>
+                    Account equity · notional $100k
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+                    <span style={{ color: INK, fontFamily: DISPLAY, fontSize: 34, fontWeight: 600, letterSpacing: "-0.01em" }}>
+                      {px(account.equity)}
+                    </span>
+                    <span style={{ color: account.returnPct >= 0 ? GOOD : BAD, fontFamily: MONO, fontSize: 17, fontWeight: 700 }}>
+                      {signed(account.returnPct)}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 22, flexWrap: "wrap" }}>
+                  <Metric label="Realized" value={pnl(account.realizedPnl)} tone={account.realizedPnl >= 0 ? GOOD : BAD} />
+                  <Metric label="Unrealized" value={pnl(account.unrealizedPnl)} tone={account.unrealizedPnl >= 0 ? GOOD : BAD} />
+                  <Metric label="Deployed" value={px(account.cashDeployed)} tone={INK} />
+                  <Metric label="Open / closed" value={`${account.openCount} / ${account.closedCount}`} tone={MUTED} />
+                </div>
+              </div>
+
+              {/* public identity / standing */}
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${RULE}`, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                {profile?.handle && profile.optedIn ? (
+                  <>
+                    <TrophyIcon size={16} style={{ color: CREDIT }} />
+                    <span style={{ color: INK, fontFamily: MONO, fontSize: 14, fontWeight: 650 }}>@{profile.handle}</span>
+                    {standing && standing.rank != null ? (
+                      <span style={{ color: MUTED, fontFamily: MONO, fontSize: 12.5 }}>
+                        Rank <strong style={{ color: CREDIT }}>#{standing.rank}</strong> this week · risk-adj. {standing.sharpe.toFixed(2)} · {standing.trades} trades
+                      </span>
+                    ) : (
+                      <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12.5 }}>
+                        On the board · {standing ? `${standing.trades}/3 trades to rank` : "building a track record"}
+                      </span>
+                    )}
+                    <Link href="/academy/leaderboard" style={{ marginLeft: "auto", color: ACCENT, fontFamily: MONO, fontSize: 12.5, fontWeight: 650, textDecoration: "none" }}>
+                      View leaderboard →
+                    </Link>
+                  </>
+                ) : profile?.handle && !profile.optedIn ? (
+                  <>
+                    <span style={{ color: MUTED, fontFamily: SERIF, fontSize: 13.5 }}>
+                      You&apos;re @{profile.handle} but hidden from the public board.
+                    </span>
+                    <button onClick={() => saveProfile({ handle: profile.handle, displayName: profile.displayName, optedIn: true })} disabled={claiming} style={{ ...actionBtn(CREDIT), marginLeft: "auto" }}>
+                      {claiming ? "Joining…" : "Join the leaderboard"}
+                    </button>
+                  </>
+                ) : !showClaim ? (
+                  <>
+                    <ShieldIcon size={15} style={{ color: CREDIT }} />
+                    <span style={{ color: MUTED, fontFamily: SERIF, fontSize: 13.5 }}>
+                      Claim a handle to put this account on the weekly leaderboard.
+                    </span>
+                    <button onClick={() => setShowClaim(true)} style={{ ...actionBtn(CREDIT), marginLeft: "auto" }}>
+                      Claim your handle
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ width: "100%" }}>
+                    <div className="pd-form-row" style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+                      <Labeled label="Handle">
+                        <input value={handleInput} onChange={(e) => setHandleInput(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20))} placeholder="quantkid" style={{ ...inputStyle, width: 160 }} />
+                      </Labeled>
+                      <Labeled label="Display name (opt)">
+                        <input value={displayInput} onChange={(e) => setDisplayInput(e.target.value.slice(0, 40))} placeholder="optional" style={{ ...inputStyle, width: 200 }} />
+                      </Labeled>
+                      <button onClick={() => saveProfile({ handle: handleInput, displayName: displayInput.trim() || null, optedIn: true })} disabled={claiming || handleInput.length < 3} style={{ ...primaryBtn(CREDIT), opacity: claiming || handleInput.length < 3 ? 0.55 : 1, cursor: claiming ? "wait" : "pointer" }}>
+                        {claiming ? "Claiming…" : "Claim & join"}
+                      </button>
+                      <button onClick={() => { setShowClaim(false); setClaimErr(null); }} style={ghostBtn()}>Cancel</button>
+                    </div>
+                    <p style={{ color: FAINT, fontFamily: MONO, fontSize: 10.5, margin: "8px 0 0" }}>
+                      Your handle is public; your email never is. 3–20 letters, numbers, or underscores.
+                    </p>
+                    {claimErr && <p style={{ color: BAD, fontFamily: MONO, fontSize: 12, margin: "8px 0 0" }}>{claimErr}</p>}
+                  </div>
+                )}
+              </div>
+              {claimErr && !showClaim && <p style={{ color: BAD, fontFamily: MONO, fontSize: 12, margin: "10px 0 0" }}>{claimErr}</p>}
+            </div>
+          )}
+
           {/* open ticket toggle */}
           {!showForm ? (
             <button onClick={() => setShowForm(true)} style={primaryBtn(GOOD)}>
@@ -340,6 +506,15 @@ function Cell({ label, value, sub, src }: { label: string; value: string; sub?: 
           <span style={{ color: FAINT, fontFamily: MONO, fontSize: 10.5 }}>{sub}</span>
         )
       )}
+    </div>
+  );
+}
+
+function Metric({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div style={{ textAlign: "right" }}>
+      <div style={{ color: FAINT, fontFamily: MONO, fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+      <div style={{ color: tone, fontFamily: MONO, fontSize: 16, fontWeight: 650 }}>{value}</div>
     </div>
   );
 }

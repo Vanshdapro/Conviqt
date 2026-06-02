@@ -13,12 +13,13 @@ const ACCENT = "#4f87f7";
 const BORDER = "rgba(232,237,248,0.09)";
 const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
 
-export type AcademyTab = "overview" | "learn" | "practice";
+export type AcademyTab = "overview" | "learn" | "practice" | "leaderboard";
 
 const TABS: { key: AcademyTab; label: string; href: string }[] = [
-  { key: "overview", label: "Overview", href: "/academy" },
-  { key: "learn",    label: "Learn",    href: "/academy/learn" },
-  { key: "practice", label: "Practice", href: "/academy/practice" },
+  { key: "overview",    label: "Overview",    href: "/academy" },
+  { key: "learn",       label: "Learn",       href: "/academy/learn" },
+  { key: "practice",    label: "Practice",    href: "/academy/practice" },
+  { key: "leaderboard", label: "Leaderboard", href: "/academy/leaderboard" },
 ];
 
 export function AcademyTabs({ active }: { active: AcademyTab }) {

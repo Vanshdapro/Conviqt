@@ -23,6 +23,7 @@ import {
   markPaperPosition,
   closePaperPosition,
 } from "@/lib/practice/paper";
+import { checkTickerExposure } from "@/lib/practice/account";
 import {
   CREDITS_PER_INTENT,
   deductCredits,
@@ -104,6 +105,26 @@ export async function POST(req: Request) {
       if (!quote) {
         await addCredits(user.email, QUOTE_COST, `refund_paper_open_${ticker}`);
         return NextResponse.json({ error: "quote_unavailable", ticker }, { status: 502 });
+      }
+
+      // Enforce the 10%-per-ticker exposure cap (anti-lottery rule). We can only
+      // size the cost basis once we have the live price, so we check here and
+      // refund the quote credit on breach — the user opened nothing.
+      const existing = await listPaperPositions(user.email);
+      const exposure = checkTickerExposure(existing, ticker, quote.price * qty);
+      if (!exposure.ok) {
+        await addCredits(user.email, QUOTE_COST, `refund_paper_cap_${ticker}`);
+        return NextResponse.json(
+          {
+            error: "exposure_cap",
+            ticker,
+            price: quote.price,
+            current: exposure.current,
+            incoming: exposure.incoming,
+            cap: exposure.cap,
+          },
+          { status: 422 },
+        );
       }
 
       const stop = Number(body.stop);
