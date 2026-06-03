@@ -10,9 +10,11 @@
 // chart matches the episode's own narrative. Each series carries a sourceUrl.
 //
 // Drills are arranged into ladder tiers (boss-fight progression):
-//   Tier 1  Foundations — survive a crash, hold a trend
-//   Tier 2  Discipline  — cut the loser, don't chase the mania
-//   Tier 3  Mastery     — write a thesis a PM would fund
+//   Tier 1  Foundations       — survive a crash, hold a trend
+//   Tier 2  Discipline        — cut the loser, don't chase the mania
+//   Tier 3  Cycles & Regimes  — the GFC, a megacap de-rating, the macro regime
+//   Tier 4  The Analyst's Desk — underwrite a SaaS grower, a compounder, a short
+//   Tier 5  Mastery           — write and red-team a thesis a PM would fund
 
 import type {
   PracticeDrill,
@@ -292,7 +294,7 @@ const THESIS_PRICED_FOR_PERFECTION: PracticeDrill = {
   hook: "A stock has tripled on a real story. Make the call — and defend what's priced in.",
   difficulty: "advanced",
   xp: drillXp("advanced"),
-  tier: 3,
+  tier: 5,
   conceptTags: ["Variant perception", "What's priced in", "Second-order thinking"],
   conceptLessonIds: ["mm-variant-perception", "vq-reverse-dcf", "mm-second-order"],
   thesis: {
@@ -311,7 +313,7 @@ const THESIS_FALLEN_QUALITY: PracticeDrill = {
   hook: "A quality compounder just dropped 35% on a guidance cut. Opportunity, or trap?",
   difficulty: "advanced",
   xp: drillXp("advanced"),
-  tier: 3,
+  tier: 5,
   conceptTags: ["Business quality", "Invalidation", "Owner earnings", "Moats"],
   conceptLessonIds: ["vq-moats", "rm-first-loss-cheapest", "vq-owner-earnings"],
   thesis: {
@@ -330,7 +332,7 @@ const THESIS_CAPSTONE: PracticeDrill = {
   hook: "Any ticker you follow. Build a full PM-grade thesis and let the desk grade it.",
   difficulty: "mastery",
   xp: drillXp("mastery"),
-  tier: 3,
+  tier: 5,
   conceptTags: ["Full thesis", "Variant perception", "Risk plan", "Capstone"],
   conceptLessonIds: ["ce-build-your-thesis", "mm-variant-perception", "ps-kelly"],
   thesis: {
@@ -343,22 +345,268 @@ const THESIS_CAPSTONE: PracticeDrill = {
   },
 };
 
+// ── TIER 3 — CYCLES & REGIMES ────────────────────────────────────────────────
+
+const GFC_2008: PracticeDrill = {
+  id: "ep-gfc-2008",
+  kind: "episode",
+  title: "The Great Financial Crisis",
+  hook: "The worst drawdown since the Depression. Survive it — then buy the generational bottom.",
+  difficulty: "advanced",
+  xp: drillXp("advanced"),
+  tier: 3,
+  conceptTags: ["Credit cycle", "Liquidity & deleveraging", "Drawdown math", "Buying max fear"],
+  conceptLessonIds: ["mr-credit-cycle", "rm-liquidity-regime", "rm-drawdown-math", "mr-sentiment-extremes", "found-risk-return"],
+  episode: {
+    ticker: "SPX",
+    company: "S&P 500 Index",
+    period: "Aug 2008 – Dec 2009",
+    startingCash: 100000,
+    briefing:
+      "August 2008. You're in cash, watching the S&P 500 near 1,280. Housing has wobbled for a year and Bear Stearns failed in March, but consensus says the damage is contained. You have $100,000 to deploy in the index. What follows is the worst financial crisis since 1929. This drill is monthly: survival first, then the hardest buy of your career.",
+    bars: [
+      { t: "Aug '08", close: 1282.83 },
+      { t: "Sep '08", close: 1166.36 },
+      { t: "Oct '08", close: 968.75 },
+      { t: "Nov 20", close: 752.44 },
+      { t: "Nov 28", close: 896.24 },
+      { t: "Dec '08", close: 903.25 },
+      { t: "Jan '09", close: 825.88 },
+      { t: "Feb '09", close: 735.09 },
+      { t: "Mar 09", close: 676.53 },
+      { t: "Mar 31", close: 797.87 },
+      { t: "Apr '09", close: 872.81 },
+      { t: "May '09", close: 919.14 },
+      { t: "Jun '09", close: 919.32 },
+      { t: "Sep '09", close: 1057.08 },
+      { t: "Dec '09", close: 1115.10 },
+    ],
+    events: [
+      { atBar: 1, headline: "Lehman Brothers files for bankruptcy", detail: "Sep 15, 2008: the largest bankruptcy in US history. Interbank credit seizes; banks stop trusting each other. The crisis goes systemic overnight.", tone: "bear" },
+      { atBar: 2, headline: "TARP passes after a record crash", detail: "Congress approves a $700B bank bailout — but only after the House first voted it down and the market fell ~9% in a day. Forced deleveraging hits everything at once.", tone: "bear" },
+      { atBar: 3, headline: "Capitulation: down ~52% from the high", detail: "Nov 20 touches 752, a multi-year low. Hedge funds liquidate whatever they can sell to meet redemptions. Correlations go to one.", tone: "bear" },
+      { atBar: 7, headline: "New lows — 'the system is insolvent'", detail: "Feb–Mar 2009: bank stocks trade like options on zero and nationalization fears swirl. The bear market grinds to its final, terrifying low.", tone: "bear" },
+      { atBar: 8, headline: "The bottom: 666 intraday on March 6", detail: "Mar 9 closes at 676. The Fed's backstops and the coming bank stress tests quietly mark the turn — though almost no one can see it through the fear.", tone: "neutral" },
+      { atBar: 9, headline: "+25% off the lows in three weeks", detail: "The sharpest rally in decades begins. Most who sold the bottom are frozen, waiting for a 're-test' that never comes.", tone: "bull" },
+      { atBar: 13, headline: "Credit thaws, recovery underway", detail: "By late 2009 spreads have collapsed and the index is back above 1,100 — up more than 60% from the March low.", tone: "bull" },
+    ],
+    keyMoments: [
+      { atBar: 8, ideal: "buy", why: "March 2009 was a generational bottom: maximum fear, forced selling exhausted, and credit spreads quietly peaking. You never catch the exact low, but scaling in near 700 was the buy of the decade." },
+      { atBar: 3, ideal: "hold", why: "November's capitulation felt like the end — but the index fell another ~10% into March. Don't go all-in on the first wave of panic; keep dry powder for the real low." },
+    ],
+    teachingPoint:
+      "The credit cycle is the master cycle: when financing seizes, forced sellers — not fundamentals — set the price and correlations go to one. A ~57% peak-to-trough drawdown needs a ~130% gain to recover, and that recovery comes fastest at the point of maximum fear. Survival first; then buy when there's blood in the streets and credit is starting to thaw.",
+    idealPlay:
+      "Preserve capital through the autumn-2008 deleveraging (stay mostly cash, resist averaging into the first crash), then scale into the Feb–Mar 2009 capitulation as credit spreads peak. The drill rewards holding firepower through the worst of it and deploying near the March bottom — and punishes both panic-selling the lows and going all-in too early in November.",
+    sourceUrl: "https://en.wikipedia.org/wiki/United_States_bear_market_of_2007%E2%80%932009",
+    sourceLabel: "United States bear market of 2007–2009 — Wikipedia (peak 1,565 Oct 2007; closing low 676.53 on Mar 9, 2009)",
+    priceNote: "S&P 500 index month-end closes, plus the Nov 20 2008 and Mar 9 2009 capitulation closes. Index points, not dollars.",
+  },
+};
+
+const META_2022: PracticeDrill = {
+  id: "ep-meta-2022",
+  kind: "episode",
+  title: "The De-Rating",
+  hook: "The most-owned megacap just broke its growth story. You hold a full position. Now what?",
+  difficulty: "advanced",
+  xp: drillXp("advanced"),
+  tier: 3,
+  conceptTags: ["What's priced in", "Disposition effect", "Capital allocation", "First loss is cheapest"],
+  conceptLessonIds: ["vq-reverse-dcf", "bf-disposition", "bf-recency-fomo", "fa-capital-allocation", "rm-first-loss-cheapest"],
+  episode: {
+    ticker: "META",
+    company: "Meta Platforms (Facebook)",
+    period: "Jan–Dec 2022",
+    startingCash: 30000,
+    startingShares: 200,
+    startingCostBasis: 330,
+    briefing:
+      "January 2022. You own 200 shares of Meta at a ~$330 cost basis — a ~$62k position in the consensus 'can't-lose' megacap — plus $30k in cash. Every analyst has a Buy and the stock trades near $311. This drill is monthly. The question isn't whether Meta is a good company. It's what happens to a great company's stock when a flawless story develops its first crack.",
+    bars: [
+      { t: "Jan '22", close: 311.00 },
+      { t: "Feb '22", close: 211.00 },
+      { t: "Mar '22", close: 222.36 },
+      { t: "Apr '22", close: 200.47 },
+      { t: "May '22", close: 192.13 },
+      { t: "Jun '22", close: 161.25 },
+      { t: "Jul '22", close: 159.10 },
+      { t: "Aug '22", close: 162.93 },
+      { t: "Sep '22", close: 135.68 },
+      { t: "Oct '22", close: 93.16 },
+      { t: "Nov '22", close: 118.10 },
+      { t: "Dec '22", close: 120.34 },
+    ],
+    events: [
+      { atBar: 1, headline: "−26% in a day: the story cracks", detail: "Feb 2 earnings: daily active users SHRINK for the first time ever, Apple's privacy change blows a ~$10B hole in ad targeting, and guidance disappoints. Meta loses ~$230B of value in a day — the largest one-day loss in market history.", tone: "bear" },
+      { atBar: 5, headline: "Rates crush the multiple", detail: "The Fed hikes aggressively. Every high-multiple growth name de-rates, and Meta — now pouring tens of billions into the 'metaverse' — is squarely in the crosshairs.", tone: "bear" },
+      { atBar: 9, headline: "−25% again: the capex revolt", detail: "Oct Q3: revenue declines and management guides to even heavier Reality Labs spending. Investors revolt at the capital allocation; the stock breaks below $90, an eight-year low.", tone: "bear" },
+      { atBar: 9, headline: "Priced for death", detail: "Near $93, Meta trades around 9× earnings with $40B+ of net cash and a still-dominant ad franchise. The narrative is total despair — exactly when embedded expectations have collapsed to nothing.", tone: "neutral" },
+      { atBar: 10, headline: "The turn: 'Year of Efficiency' looms", detail: "Sentiment bottoms. Within weeks Meta will pivot hard on costs, and the stock begins one of the great megacap recoveries off the lows.", tone: "bull" },
+    ],
+    keyMoments: [
+      { atBar: 1, ideal: "cut", why: "The February DAU decline was a genuine thesis-breaker: 'unstoppable grower' was the thesis, and it just stopped. Cutting near $237 — the first loss — beat riding a consensus darling 60% lower out of loyalty and the disposition effect." },
+      { atBar: 9, ideal: "buy", why: "By October the de-rating had overshot: ~9× earnings, huge net cash, despair everywhere. When a quality franchise is priced for death and expectations have reset to zero, that's the asymmetric entry — the mirror image of January's froth." },
+    ],
+    teachingPoint:
+      "'Great company' and 'great stock from here' are different questions. At $311 Meta was priced for flawless growth; when the growth cracked, the de-rating was brutal — and the disposition effect (holding a loser to avoid realizing the loss) turned a thesis break into a ~70% drawdown. The same math cuts the other way: when expectations collapse to despair (≈9× earnings, net cash), the embedded bar is so low the asymmetry flips to the buyer.",
+    idealPlay:
+      "Honor the February invalidation and cut the consensus position when the growth story breaks — don't anchor to your $330 basis. Then, when the de-rating overshoots into October's capex-revolt bottom and the name is priced for disaster, that's the disciplined re-entry. The drill punishes loyally riding the whole de-rating down, and rewards both cutting on the thesis break and recognizing the priced-for-death bottom.",
+    sourceUrl: "https://www.macrotrends.net/stocks/charts/META/meta-platforms/stock-price-history",
+    sourceLabel: "Meta Platforms stock price history — Macrotrends (Feb 3 2022 −26%, a record one-day value loss; Oct 2022 low ~$88)",
+    priceNote: "Month-end closes; the February bar reflects the post-earnings crash within the month. Nominal, as traded.",
+  },
+};
+
+const THESIS_RATES_REGIME: PracticeDrill = {
+  id: "th-rates-regime",
+  kind: "thesis",
+  title: "Trading the Regime",
+  hook: "Rates are gravity. Position a book for the macro regime you actually believe in.",
+  difficulty: "advanced",
+  xp: drillXp("advanced"),
+  tier: 3,
+  conceptTags: ["Rates as gravity", "Four regimes", "Real returns", "Mechanism"],
+  conceptLessonIds: ["mr-rates-gravity", "mr-four-regimes", "mr-inflation-real-returns", "mr-yield-curve"],
+  thesis: {
+    setup:
+      "Forget single stocks for a moment. State your view on the macro regime over the next 6–12 months — growth and inflation, each rising or falling — and build the trade that expresses it. The discipline being tested: tie an asset-allocation or single-name bet explicitly to a rate/inflation mechanism, not a vibe. Which quadrant are we in, what does that do to discount rates, and what wins or loses because of it?",
+    sections: [SECTION.variant, SECTION.pricedIn, SECTION.catalyst, SECTION.quality, SECTION.bearCase, SECTION.risk],
+    whatGoodLooksLike:
+      "A strong answer names the growth/inflation quadrant and the non-consensus part of that call, explains the mechanism (how the regime moves real rates and therefore long-duration valuations), identifies what the curve and breakevens already imply, picks the asset whose duration/sensitivity expresses it, and defines what data would prove the regime call wrong. The 'quality' section here is the macro mechanism, not a moat.",
+  },
+};
+
+const THESIS_CONTRARIAN_BOTTOM: PracticeDrill = {
+  id: "th-contrarian-bottom",
+  kind: "thesis",
+  title: "Blood in the Streets",
+  hook: "Everyone is capitulating. Make the disciplined contrarian buy — with a catalyst, not a hunch.",
+  difficulty: "advanced",
+  xp: drillXp("advanced"),
+  tier: 3,
+  conceptTags: ["Sentiment extremes", "Herding", "Loss aversion", "Drawdown math"],
+  conceptLessonIds: ["mr-sentiment-extremes", "bf-herding", "bf-loss-aversion", "rm-drawdown-math"],
+  thesis: {
+    setup:
+      "A high-quality asset (an index, sector, or franchise you understand) has fallen 40%+ and sentiment is washed out — put/call ratios spiked, surveys deeply bearish, the financial press calling for more pain. Make the contrarian case to buy. The trap this drill targets: 'cheap and hated' is not a thesis. You need measurable sentiment extremes, a reason the fear is overdone, and a catalyst — because early without a catalyst is indistinguishable from wrong.",
+    sections: [SECTION.variant, SECTION.pricedIn, SECTION.catalyst, SECTION.bearCase, SECTION.risk],
+    whatGoodLooksLike:
+      "A strong answer cites observable sentiment/positioning extremes (not just 'people are scared'), explains why the consensus fear is mispriced, names a specific catalyst and timeframe that resolves the extreme, makes an honest bear case with a level that says 'I'm wrong / it's a value trap,' and sizes for the fact that bottoms are a process — scaling in, not backing up the truck on day one.",
+  },
+};
+
+// ── TIER 4 — THE ANALYST'S DESK ──────────────────────────────────────────────
+
+const THESIS_SAAS_GROWTH: PracticeDrill = {
+  id: "th-saas-growth",
+  kind: "thesis",
+  title: "Growth at What Price?",
+  hook: "A hot software name. Prove the unit economics work before you pay the multiple.",
+  difficulty: "advanced",
+  xp: drillXp("advanced"),
+  tier: 4,
+  conceptTags: ["Unit economics", "Rule of 40", "What's priced in", "Operating leverage"],
+  conceptLessonIds: ["fa-unit-economics", "fa-rule-of-40", "vq-reverse-dcf", "fa-operating-leverage"],
+  thesis: {
+    setup:
+      "A fast-growing SaaS company trades at a rich revenue multiple on a compelling story. Build the long (or short) thesis grounded in the actual economics: is a single customer profitable, does the Rule-of-40 math hold, and what growth does the multiple already assume? The discipline: separate a great business from a great stock by interrogating LTV/CAC, retention, and the path to real free cash flow — not the TAM slide.",
+    sections: [SECTION.variant, SECTION.pricedIn, SECTION.quality, SECTION.catalyst, SECTION.bearCase, SECTION.risk],
+    whatGoodLooksLike:
+      "A strong answer reasons about the unit economics (LTV/CAC, payback, net retention), checks the growth-vs-margin balance against the Rule of 40, reverse-engineers the growth the multiple is pricing in and judges whether it's plausible, and identifies where operating leverage turns growth into cash — or where cash burn never inflects. The bear case names a churn/CAC level that breaks it.",
+  },
+};
+
+const THESIS_COMPOUNDER: PracticeDrill = {
+  id: "th-compounder",
+  kind: "thesis",
+  title: "The Compounder",
+  hook: "High returns on capital, a real moat, a long runway. Make the multi-year ownership case.",
+  difficulty: "advanced",
+  xp: drillXp("advanced"),
+  tier: 4,
+  conceptTags: ["ROIC & compounding", "Capital allocation", "Moats", "Owner earnings"],
+  conceptLessonIds: ["vq-roic-compounding", "fa-capital-allocation", "vq-moats", "vq-owner-earnings"],
+  thesis: {
+    setup:
+      "Forget the next quarter. Identify a business that earns high returns on capital and can reinvest them for years, and write the thesis for owning it through cycles. The discipline being tested is duration: the market chronically underprices how long a great business keeps compounding. Prove the moat is widening, the reinvestment runway is real, and management allocates capital well — and decide what valuation you'd actually pay for that durability.",
+    sections: [SECTION.variant, SECTION.quality, SECTION.pricedIn, SECTION.bearCase, SECTION.risk],
+    whatGoodLooksLike:
+      "A strong answer shows the ROIC is high AND reinvestable (return × runway), evidences a widening moat rather than a current lead, judges management's capital allocation by its track record, checks that reported earnings convert to owner earnings, and is honest about the price — a wonderful business overpaid for is still a poor investment. The bear case is moat erosion or a reinvestment runway that's shorter than the market assumes.",
+  },
+};
+
+const THESIS_FORENSIC_SHORT: PracticeDrill = {
+  id: "th-forensic-short",
+  kind: "thesis",
+  title: "The Short Case",
+  hook: "Earnings look too good. Build the forensic short — and respect the asymmetry.",
+  difficulty: "mastery",
+  xp: drillXp("mastery"),
+  tier: 4,
+  conceptTags: ["Forensic accounting", "Accruals vs cash", "Short selling", "Asymmetric risk"],
+  conceptLessonIds: ["fa-forensic-scores", "fs-accruals", "mkt-short-selling", "vq-multiples"],
+  thesis: {
+    setup:
+      "A company's reported earnings look pristine, but something is off — earnings outrunning cash flow, receivables ballooning, margins defying the industry, serial 'one-time' charges, or acquisitions blurring the organic trend. Build the short thesis. This drill is hard on purpose: shorting inverts the payoff (capped gain, unbounded loss), so you must make the forensic case AND respect borrow cost, squeeze risk, and timing — being right too early on a short can still ruin you.",
+    sections: [SECTION.variant, SECTION.quality, SECTION.catalyst, SECTION.bearCase, SECTION.risk],
+    whatGoodLooksLike:
+      "A strong answer points to specific forensic red flags (the earnings-vs-cash gap, accrual quality, a stretched balance sheet) rather than 'it's expensive,' explains the mechanism by which reality catches up, names a catalyst that forces the re-rate (a refi, a covenant, an earnings miss), and — crucially — sizes for the asymmetric risk of a short with a hard plan for a squeeze. The 'bear case' here is the bull case that would squeeze you, and the invalidation that makes you cover.",
+  },
+};
+
+// ── TIER 5 — MASTERY ─────────────────────────────────────────────────────────
+
+const THESIS_RED_TEAM: PracticeDrill = {
+  id: "th-red-team",
+  kind: "thesis",
+  title: "Red-Team Your Own Thesis",
+  hook: "Take a position you actually hold — and try your hardest to destroy it.",
+  difficulty: "mastery",
+  xp: drillXp("mastery"),
+  tier: 5,
+  conceptTags: ["Confirmation bias", "Overconfidence", "Inversion", "Incentives"],
+  conceptLessonIds: ["bf-confirmation", "bf-overconfidence", "mm-inversion", "mm-incentives"],
+  thesis: {
+    setup:
+      "Pick a stock you currently own or genuinely want to buy — a view you're attached to. Now invert: your job is to write the most honest, most dangerous bear case against your own position, as if a rival PM were paid to take you apart. The discipline being tested is the hardest one in investing: defeating your own confirmation bias and overconfidence before the market does it for you.",
+    sections: [SECTION.bearCase, SECTION.variant, SECTION.quality, SECTION.catalyst, SECTION.risk],
+    whatGoodLooksLike:
+      "A strong answer steelmans the other side — the bear case is genuinely threatening, not a strawman you can easily knock down. It surfaces the disconfirming evidence you'd normally filter out, checks whose incentives are shaping the bull narrative (including your own), states a specific, falsifiable level that would prove you wrong, and ends with an honest verdict: does the position survive its own red team, and at what size?",
+  },
+};
+
 // ── Catalog ───────────────────────────────────────────────────────────────────
 
 export const DRILLS: PracticeDrill[] = [
+  // Tier 1 — Foundations
   COVID_CRASH,
   NVDA_RUN,
+  // Tier 2 — Discipline
   SVB_COLLAPSE,
   GME_SQUEEZE,
+  // Tier 3 — Cycles & Regimes
+  GFC_2008,
+  META_2022,
+  THESIS_RATES_REGIME,
+  THESIS_CONTRARIAN_BOTTOM,
+  // Tier 4 — The Analyst's Desk
+  THESIS_SAAS_GROWTH,
+  THESIS_COMPOUNDER,
+  THESIS_FORENSIC_SHORT,
+  // Tier 5 — Mastery
   THESIS_PRICED_FOR_PERFECTION,
   THESIS_FALLEN_QUALITY,
+  THESIS_RED_TEAM,
   THESIS_CAPSTONE,
 ];
 
 export const TIERS: { tier: number; name: string; tagline: string }[] = [
   { tier: 1, name: "Foundations", tagline: "Survive a crash. Ride a trend. The two halves of staying in the game." },
   { tier: 2, name: "Discipline", tagline: "Cut the loser. Don't chase the mania. Where most accounts are won or lost." },
-  { tier: 3, name: "Mastery", tagline: "Write a thesis a portfolio manager would actually fund." },
+  { tier: 3, name: "Cycles & Regimes", tagline: "Trade the credit cycle, the de-rating, and the macro regime — not just single names." },
+  { tier: 4, name: "The Analyst's Desk", tagline: "Underwrite a SaaS grower, a compounder, and a forensic short like a real analyst." },
+  { tier: 5, name: "Mastery", tagline: "Write — and red-team — a thesis a portfolio manager would actually fund." },
 ];
 
 // ── Lookups ──────────────────────────────────────────────────────────────────
