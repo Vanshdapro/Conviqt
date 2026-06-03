@@ -88,15 +88,22 @@ async function fetchCurrentPrice(ticker: string): Promise<{ price: number; costU
 // D.  Idempotency guard — skip new picks if this run_id already has entries.
 // E.  Macro regime (Haiku + web_search) — frames the hunt.
 // F.  Regime-aware scout / picker (Sonnet + web_searches).
-// G.  Filter tickers already in active positions; take top 2.
+// G.  Filter tickers already in active positions; take top 3.
 // H.  Sweep candidates (parallel, Haiku + web_searches each) → FactSheets.
 // H2. Mosaic edge scan per candidate (parallel, Haiku + 6 searches) → the
 //     non-obvious "small factor" signals that tilt scoring + selection.
 // I.  6-lens council on each candidate (parallel, Haiku), mosaic-aware → scorecards.
-// J.  CIO + portfolio constructor + forecaster (Sonnet) — selects, sizes, and
-//     issues the price forecast (predicted price, confidence, scenarios).
-// K.  Validate and write the pick + forecast.
-export async function runAlphaPipeline(): Promise<AlphaRunResult> {
+// J.  CIO + portfolio constructor + forecaster (Sonnet) — selects + sizes the
+//     best 1-2 names and issues each forecast (predicted price, confidence, scenarios).
+// K.  Validate and write the picks + forecasts.
+// opts.publish (default true): when false, runs MAINTENANCE ONLY — price
+// updates, sell checks, and prediction resolution on open positions — and skips
+// new-pick generation. The daily cron calls it with publish:false to keep stops
+// honest; the manual "publish" trigger calls it with publish:true (the default).
+export async function runAlphaPipeline(
+  opts: { publish?: boolean } = {}
+): Promise<AlphaRunResult> {
+  const publish = opts.publish !== false;
   const t0 = Date.now();
   const now = new Date();
   const run_id = buildRunId(now);
@@ -238,6 +245,14 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
   }
 
+  // Maintenance-only runs (the daily cron) stop here: positions have been
+  // re-priced, stops/targets honored, and expired predictions graded. No new
+  // picks are generated — publishing is a deliberate, manually triggered act.
+  if (!publish) {
+    console.log("[alphaPipeline] maintain-only run complete (no new picks generated)");
+    return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
+  }
+
   // === D. Idempotency guard ===
   try {
     const alreadyRan = await store.hasPicksForRunId(run_id);
@@ -290,7 +305,7 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   );
   const topCandidates = pickerResult.picks
     .filter((p) => !stillActiveTickers.has(p.ticker.toUpperCase()))
-    .slice(0, 2);
+    .slice(0, 3);
 
   if (topCandidates.length === 0) {
     console.log("[alphaPipeline] all candidates already in active positions — skipping");
@@ -465,13 +480,13 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
   }
 
-  // Deeper pipeline now: regime + scout + 2×sweep + 2×mosaic (6 searches each)
-  // + 2×council + CIO, plus price updates + sell checks scaling with active
-  // positions. A fresh pick run is typically ~$0.40-0.80. At ≤2 picks/week this
-  // is ~$3-7/month — trivial against the budget — but warn past $1.20 so a
-  // pathological run (runaway searches) still trips an alarm.
-  if (totalCost > 1.2) {
-    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $1.20`);
+  // Deeper pipeline now: regime + scout + up to 3×sweep + 3×mosaic (6 searches
+  // each) + 3×council + CIO (selecting up to 2 names), plus price updates + sell
+  // checks scaling with active positions. A full run is typically ~$0.60-1.10.
+  // Manually triggered (no cron), so monthly cost stays trivial — but warn past
+  // $1.50 so a pathological run (runaway searches) still trips an alarm.
+  if (totalCost > 1.5) {
+    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $1.50`);
   }
 
   return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };

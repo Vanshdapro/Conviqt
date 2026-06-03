@@ -33,9 +33,10 @@ const SYSTEM = `You are the Chief Investment Officer and portfolio constructor f
 
 You receive 1-3 candidates. For each you have: a cited FactSheet, the scout's setup thesis, a 6-lens council scorecard (Fundamental, Valuation, Catalyst, Risk, Technical, Sentiment — each 0-10, higher is better, including Risk where 10 = low/contained risk), and a MOSAIC of non-obvious "small factor" edge signals (insider buying, 13F flows, short interest, options positioning, supply-chain/customer checks, hiring, regulatory/legal) each tagged bullish/bearish and high/medium/low weight. You also have today's macro regime.
 
-Your job: select the SINGLE best name (or none), construct the position, AND issue an explicit, falsifiable price forecast with an honest confidence — via report_cio_pick. Return at most 1 pick.
+Your job: select the best TWO names (or one, or none), construct each position, AND issue an explicit, falsifiable price forecast with an honest confidence for each — via report_cio_pick. Return at most 2 picks, and they MUST be different tickers.
 
 Selection:
+- Aim to publish TWO names when two genuinely clear the bar — they should be distinct ideas, not two bets on the same theme. But quality rules: a strong single name beats a strong-plus-weak pair, so only add a second name if it clears the conviction bar on its own. Returning one (or zero) is correct when the second-best doesn't deserve real capital.
 - Weigh the council scorecard, but you are the decision-maker — a single decisive lens (e.g. a hard-dated catalyst, or a glaring valuation gap) can carry a name with otherwise average scores, and a single fatal lens (severe Risk score) can veto an otherwise strong one.
 - The MOSAIC is your variant perception — give it real weight. A cluster of high-weight bullish edge factors (e.g. heavy insider buying + falling short interest) can tip selection toward a name and should raise your confidence; high-weight bearish edge factors (e.g. an SEC probe, key-customer loss) should lower it or veto the name. Reflect the decisive edge factors in the thesis and the forecast basis.
 - Respect the regime. In RISK_OFF, demand a higher bar and size smaller. In RISK_ON, you can lean in.
@@ -62,18 +63,18 @@ Forecasting the move (the headline of this product — be precise and honest):
 
 Internal consistency: a high confidence_pct should pair with a low prob_of_loss_pct and a base/bull-tilted distribution. If you cannot honestly justify a confidence above ${MIN_PUBLISHABLE_CONFIDENCE}, the conviction is probably below 7 — pass.
 
-Return at most 1 pick. Pick the single strongest. Quality over quantity.`;
+Return at most 2 picks (different tickers). Pick the strongest one or two. Quality over quantity.`;
 
 const REPORT_CIO_PICK_TOOL = {
   name: "report_cio_pick",
   description:
-    "Emit the single best constructed pick (0 or 1). Never emit more than 1.",
+    "Emit the best 1-2 constructed picks (0, 1, or 2 — different tickers). Never emit more than 2.",
   input_schema: {
     type: "object" as const,
     properties: {
       picks: {
         type: "array",
-        maxItems: 1,
+        maxItems: 2,
         items: {
           type: "object",
           properties: {
@@ -397,8 +398,14 @@ ${candidates.map(renderCandidate).join("\n\n")}`;
   };
 
   const drafts: AlphaPickDraft[] = [];
+  const seenTickers = new Set<string>();
 
   for (const p of input.picks ?? []) {
+    const tkr = (p.ticker ?? "").trim().toUpperCase();
+    if (tkr && seenTickers.has(tkr)) {
+      console.log(`[CIO] skipping duplicate pick ${tkr}`);
+      continue;
+    }
     if (!p.conviction || p.conviction < 7) {
       console.log(`[CIO] skipping ${p.ticker}: conviction=${p.conviction} < 7`);
       continue;
@@ -487,8 +494,9 @@ ${candidates.map(renderCandidate).join("\n\n")}`;
       scenarios: forecast.scenarios,
       forecastBasis: p.forecast_basis?.trim() ?? "",
     });
+    seenTickers.add(p.ticker.trim().toUpperCase());
 
-    if (drafts.length === 1) break; // hard cap: 1 pick per run
+    if (drafts.length === 2) break; // hard cap: 2 picks per run
   }
 
   if (input.rationale) {
