@@ -174,6 +174,7 @@ export const macroReflexivity: RawTrack = {
       hook: "Perceptions change fundamentals, which change perceptions.",
       difficulty: "advanced",
       subtitle: "How prices and fundamentals feed back on each other, creating booms and busts equilibrium models miss.",
+      figure: "reflexivity",
       conceptCards: [
         {
           emoji: "",
@@ -254,6 +255,7 @@ export const macroReflexivity: RawTrack = {
       hook: "Be greedy when others are fearful — but only at the actual extremes.",
       difficulty: "advanced",
       subtitle: "Disciplined contrarianism using measurable sentiment, not vibes — and why timing needs a catalyst.",
+      figure: "sentiment",
       conceptCards: [
         {
           emoji: "",
@@ -327,6 +329,340 @@ export const macroReflexivity: RawTrack = {
         "Use measurable sentiment gauges, not vibes, to spot true extremes.",
         "Tops form on euphoria with no buyers left; bottoms on exhausted capitulation.",
         "Contrarianism needs a catalyst and risk control — early without them is just wrong.",
+      ],
+    },
+    {
+      id: "mr-inflation-real-returns",
+      title: "Inflation & Real Returns",
+      hook: "The number on your statement is a lie until you subtract inflation.",
+      difficulty: "core",
+      subtitle: "Why purchasing power, not nominal gains, is what actually compounds — and what inflation does to asset prices.",
+      figure: "inflation",
+      widget: {
+        type: "inflation_real_return",
+        title: "Strip out inflation",
+        prompt: "Set a nominal return against inflation over time and watch the gap between the headline number and what your money can actually buy.",
+        params: { nominalReturnPct: 7, inflationPct: 3, years: 25, startingAmount: 10000 },
+      },
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Real return is what counts",
+          body: "Real return is the nominal return minus inflation — what your money can actually buy afterward. A 7% gain in a 3% inflation world is roughly 4% real. Over decades, inflation quietly halves the purchasing power of money that doesn't out-earn it.",
+        },
+        {
+          emoji: "",
+          heading: "Inflation reprices assets unevenly",
+          body: "Inflation and the rate response hit assets differently: long-duration bonds and richly-valued growth stocks suffer as discount rates rise, while pricing-power businesses, real assets, and commodities can hold up. The inflation regime reshuffles which assets win.",
+        },
+        {
+          emoji: "",
+          heading: "Who has pricing power survives",
+          body: "Companies that can raise prices faster than their costs protect real margins through inflation; those that can't see margins compress. The key question in an inflationary regime is simple: can this business pass rising costs on to customers?",
+        },
+      ],
+      keyTerms: [
+        { term: "Nominal vs real return", definition: "Nominal is the headline gain; real subtracts inflation to show purchasing power." },
+        { term: "Purchasing power", definition: "What a unit of money can actually buy, eroded by inflation." },
+        { term: "Pricing power", definition: "The ability to raise prices with costs, protecting real margins in inflation." },
+        { term: "Real assets", definition: "Tangible assets (commodities, property, infrastructure) that can track inflation." },
+        { term: "Money illusion", definition: "Mistaking nominal gains for real ones by ignoring inflation." },
+      ],
+      realWorldExample: {
+        scenario:
+          "In the high-inflation 1970s, nominal stock returns looked positive while real returns were dismal — investors felt richer in dollars but poorer in what those dollars bought. Businesses with genuine pricing power fared far better than those that couldn't raise prices.",
+        ticker: "",
+        lesson: "Always think in real terms. Inflation is a silent tax that rewards pricing power and real assets and punishes long-duration, fixed-income-like exposures.",
+      },
+      quiz: [
+        {
+          question: "Real return is:",
+          options: [
+            "Nominal return plus inflation",
+            "Nominal return minus inflation",
+            "The dividend yield",
+            "The same as nominal return",
+          ],
+          answerIndex: 1,
+          explanation: "Subtracting inflation from the nominal return shows the true change in purchasing power.",
+        },
+        {
+          question: "In an inflationary regime, which tends to suffer most?",
+          options: [
+            "Pricing-power businesses",
+            "Long-duration bonds and richly-valued growth stocks",
+            "Commodities",
+            "Real assets",
+          ],
+          answerIndex: 1,
+          explanation: "Rising rates from inflation hit long-duration cash flows and fixed coupons hardest.",
+        },
+        {
+          question: "'Money illusion' is the error of:",
+          options: [
+            "Counting inflation twice",
+            "Mistaking nominal gains for real ones by ignoring inflation",
+            "Using real returns",
+            "Holding commodities",
+          ],
+          answerIndex: 1,
+          explanation: "Feeling richer from nominal gains while purchasing power stagnates is money illusion.",
+        },
+      ],
+      tryInChat: {
+        label: "Check the real return",
+        prompt: "Tell me how inflation would affect the real return of a stock or portfolio I name, and whether it has pricing power",
+      },
+      takeaways: [
+        "Real return = nominal minus inflation; purchasing power is what compounds.",
+        "Inflation reprices assets unevenly — long-duration and fixed-income exposures suffer most.",
+        "Pricing power and real assets are the defense; always think in real terms.",
+      ],
+    },
+    {
+      id: "mr-yield-curve",
+      title: "The Yield Curve",
+      hook: "When short rates rise above long rates, the bond market is forecasting trouble.",
+      difficulty: "advanced",
+      subtitle: "Reading the shape of the yield curve and why its inversion has preceded most recessions.",
+      figure: "yield-curve",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "The curve is a map of rates over time",
+          body: "The yield curve plots government bond yields from short to long maturities. Normally it slopes upward — longer commitments demand more yield. Its shape encodes the market's collective expectation for growth, inflation, and the path of central-bank policy.",
+        },
+        {
+          emoji: "",
+          heading: "Inversion as a warning",
+          body: "When short-term yields exceed long-term yields, the curve inverts — the market expecting rate cuts ahead, usually because it foresees a slowdown. An inverted curve has preceded most recessions, though with long and variable lags that make timing treacherous.",
+        },
+        {
+          emoji: "",
+          heading: "Why it matters beyond bonds",
+          body: "The curve shapes bank lending (banks borrow short, lend long), discount rates for every asset, and risk appetite. Steepening and flattening signal shifting expectations, but the signal is probabilistic — a warning to raise your guard, not a precise timing tool.",
+        },
+      ],
+      keyTerms: [
+        { term: "Yield curve", definition: "A plot of government bond yields across maturities, from short to long." },
+        { term: "Inversion", definition: "When short-term yields rise above long-term yields, often a recession signal." },
+        { term: "Term premium", definition: "Extra yield demanded for the risk of holding longer-maturity bonds." },
+        { term: "Steepening / flattening", definition: "Changes in the gap between short and long yields, reflecting shifting expectations." },
+        { term: "2s10s spread", definition: "The yield difference between 2-year and 10-year Treasuries, a watched curve measure." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Before several past recessions, the 2-year Treasury yield rose above the 10-year — an inverted curve — while equities were still near highs. The signal was real but early; downturns followed only after long and variable lags.",
+        ticker: "",
+        lesson: "An inverted curve is a credible warning that the bond market expects a slowdown — but its lag is long and uncertain, so treat it as a reason for caution, not a timing trigger.",
+      },
+      quiz: [
+        {
+          question: "A normal yield curve slopes:",
+          options: [
+            "Downward — short yields above long",
+            "Upward — longer maturities yield more",
+            "Flat at all maturities",
+            "Randomly",
+          ],
+          answerIndex: 1,
+          explanation: "Longer commitments normally demand higher yields, producing an upward-sloping curve.",
+        },
+        {
+          question: "An inverted yield curve has historically:",
+          options: [
+            "Guaranteed an immediate crash",
+            "Preceded most recessions, but with long and variable lags",
+            "Signaled nothing",
+            "Predicted bull markets",
+          ],
+          answerIndex: 1,
+          explanation: "Inversion is a credible recession warning, though the timing lag makes it imprecise.",
+        },
+        {
+          question: "Inversion reflects the market expecting:",
+          options: [
+            "Higher rates forever",
+            "Rate cuts ahead, often due to an anticipated slowdown",
+            "No change in policy",
+            "Rising inflation only",
+          ],
+          answerIndex: 1,
+          explanation: "Long yields below short yields imply the market is pricing future cuts amid expected weakness.",
+        },
+      ],
+      tryInChat: {
+        label: "Read the curve",
+        prompt: "Explain what the current shape of the yield curve implies about growth and recession risk",
+      },
+      takeaways: [
+        "The yield curve encodes market expectations for growth, inflation, and policy.",
+        "Inversion (short above long) has preceded most recessions — with long, variable lags.",
+        "Treat it as a probabilistic warning to raise caution, not a precise timing tool.",
+      ],
+    },
+    {
+      id: "mr-business-cycle",
+      title: "The Business Cycle & Rotation",
+      hook: "Different sectors lead at different points in the cycle.",
+      difficulty: "advanced",
+      subtitle: "How the economy moves through phases and why market leadership rotates across them.",
+      figure: "business-cycle",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Four broad phases",
+          body: "Economies cycle through early recovery, mid-cycle expansion, late-cycle overheating, and recession. Each phase carries a characteristic mix of growth, inflation, and policy — and the market tends to anticipate the next phase before it arrives in the data.",
+        },
+        {
+          emoji: "",
+          heading: "Leadership rotates",
+          body: "Different sectors tend to lead in different phases: rate-sensitive and cyclical names in early recovery, industrials and materials mid-cycle, energy and staples late-cycle, defensives and quality in downturns. Sector rotation is the market repositioning for the phase ahead.",
+        },
+        {
+          emoji: "",
+          heading: "Easier to see than to time",
+          body: "The cycle is real but irregular — phases vary in length and intensity, and policy can extend or cut them short. Rotation patterns are clearer in hindsight than in real time, so use the framework to understand exposures, not to make precise market-timing calls.",
+        },
+      ],
+      keyTerms: [
+        { term: "Business cycle", definition: "The economy's recurring movement through expansion and contraction phases." },
+        { term: "Sector rotation", definition: "The shift of market leadership across sectors as the cycle progresses." },
+        { term: "Cyclical vs defensive", definition: "Cyclicals swing with the economy; defensives (staples, utilities) hold up in downturns." },
+        { term: "Late cycle", definition: "The overheating phase of tight labor, rising inflation, and peaking growth." },
+        { term: "Leading indicators", definition: "Data (new orders, building permits, the curve) that tend to turn before the economy." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Coming out of recessions, rate-sensitive and cyclical sectors have often led as conditions improved, while defensives and quality outperformed heading into slowdowns. The rotation tracked the cycle — though the exact turns were obvious mainly in hindsight.",
+        ticker: "",
+        lesson: "Use the cycle to understand which exposures are favored when, but respect that timing the turns precisely is far harder than the tidy diagram suggests.",
+      },
+      quiz: [
+        {
+          question: "Sector rotation describes:",
+          options: [
+            "Companies changing their logos",
+            "Market leadership shifting across sectors as the business cycle progresses",
+            "Rotating board members",
+            "Daily price noise",
+          ],
+          answerIndex: 1,
+          explanation: "As the cycle moves through phases, different sectors tend to lead, which is sector rotation.",
+        },
+        {
+          question: "Defensive sectors (staples, utilities) tend to outperform:",
+          options: [
+            "In early recovery",
+            "Heading into and during downturns",
+            "Only in bull markets",
+            "Never",
+          ],
+          answerIndex: 1,
+          explanation: "Defensives hold up better when growth slows, as their demand is more stable.",
+        },
+        {
+          question: "A realistic view of the business cycle is that it's:",
+          options: [
+            "Perfectly regular and easy to time",
+            "Real but irregular, with turns clearer in hindsight than in real time",
+            "A myth",
+            "Identical every time",
+          ],
+          answerIndex: 1,
+          explanation: "Phases vary in length and intensity, so precise timing is far harder than the framework implies.",
+        },
+      ],
+      tryInChat: {
+        label: "Locate the cycle",
+        prompt: "Explain where we might be in the business cycle and which sectors that phase tends to favor",
+      },
+      takeaways: [
+        "The economy moves through recovery, expansion, late-cycle, and recession phases.",
+        "Sector leadership rotates — cyclicals early, defensives into downturns.",
+        "Use the framework for exposure, not precise timing; the turns are clear mainly in hindsight.",
+      ],
+    },
+    {
+      id: "mr-four-regimes",
+      title: "The Four Macro Regimes",
+      hook: "Growth and inflation, each up or down — four worlds, four sets of winners.",
+      difficulty: "mastery",
+      subtitle: "A simple two-by-two for thinking about what drives assets, and why 'diversified' depends on the regime.",
+      figure: "four-regimes",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Two variables, four quadrants",
+          body: "Most asset behavior can be framed by two macro forces: growth (rising or falling) and inflation (rising or falling). The four combinations create four regimes, and different assets are built to win in each — there's no single portfolio that's optimal across all of them.",
+        },
+        {
+          emoji: "",
+          heading: "Different winners in each",
+          body: "Roughly: rising growth favors equities; rising inflation favors commodities and real assets; falling growth favors long bonds and quality; falling inflation favors long bonds and growth stocks. The 'all-weather' idea is to balance exposure so no single regime can wreck you.",
+        },
+        {
+          emoji: "",
+          heading: "Why 'diversified' is regime-dependent",
+          body: "A portfolio that looks diversified can actually be one big bet on a single regime — say, falling rates and rising growth. True macro diversification means holding assets that win in different quadrants, so the portfolio is robust to which regime actually shows up.",
+        },
+      ],
+      keyTerms: [
+        { term: "Macro regime", definition: "An environment defined by the direction of growth and inflation." },
+        { term: "All-weather", definition: "A portfolio balanced to perform acceptably across macro regimes." },
+        { term: "Real assets", definition: "Commodities, property, and infrastructure that tend to track inflation." },
+        { term: "Regime bet", definition: "A portfolio implicitly positioned for one growth/inflation outcome." },
+        { term: "Growth vs inflation shock", definition: "An unexpected change in growth or inflation that reprices assets." },
+      ],
+      realWorldExample: {
+        scenario:
+          "A portfolio of long-duration growth stocks and long bonds quietly bet on one regime — falling inflation and steady growth. When inflation surged instead, both legs fell together, exposing that the 'diversification' had been a single concentrated macro bet all along.",
+        ticker: "",
+        lesson: "Map your holdings to the four regimes. Genuine macro diversification means owning things that win in different quadrants, so no single regime can sink you.",
+      },
+      quiz: [
+        {
+          question: "The four macro regimes are defined by the direction of:",
+          options: [
+            "Interest rates and dividends",
+            "Growth and inflation, each rising or falling",
+            "Stocks and bonds",
+            "Volatility and volume",
+          ],
+          answerIndex: 1,
+          explanation: "Growth up/down and inflation up/down create the two-by-two of four regimes.",
+        },
+        {
+          question: "Rising inflation tends to favor:",
+          options: [
+            "Long-duration bonds",
+            "Commodities and real assets",
+            "Cash only",
+            "Growth stocks",
+          ],
+          answerIndex: 1,
+          explanation: "Real assets and commodities tend to hold value when inflation rises, unlike long bonds.",
+        },
+        {
+          question: "A portfolio can be falsely 'diversified' when it:",
+          options: [
+            "Owns assets that win in different regimes",
+            "Is actually one concentrated bet on a single growth/inflation regime",
+            "Holds cash",
+            "Rebalances often",
+          ],
+          answerIndex: 1,
+          explanation: "If all holdings win in the same regime, the portfolio is a single macro bet despite appearing diversified.",
+        },
+      ],
+      tryInChat: {
+        label: "Map the regimes",
+        prompt: "Help me map a portfolio I describe to the four macro regimes and find which regime it's secretly betting on",
+      },
+      takeaways: [
+        "Growth and inflation, each up or down, define four macro regimes with different winners.",
+        "All-weather thinking balances exposure so no single regime can wreck you.",
+        "Real diversification is owning assets that win in different quadrants — check your hidden regime bet.",
       ],
     },
   ],

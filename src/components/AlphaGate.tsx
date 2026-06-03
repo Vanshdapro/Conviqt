@@ -148,7 +148,7 @@ export function AlphaGate() {
         <ActivePicks picks={picks?.active ?? []} />
       ) : (
         <LockScreen
-          cost={status?.cost ?? 30}
+          cost={status?.cost ?? 60}
           credits={status?.credits ?? 0}
           publishedDate={status?.publishedDate ?? null}
           onUnlock={handleUnlock}

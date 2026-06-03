@@ -407,5 +407,421 @@ export const fundamentalAnalysis: RawTrack = {
         "Recurring revenue earns a premium; one-off or rented revenue earns skepticism.",
       ],
     },
+    {
+      id: "fa-unit-economics",
+      title: "Unit Economics: LTV & CAC",
+      hook: "Before the whole business can work, one customer has to.",
+      difficulty: "advanced",
+      subtitle: "Reducing a business to a single customer to see whether growth creates value or just burns cash.",
+      figure: "unit-economics",
+      widget: {
+        type: "ltv_cac",
+        title: "Test one customer's economics",
+        prompt: "Set the cost to acquire a customer against what they spend, your margin, and churn — and watch the LTV/CAC ratio decide whether growth makes money.",
+        params: { cac: 300, arpuMonthly: 50, grossMarginPct: 75, monthlyChurnPct: 3 },
+      },
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Shrink the business to one customer",
+          body: "Unit economics ask a simple question: across one customer's lifetime, do they generate more gross profit than it cost to acquire them? If yes, scaling prints money; if no, scaling just sets cash on fire faster.",
+        },
+        {
+          emoji: "",
+          heading: "LTV, CAC, and the ratio",
+          body: "Lifetime value (LTV) is the gross profit a customer delivers before churning; customer acquisition cost (CAC) is what it took to win them. The rule of thumb: LTV/CAC of 3 or more, with payback under a year, signals durable, fundable growth.",
+        },
+        {
+          emoji: "",
+          heading: "Churn is the silent killer",
+          body: "Lifetime value depends on how long customers stay — so small changes in churn swing the math enormously. A leaky bucket with great CAC still fails; retention, not just acquisition, is where the best businesses win.",
+        },
+      ],
+      keyTerms: [
+        { term: "Customer acquisition cost (CAC)", definition: "The fully-loaded sales and marketing cost to win one new customer." },
+        { term: "Lifetime value (LTV)", definition: "The gross profit a customer generates over their entire relationship." },
+        { term: "LTV/CAC ratio", definition: "Lifetime value divided by acquisition cost; ≥ 3 is a common health bar." },
+        { term: "Payback period", definition: "How many months of contribution it takes to recoup the CAC." },
+        { term: "Churn", definition: "The rate at which customers leave; its inverse sets the average lifetime." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Two subscription startups spend the same on marketing. One keeps customers for years at high margin; the other churns them in months. Identical CAC, but only the first has LTV/CAC above 3 — and only the first should pour money into growth.",
+        ticker: "",
+        lesson: "Growth is only good when the unit economics work. The same marketing spend builds a compounding machine for one company and a cash bonfire for the other.",
+      },
+      quiz: [
+        {
+          question: "Healthy unit economics generally require an LTV/CAC ratio of at least:",
+          options: ["0.5", "1", "3", "10"],
+          answerIndex: 2,
+          explanation: "A ratio of roughly 3 or more, with payback under a year, signals each customer pays back acquisition cost with room to spare.",
+        },
+        {
+          question: "Why does churn matter so much to lifetime value?",
+          options: [
+            "It changes the tax rate",
+            "Customer lifetime is the inverse of churn, so small churn changes swing LTV dramatically",
+            "It lowers CAC",
+            "It has no effect",
+          ],
+          answerIndex: 1,
+          explanation: "Average lifetime ≈ 1/churn, so even a small rise in churn can collapse LTV and break the economics.",
+        },
+        {
+          question: "If LTV/CAC is below 1, faster growth will:",
+          options: [
+            "Create value",
+            "Burn cash faster, since each customer loses money",
+            "Reduce churn",
+            "Increase margins",
+          ],
+          answerIndex: 1,
+          explanation: "Acquiring customers who never repay their cost means scaling multiplies the losses.",
+        },
+      ],
+      tryInChat: {
+        label: "Run the unit economics",
+        prompt: "Estimate the LTV, CAC, and payback period for a subscription company I name and tell me if the economics work",
+      },
+      takeaways: [
+        "Unit economics test whether a single customer is profitable before judging the whole business.",
+        "Aim for LTV/CAC ≥ 3 with payback under a year.",
+        "Retention drives LTV — churn is the silent killer of otherwise good economics.",
+      ],
+    },
+    {
+      id: "fa-rule-of-40",
+      title: "The Rule of 40",
+      hook: "Grow fast or print cash — but the sum has to clear 40.",
+      difficulty: "advanced",
+      subtitle: "The heuristic that balances a software company's growth against its profitability.",
+      widget: {
+        type: "rule_of_40",
+        title: "Balance growth against margin",
+        prompt: "Trade off revenue growth and free-cash-flow margin and see whether the business clears the Rule of 40 bar.",
+        params: { revenueGrowthPct: 30, fcfMarginPct: 10 },
+      },
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Growth plus margin ≥ 40",
+          body: "For a software business, revenue growth rate plus profit (often free-cash-flow) margin should sum to at least 40. It encodes a real trade: it's fine to burn cash if you're growing fast, or to grow slowly if you're highly profitable — but not to do neither.",
+        },
+        {
+          emoji: "",
+          heading: "It catches the worst of both worlds",
+          body: "The rule flags the danger zone: slowing growth and thin margins together. A company decelerating from hyper-growth without a path to profitability fails the test — exactly the profile that de-rates hardest when sentiment turns.",
+        },
+        {
+          emoji: "",
+          heading: "A heuristic, not a law",
+          body: "Forty isn't sacred, and the rule fits recurring-revenue software best. Use it as a quick screen and a conversation starter about the growth-versus-profitability balance — then dig into durability, unit economics, and what the margin would be at maturity.",
+        },
+      ],
+      keyTerms: [
+        { term: "Rule of 40", definition: "The heuristic that growth rate + profit margin should be ≥ 40 for a healthy software firm." },
+        { term: "FCF margin", definition: "Free cash flow as a percentage of revenue; the profitability input to the rule." },
+        { term: "Growth-profitability trade-off", definition: "The choice to spend for growth or harvest profit — the rule balances the two." },
+        { term: "Durable growth", definition: "Revenue growth likely to persist, which makes a high score more meaningful." },
+      ],
+      realWorldExample: {
+        scenario:
+          "A SaaS company growing 50% while burning a 10% margin scores 40 and passes; a peer growing 15% at a 5% margin scores 20 and fails. The market rewarded the first and punished the second as growth expectations reset.",
+        ticker: "CRM",
+        lesson: "The Rule of 40 captures whether the growth-versus-profit balance is healthy. Failing it — slow and unprofitable — is the profile most exposed to a de-rating.",
+      },
+      quiz: [
+        {
+          question: "The Rule of 40 says a healthy software company's growth plus margin should be:",
+          options: ["≥ 10", "≥ 25", "≥ 40", "≥ 80"],
+          answerIndex: 2,
+          explanation: "Growth rate plus profit margin summing to 40 or more is the heuristic bar.",
+        },
+        {
+          question: "A company can pass the Rule of 40 by:",
+          options: [
+            "Only by being highly profitable",
+            "Growing fast even while burning cash, or growing slowly while very profitable",
+            "Only by growing fast",
+            "Paying a dividend",
+          ],
+          answerIndex: 1,
+          explanation: "The rule trades growth against margin — either lever can carry the score, as long as the sum clears 40.",
+        },
+        {
+          question: "The most concerning profile under the Rule of 40 is:",
+          options: [
+            "Fast growth, low margin",
+            "Slow growth combined with thin or negative margin",
+            "Slow growth, high margin",
+            "Fast growth, high margin",
+          ],
+          answerIndex: 1,
+          explanation: "Decelerating growth with no profitability fails the test and is most vulnerable to a valuation reset.",
+        },
+      ],
+      tryInChat: {
+        label: "Score the Rule of 40",
+        prompt: "Calculate the Rule of 40 score for a software company I name and tell me what it implies about the growth-profit balance",
+      },
+      takeaways: [
+        "Growth rate + profit margin ≥ 40 is the health bar for software businesses.",
+        "Either fast growth or strong margin can carry the score — but not neither.",
+        "It's a screen, not a law; pair it with durability and unit economics.",
+      ],
+    },
+    {
+      id: "fa-operating-leverage",
+      title: "Operating Leverage",
+      hook: "When most costs are fixed, every extra sale is almost pure profit — or pure pain.",
+      difficulty: "advanced",
+      subtitle: "How a company's cost structure amplifies revenue swings into much larger earnings swings.",
+      figure: "operating-leverage",
+      widget: {
+        type: "operating_leverage",
+        title: "Amplify a revenue move",
+        prompt: "Set fixed and variable costs, then change revenue — watch how the same percentage move becomes a much bigger swing in profit.",
+        params: { revenue: 1000, fixedCosts: 550, variableCostPct: 30, revenueChangePct: 10 },
+      },
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Fixed costs are a lever",
+          body: "A business with high fixed costs and low variable costs keeps almost all of each incremental sale as profit once it's past breakeven. That's operating leverage: revenue changes get amplified into much larger profit changes, up and down.",
+        },
+        {
+          emoji: "",
+          heading: "The double-edged sword",
+          body: "Above breakeven, operating leverage is a tailwind — small revenue gains drive outsized earnings growth. Below it, the same fixed base becomes a millstone, turning a modest revenue dip into a steep loss. The structure cuts both ways.",
+        },
+        {
+          emoji: "",
+          heading: "Why margins expand with scale",
+          body: "High operating leverage is the engine behind 'margin expansion' stories: as revenue grows against a fixed cost base, margins widen automatically. It's also why analysts watch the incremental margin — the profit kept on each new dollar of revenue.",
+        },
+      ],
+      keyTerms: [
+        { term: "Operating leverage", definition: "The degree to which fixed costs amplify revenue changes into larger profit changes." },
+        { term: "Contribution margin", definition: "Revenue minus variable costs; what each sale contributes toward fixed costs and profit." },
+        { term: "Breakeven point", definition: "The revenue level at which contribution exactly covers fixed costs." },
+        { term: "Incremental margin", definition: "The share of each new dollar of revenue that drops through to operating profit." },
+        { term: "Margin expansion", definition: "Rising margins as revenue grows against a relatively fixed cost base." },
+      ],
+      realWorldExample: {
+        scenario:
+          "A software platform with mostly fixed engineering costs saw profits balloon far faster than revenue once it cleared breakeven — each new subscription was almost pure margin. A factory with the same revenue, but heavy variable inputs, saw profits barely budge.",
+        ticker: "",
+        lesson: "Cost structure decides how revenue translates to earnings. High operating leverage magnifies the upside past breakeven — and the downside below it.",
+      },
+      quiz: [
+        {
+          question: "A company with high operating leverage has:",
+          options: [
+            "Mostly variable costs",
+            "A high proportion of fixed costs, so profit swings more than revenue",
+            "No costs",
+            "Only debt",
+          ],
+          answerIndex: 1,
+          explanation: "High fixed costs mean each revenue change is amplified into a larger profit change.",
+        },
+        {
+          question: "Above breakeven, high operating leverage tends to:",
+          options: [
+            "Shrink margins as revenue grows",
+            "Expand margins as revenue grows against a fixed cost base",
+            "Have no effect on margins",
+            "Reduce revenue",
+          ],
+          answerIndex: 1,
+          explanation: "Once fixed costs are covered, incremental revenue is mostly profit, so margins widen with scale.",
+        },
+        {
+          question: "The danger of high operating leverage is that:",
+          options: [
+            "Profits never change",
+            "Below breakeven, a small revenue drop causes a large loss",
+            "Taxes rise",
+            "It eliminates risk",
+          ],
+          answerIndex: 1,
+          explanation: "The fixed cost base that amplifies gains also amplifies losses when revenue falls below breakeven.",
+        },
+      ],
+      tryInChat: {
+        label: "Gauge the leverage",
+        prompt: "Assess a company's operating leverage and what a 10% revenue change would do to its operating profit",
+      },
+      takeaways: [
+        "Operating leverage amplifies revenue swings into larger profit swings.",
+        "It's a tailwind above breakeven and a millstone below it.",
+        "High fixed-cost businesses expand margins with scale — watch the incremental margin.",
+      ],
+    },
+    {
+      id: "fa-capital-allocation",
+      title: "Capital Allocation",
+      hook: "Over a decade, where the cash goes matters more than what the business sells.",
+      difficulty: "advanced",
+      subtitle: "Judging management by the returns they earn on every dollar of free cash flow they deploy.",
+      figure: "capital-allocation",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "The CEO's real job",
+          body: "Every dollar of free cash flow has five doors: reinvest in the business, make acquisitions, pay down debt, pay dividends, or buy back stock. Capital allocation is the discipline of sending each dollar to its highest-returning use — and it compounds for decades.",
+        },
+        {
+          emoji: "",
+          heading: "Reinvestment is the highest bar",
+          body: "If the business can reinvest at high returns, that usually beats everything else — a compounder retaining cash. When it can't, returning cash via buybacks (only when the stock is cheap) or dividends is wiser than empire-building acquisitions that destroy value.",
+        },
+        {
+          emoji: "",
+          heading: "Watch what they do, not what they say",
+          body: "Management's capital-allocation record — the returns earned on past acquisitions and the prices paid for buybacks — predicts future value creation far better than the narrative in the letter to shareholders. Track the decisions and their outcomes.",
+        },
+      ],
+      keyTerms: [
+        { term: "Capital allocation", definition: "How management deploys free cash flow across reinvestment, M&A, debt, dividends, and buybacks." },
+        { term: "Buyback discipline", definition: "Repurchasing shares only when they trade below intrinsic value, not reflexively." },
+        { term: "Empire-building", definition: "Growth-for-its-own-sake acquisitions that expand the company but destroy value." },
+        { term: "Return on incremental capital", definition: "The return earned on the next dollar deployed — the test of good allocation." },
+        { term: "Outsider CEO", definition: "Thorndike's term for managers who excel at disciplined, value-focused capital allocation." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Two companies with similar operations diverged over a decade purely on capital allocation: one reinvested at high returns and bought back stock only when cheap, while the other overpaid for splashy acquisitions. Their per-share value gap widened year after year.",
+        ticker: "AAPL",
+        lesson: "The same business can compound or stagnate based on where the cash goes. Capital allocation is the quiet decision that dominates long-run returns.",
+      },
+      quiz: [
+        {
+          question: "Capital allocation refers to:",
+          options: [
+            "Setting employee salaries",
+            "How management deploys free cash flow across reinvestment, M&A, debt, dividends, and buybacks",
+            "Choosing the auditor",
+            "Pricing the product",
+          ],
+          answerIndex: 1,
+          explanation: "It's the decision of where each dollar of cash flow goes — the core driver of long-run per-share value.",
+        },
+        {
+          question: "Buybacks create value for remaining owners only when:",
+          options: [
+            "They happen every quarter",
+            "The stock is repurchased below intrinsic value",
+            "The company is large",
+            "The dividend is also cut",
+          ],
+          answerIndex: 1,
+          explanation: "Buying back overvalued shares destroys value; disciplined buybacks happen when the stock is cheap.",
+        },
+        {
+          question: "The best predictor of future capital-allocation skill is:",
+          options: [
+            "The CEO's charisma",
+            "The track record of returns on past deployments and prices paid",
+            "The company's logo",
+            "The press coverage",
+          ],
+          answerIndex: 1,
+          explanation: "Past decisions and their realized returns reveal allocation skill far better than the narrative.",
+        },
+      ],
+      tryInChat: {
+        label: "Grade the allocation",
+        prompt: "Evaluate a company's capital allocation over the past decade — reinvestment, acquisitions, buybacks, and dividends",
+      },
+      takeaways: [
+        "Free cash flow has five uses; sending each dollar to its best use compounds for decades.",
+        "Reinvesting at high returns usually beats acquisitions; buy back stock only when it's cheap.",
+        "Judge management by the realized returns on past capital decisions, not the narrative.",
+      ],
+    },
+    {
+      id: "fa-forensic-scores",
+      title: "Forensic Scores: F, M & Z",
+      hook: "Three quick scores that flag improving quality, manipulation, and distress.",
+      difficulty: "mastery",
+      subtitle: "Using the Piotroski, Beneish, and Altman scores as fast screens for earnings quality and survival.",
+      figure: "forensic",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Piotroski F-Score: is quality improving?",
+          body: "The F-Score adds up nine yes/no tests across profitability, leverage, and efficiency, scoring 0–9. A high score means the fundamentals are strengthening — useful for separating genuinely improving cheap stocks from value traps.",
+        },
+        {
+          emoji: "",
+          heading: "Beneish M-Score: are the books cooked?",
+          body: "The M-Score combines eight ratios that tend to shift when companies manipulate earnings — receivables growth, margin changes, accruals, and more. A score above the threshold flags a higher probability of manipulation and earns a closer look.",
+        },
+        {
+          emoji: "",
+          heading: "Altman Z-Score: will it survive?",
+          body: "The Z-Score blends profitability, leverage, liquidity, and solvency into one bankruptcy-risk gauge. A low score warns of financial distress. Together these scores are fast screens — not verdicts — that point you to what to investigate.",
+        },
+      ],
+      keyTerms: [
+        { term: "Piotroski F-Score", definition: "A 0–9 score of nine fundamental signals; higher means improving quality." },
+        { term: "Beneish M-Score", definition: "A formula combining eight ratios to flag likely earnings manipulation." },
+        { term: "Altman Z-Score", definition: "A weighted blend of ratios estimating bankruptcy risk; low scores warn of distress." },
+        { term: "Earnings manipulation", definition: "Distorting reported results through aggressive or fraudulent accounting choices." },
+        { term: "Screening signal", definition: "A quick quantitative flag that directs deeper research, not a conclusion by itself." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Several accounting blowups would have triggered an elevated Beneish M-Score — surging receivables, deteriorating margins, and heavy accruals — quarters before the fraud surfaced. The score didn't prove fraud, but it pointed straight at where to dig.",
+        ticker: "",
+        lesson: "Forensic scores are tripwires, not verdicts. They cheaply surface the names where earnings quality or solvency deserves a hard, skeptical look.",
+      },
+      quiz: [
+        {
+          question: "The Piotroski F-Score primarily measures:",
+          options: [
+            "Bankruptcy risk",
+            "Whether a company's fundamentals are improving across nine tests",
+            "Earnings manipulation",
+            "The stock's momentum",
+          ],
+          answerIndex: 1,
+          explanation: "The F-Score scores nine fundamental signals 0–9; a high score flags strengthening quality.",
+        },
+        {
+          question: "A high Beneish M-Score suggests:",
+          options: [
+            "Strong cash flow",
+            "An elevated probability of earnings manipulation",
+            "Low leverage",
+            "Imminent growth",
+          ],
+          answerIndex: 1,
+          explanation: "The M-Score combines ratios that tend to shift when earnings are being manipulated.",
+        },
+        {
+          question: "Forensic scores are best treated as:",
+          options: [
+            "Definitive proof of fraud",
+            "Fast screens that direct deeper investigation",
+            "Buy signals",
+            "Dividend forecasts",
+          ],
+          answerIndex: 1,
+          explanation: "They flag where to look harder; they don't replace judgment or prove anything on their own.",
+        },
+      ],
+      tryInChat: {
+        label: "Run the forensic screens",
+        prompt: "Walk me through the Piotroski F-Score, Beneish M-Score, and Altman Z-Score for a company I name",
+      },
+      takeaways: [
+        "F-Score flags improving quality; M-Score flags possible manipulation; Z-Score flags distress.",
+        "They're fast screens that point you to what to investigate, not verdicts.",
+        "Use them to separate improving cheap stocks from value traps and to surface accounting risk.",
+      ],
+    },
   ],
 };

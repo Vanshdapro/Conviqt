@@ -128,6 +128,27 @@ export function CpuIcon(p: IconProps) {
   );
 }
 
+export function BrainIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 5.5V19" />
+      <path d="M12 6a3 3 0 0 0-3-3 2.6 2.6 0 0 0-2.5 1.9A2.8 2.8 0 0 0 4 7.6a2.7 2.7 0 0 0 .8 4.2A2.8 2.8 0 0 0 6 16.5a2.6 2.6 0 0 0 2.6 2A2.8 2.8 0 0 0 12 19" />
+      <path d="M12 6a3 3 0 0 1 3-3 2.6 2.6 0 0 1 2.5 1.9A2.8 2.8 0 0 1 20 7.6a2.7 2.7 0 0 1-.8 4.2A2.8 2.8 0 0 1 18 16.5a2.6 2.6 0 0 1-2.6 2A2.8 2.8 0 0 1 12 19" />
+    </Svg>
+  );
+}
+
+export function CandlesIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <line x1="8" y1="3.5" x2="8" y2="20.5" />
+      <rect x="6" y="7" width="4" height="8" rx="1" />
+      <line x1="16" y1="5" x2="16" y2="19" />
+      <rect x="14" y="9" width="4" height="6" rx="1" />
+    </Svg>
+  );
+}
+
 // ── Utility glyphs ───────────────────────────────────────────────────────────
 
 export function CheckIcon(p: IconProps) {
@@ -201,6 +222,12 @@ export function TrackIcon({ trackId, size = 20, ...rest }: IconProps & { trackId
       return <CycleIcon size={size} {...rest} />;
     case "conviqt-engine":
       return <CpuIcon size={size} {...rest} />;
+    case "foundations":
+      return <WalletIcon size={size} {...rest} />;
+    case "behavioral-finance":
+      return <BrainIcon size={size} {...rest} />;
+    case "market-mechanics":
+      return <CandlesIcon size={size} {...rest} />;
     default:
       return <BookIcon size={size} {...rest} />;
   }

@@ -515,6 +515,12 @@ export const valuationQuality: RawTrack = {
       difficulty: "core",
       subtitle: "Why the gap between price and value is your protection against error, bad luck, and the unknown.",
       figure: "margin-of-safety",
+      widget: {
+        type: "margin_of_safety",
+        title: "Size the cushion",
+        prompt: "Set your value estimate against a price, then dial in how wrong you might be — and see whether the discount still protects you.",
+        params: { intrinsicValue: 100, price: 70, errorPct: 25 },
+      },
       conceptCards: [
         {
           emoji: "",
@@ -582,6 +588,339 @@ export const valuationQuality: RawTrack = {
         "Margin of safety = the discount of price to conservative intrinsic value.",
         "Bigger uncertainty demands a bigger discount; it's humility made quantitative.",
         "Entry price drives returns — a great company overpaid for is a poor investment.",
+      ],
+    },
+    {
+      id: "vq-earnings-yield",
+      title: "Earnings Yield & the Fed Model",
+      hook: "Flip the P/E and you can finally compare a stock to a bond.",
+      difficulty: "core",
+      subtitle: "Using earnings yield to weigh equities against the risk-free rate and gauge the equity risk premium.",
+      widget: {
+        type: "earnings_yield",
+        title: "Compare stock yield to a bond",
+        prompt: "Set a P/E and the 10-year Treasury yield, and watch the equity risk premium — the gap you're paid for taking stock risk.",
+        params: { peRatio: 20, bondYieldPct: 4.2 },
+      },
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Earnings yield is the inverted P/E",
+          body: "Earnings yield is earnings divided by price — the inverse of the P/E. A 20× P/E is a 5% earnings yield. Stated this way, a stock's return on price sits on the same axis as a bond's yield, so you can compare them directly.",
+        },
+        {
+          emoji: "",
+          heading: "The equity risk premium",
+          body: "Subtract the risk-free bond yield from the earnings yield and you get a rough equity risk premium — the extra return you're being paid to bear equity risk. A thin or negative premium means stocks are richly priced relative to bonds.",
+        },
+        {
+          emoji: "",
+          heading: "Useful lens, blunt tool",
+          body: "The so-called Fed model is a quick comparison, not gospel: earnings yields use accounting earnings, ignore growth, and the relationship breaks down in inflationary regimes. Treat it as one input that frames whether equities are cheap or dear versus the alternative.",
+        },
+      ],
+      keyTerms: [
+        { term: "Earnings yield", definition: "Earnings per share divided by price — the inverse of the P/E ratio." },
+        { term: "Equity risk premium", definition: "The extra expected return of stocks over the risk-free rate." },
+        { term: "Fed model", definition: "A heuristic comparing the market's earnings yield to long-term Treasury yields." },
+        { term: "Risk-free rate", definition: "The yield on safe government debt, the benchmark for all other returns." },
+        { term: "Multiple compression", definition: "A falling P/E (rising earnings yield), often as rates rise." },
+      ],
+      realWorldExample: {
+        scenario:
+          "When bond yields climbed sharply, the gap between equity earnings yields and Treasuries narrowed to historic lows — stocks no longer paid much extra over risk-free bonds. That thin premium preceded a broad re-rating lower in expensive names.",
+        ticker: "",
+        lesson: "When the earnings yield barely beats the risk-free rate, equities have little cushion. The comparison frames whether you're paid enough for the risk.",
+      },
+      quiz: [
+        {
+          question: "The earnings yield is calculated as:",
+          options: [
+            "Price divided by earnings",
+            "Earnings divided by price (the inverse of the P/E)",
+            "Dividends divided by price",
+            "Earnings divided by revenue",
+          ],
+          answerIndex: 1,
+          explanation: "Earnings yield = E/P, the reciprocal of the P/E, putting a stock's return on the same axis as a bond yield.",
+        },
+        {
+          question: "The equity risk premium in this framework is roughly:",
+          options: [
+            "Earnings yield plus the bond yield",
+            "Earnings yield minus the risk-free bond yield",
+            "The dividend yield",
+            "The P/E ratio",
+          ],
+          answerIndex: 1,
+          explanation: "Subtracting the risk-free yield from the earnings yield approximates the extra return for taking equity risk.",
+        },
+        {
+          question: "A key limitation of the Fed model is that it:",
+          options: [
+            "Is illegal",
+            "Uses accounting earnings, ignores growth, and breaks down in inflationary regimes",
+            "Requires options data",
+            "Only works for bonds",
+          ],
+          answerIndex: 1,
+          explanation: "It's a blunt comparison — earnings yields omit growth and the stock-bond relationship isn't stable across regimes.",
+        },
+      ],
+      tryInChat: {
+        label: "Weigh stocks vs bonds",
+        prompt: "Compare a stock's earnings yield to the 10-year Treasury yield and tell me what the equity risk premium implies",
+      },
+      takeaways: [
+        "Earnings yield (E/P) puts a stock's return on the same axis as a bond yield.",
+        "Earnings yield minus the risk-free rate approximates the equity risk premium.",
+        "The Fed model is a quick frame, not gospel — it ignores growth and shifts with inflation.",
+      ],
+    },
+    {
+      id: "vq-normalized-earnings",
+      title: "Normalized & Cyclical Earnings",
+      hook: "A cyclical at peak earnings looks cheapest exactly when it's most dangerous.",
+      difficulty: "advanced",
+      subtitle: "Smoothing earnings across the cycle so a single year's profit can't fool the multiple.",
+      figure: "normalized-earnings",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "The cyclical trap",
+          body: "For cyclical businesses, a single year's earnings swing wildly with the economy. At the peak, profits are inflated, so the P/E looks deceptively low — the classic value trap. At the trough, depressed earnings make the multiple look sky-high just as the stock bottoms.",
+        },
+        {
+          emoji: "",
+          heading: "Normalize across the cycle",
+          body: "The fix is to value mid-cycle, not point-in-time: use average earnings or margins over a full cycle (often 7–10 years). Shiller's CAPE applies this to the whole market, using inflation-adjusted ten-year average earnings to strip out the cycle.",
+        },
+        {
+          emoji: "",
+          heading: "Know the through-cycle margin",
+          body: "Ask what this business earns on average, not at the top. Estimating a normalized margin and revenue level gives a steadier earnings base — and a multiple that won't flash 'cheap' at precisely the wrong moment in the cycle.",
+        },
+      ],
+      keyTerms: [
+        { term: "Normalized earnings", definition: "Earnings adjusted to a mid-cycle, sustainable level rather than a peak or trough." },
+        { term: "Cyclical business", definition: "A company whose profits swing with the economic cycle (autos, materials, energy)." },
+        { term: "CAPE / Shiller P/E", definition: "Price over inflation-adjusted ten-year average earnings, used for the market." },
+        { term: "Through-cycle margin", definition: "The average operating margin across a full economic cycle." },
+        { term: "Peak-earnings trap", definition: "A low multiple on inflated peak earnings that masks downside risk." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Homebuilders and chip makers have repeatedly traded at their lowest P/Es at cycle peaks — when earnings were maxed out — and at their highest P/Es near troughs. Investors who used the point-in-time multiple bought high and sold low.",
+        ticker: "",
+        lesson: "For cyclicals, the multiple on current earnings inverts the signal. Normalize to mid-cycle earnings so the valuation reflects the average, not the extreme.",
+      },
+      quiz: [
+        {
+          question: "A cyclical stock at peak earnings often shows:",
+          options: [
+            "A deceptively low P/E that masks downside risk",
+            "A very high P/E",
+            "No earnings",
+            "A stable multiple",
+          ],
+          answerIndex: 0,
+          explanation: "Inflated peak earnings shrink the P/E, making the stock look cheap right before earnings revert downward.",
+        },
+        {
+          question: "Normalizing earnings means:",
+          options: [
+            "Using the single best year",
+            "Valuing on average mid-cycle earnings rather than a peak or trough",
+            "Ignoring earnings",
+            "Doubling the dividend",
+          ],
+          answerIndex: 1,
+          explanation: "Averaging earnings or margins over a full cycle gives a steadier base the cycle can't distort.",
+        },
+        {
+          question: "The CAPE (Shiller P/E) normalizes by using:",
+          options: [
+            "Next year's forecast",
+            "Inflation-adjusted ten-year average earnings",
+            "Only the latest quarter",
+            "Dividends instead of earnings",
+          ],
+          answerIndex: 1,
+          explanation: "CAPE divides price by inflation-adjusted average earnings over ten years to smooth the cycle.",
+        },
+      ],
+      tryInChat: {
+        label: "Normalize a cyclical",
+        prompt: "Estimate normalized mid-cycle earnings for a cyclical company I name and tell me how that changes the valuation",
+      },
+      takeaways: [
+        "For cyclicals, the P/E on current earnings inverts the signal — low at the peak, high at the trough.",
+        "Normalize to mid-cycle earnings or margins (often 7–10 years) before judging the multiple.",
+        "CAPE applies the same smoothing to the whole market.",
+      ],
+    },
+    {
+      id: "vq-sum-of-parts",
+      title: "Sum-of-the-Parts Valuation",
+      hook: "Sometimes a company is worth more broken up than the market prices it whole.",
+      difficulty: "advanced",
+      subtitle: "Valuing each business separately to surface hidden value the blended multiple ignores.",
+      figure: "sotp",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Value the pieces, then add them",
+          body: "A sum-of-the-parts (SOTP) valuation appraises each segment with the multiple appropriate to that business — a fast-growing software unit, a steady industrial arm, a stake in another company — then adds them and subtracts net debt. The blended multiple often misses what the pieces are worth apart.",
+        },
+        {
+          emoji: "",
+          heading: "The conglomerate discount",
+          body: "Diversified companies frequently trade below the sum of their parts — a conglomerate discount from complexity, cross-subsidies, and capital-allocation doubts. SOTP quantifies that gap and frames the catalyst: a spin-off or breakup that lets each part be valued properly.",
+        },
+        {
+          emoji: "",
+          heading: "Don't forget the stub and the costs",
+          body: "Rigor matters: subtract corporate overhead, account for taxes on a hypothetical separation, and value any 'stub' (the leftover after netting out a known stake). A sloppy SOTP can manufacture value that disappears once real-world frictions are included.",
+        },
+      ],
+      keyTerms: [
+        { term: "Sum-of-the-parts (SOTP)", definition: "Valuing each business segment separately, then summing and netting out debt." },
+        { term: "Conglomerate discount", definition: "The tendency of diversified firms to trade below the value of their parts." },
+        { term: "Spin-off", definition: "Separating a segment into an independent company, often unlocking value." },
+        { term: "Stub value", definition: "The implied value of the remaining business after subtracting a known stake." },
+        { term: "Holding-company discount", definition: "A discount applied to firms whose value is mostly stakes in other companies." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Several conglomerates traded well below their sum-of-the-parts value for years until activist pressure forced spin-offs. Once the high-quality segment traded on its own, the market re-rated it — and the combined value the SOTP had implied was finally realized.",
+        ticker: "",
+        lesson: "When a blended multiple buries a great business inside mediocre ones, SOTP reveals the gap — and a spin-off is often the catalyst that closes it.",
+      },
+      quiz: [
+        {
+          question: "A sum-of-the-parts valuation works by:",
+          options: [
+            "Applying one multiple to total earnings",
+            "Valuing each segment with its own appropriate multiple, then summing and netting debt",
+            "Using only the dividend",
+            "Averaging peer P/Es",
+          ],
+          answerIndex: 1,
+          explanation: "SOTP appraises each business separately because a single blended multiple misvalues a mix of different businesses.",
+        },
+        {
+          question: "The 'conglomerate discount' refers to:",
+          options: [
+            "A discount for paying cash",
+            "Diversified firms trading below the value of their separate parts",
+            "A tax break",
+            "A dividend cut",
+          ],
+          answerIndex: 1,
+          explanation: "Complexity, cross-subsidies, and allocation doubts often push diversified companies below their SOTP value.",
+        },
+        {
+          question: "A rigorous SOTP must also account for:",
+          options: [
+            "Only the best segment",
+            "Corporate overhead, separation taxes, and frictions that can erode the headline value",
+            "The stock's daily volatility",
+            "The CEO's salary only",
+          ],
+          answerIndex: 1,
+          explanation: "Ignoring overhead, taxes, and real-world costs can manufacture value that wouldn't survive an actual breakup.",
+        },
+      ],
+      tryInChat: {
+        label: "Break it into parts",
+        prompt: "Do a sum-of-the-parts valuation of a conglomerate I name and tell me if there's a hidden discount",
+      },
+      takeaways: [
+        "SOTP values each segment with its own multiple, then sums and nets out debt.",
+        "Diversified firms often trade at a conglomerate discount that SOTP quantifies.",
+        "Be rigorous about overhead, taxes, and frictions — or the unlocked value is illusory.",
+      ],
+    },
+    {
+      id: "vq-dividend-discount",
+      title: "Dividends & Shareholder Yield",
+      hook: "A share is a claim on the cash it will hand you — directly.",
+      difficulty: "advanced",
+      subtitle: "Valuing the cash returned to owners and why total shareholder yield beats the dividend alone.",
+      figure: "dividend-discount",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "The dividend discount model",
+          body: "In its simplest form (Gordon growth), a stock's value is the next dividend divided by the discount rate minus the growth rate: D / (r − g). It's the purest statement that a share is worth the present value of the cash it pays out — but it only holds for stable, paying businesses.",
+        },
+        {
+          emoji: "",
+          heading: "Total return = yield + growth",
+          body: "For a steady dividend payer, long-run return roughly equals the dividend yield plus the dividend's growth rate. That decomposition is a sanity check on expectations: a 3% yield growing 5% implies about 8% — and tells you what has to happen to earn more.",
+        },
+        {
+          emoji: "",
+          heading: "Shareholder yield is the fuller picture",
+          body: "Dividends are only one way cash reaches owners. Shareholder yield adds net buybacks (and debt paydown) to the dividend yield, capturing all the cash returned. A company with a low dividend but heavy buybacks can have a high total shareholder yield.",
+        },
+      ],
+      keyTerms: [
+        { term: "Dividend discount model (DDM)", definition: "Valuing a stock as the present value of its expected future dividends." },
+        { term: "Gordon growth model", definition: "Value = D / (r − g), for a dividend growing at a constant rate." },
+        { term: "Dividend yield", definition: "Annual dividend per share divided by the share price." },
+        { term: "Payout ratio", definition: "The share of earnings paid out as dividends; high ratios limit reinvestment." },
+        { term: "Shareholder yield", definition: "Dividend yield plus net buyback yield (and debt reduction) — total cash returned." },
+      ],
+      realWorldExample: {
+        scenario:
+          "A mature consumer-staples company returned cash through both a steady dividend and consistent buybacks. Looking only at its modest dividend yield understated how much cash reached owners; total shareholder yield captured the full return.",
+        ticker: "PG",
+        lesson: "Cash returned to owners comes via dividends and buybacks. Shareholder yield — not the dividend alone — measures the full payout, and for stable payers, yield plus growth approximates the return.",
+      },
+      quiz: [
+        {
+          question: "The Gordon growth model values a stock as:",
+          options: [
+            "Earnings times a multiple",
+            "Next dividend divided by (discount rate minus growth rate)",
+            "Assets minus liabilities",
+            "Revenue divided by shares",
+          ],
+          answerIndex: 1,
+          explanation: "Value = D / (r − g) expresses a share as the present value of a constantly growing dividend stream.",
+        },
+        {
+          question: "For a stable dividend payer, long-run total return is roughly:",
+          options: [
+            "Just the dividend yield",
+            "Dividend yield plus the dividend growth rate",
+            "The P/E ratio",
+            "The buyback amount only",
+          ],
+          answerIndex: 1,
+          explanation: "Yield plus growth approximates total return and serves as a sanity check on expectations.",
+        },
+        {
+          question: "Shareholder yield improves on dividend yield by also counting:",
+          options: [
+            "Revenue growth",
+            "Net buybacks (and debt paydown) — all cash returned to owners",
+            "The stock price",
+            "Employee headcount",
+          ],
+          answerIndex: 1,
+          explanation: "Adding net buybacks captures cash returned beyond dividends, giving the fuller payout picture.",
+        },
+      ],
+      tryInChat: {
+        label: "Measure the payout",
+        prompt: "Calculate the dividend yield, buyback yield, and total shareholder yield for a company I name",
+      },
+      takeaways: [
+        "The DDM values a stock as the present value of its dividends: D / (r − g) for steady payers.",
+        "For stable payers, total return ≈ dividend yield + dividend growth.",
+        "Shareholder yield (dividends + net buybacks) captures all cash returned, not just dividends.",
       ],
     },
   ],

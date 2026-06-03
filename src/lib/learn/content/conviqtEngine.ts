@@ -257,6 +257,86 @@ export const conviqtEngine: RawTrack = {
       ],
     },
     {
+      id: "ce-lesson-to-research",
+      title: "From Lesson to Live Research",
+      hook: "Every concept here has a button that turns it into real analysis.",
+      difficulty: "advanced",
+      subtitle: "Turning what you've learned into a repeatable research workflow using the Conviqt products.",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Each lesson bridges into the product",
+          body: "Every lesson ends with a 'try in research' prompt that opens Chat pre-loaded to apply the concept to a real ticker. The Academy isn't separate from the product — it's the on-ramp that teaches you what to ask the Council and how to read the answer.",
+        },
+        {
+          emoji: "",
+          heading: "A repeatable loop",
+          body: "Run the same sequence every time: analyze a ticker for the cited FactSheet and verdict, read where the lenses disagree, pull the bear case, then check the Alpha Tracker for how similar setups have played out. Concept → query → cited evidence → decision.",
+        },
+        {
+          emoji: "",
+          heading: "Let the citations do the work",
+          body: "Because every number in a Conviqt verdict traces to a source URL, you can verify rather than trust. Use the lessons to know which claims to interrogate — margins, growth assumptions, leverage — and click through to the sources before you act.",
+        },
+      ],
+      keyTerms: [
+        { term: "Try-in-research prompt", definition: "The deep-link at the end of each lesson that opens Chat to apply the concept." },
+        { term: "Research loop", definition: "The repeatable cycle of query, cited evidence, disagreement, and decision." },
+        { term: "Citation trail", definition: "The source URLs behind every rendered number, enabling verification." },
+        { term: "Alpha Tracker", definition: "The public record of picks with entry, target, stop, and outcome." },
+      ],
+      realWorldExample: {
+        scenario:
+          "After the unit-economics lesson, a learner opens Chat to analyze a SaaS name, reads the cited growth and margin facts, notes where the sentiment and fundamentals lenses split, and checks the Alpha Tracker for how comparable setups resolved — a full loop from concept to decision.",
+        ticker: "",
+        lesson: "The Academy and the Council are one system. Lessons teach the question; the product supplies cited evidence; the Tracker shows the track record. Run the loop.",
+      },
+      quiz: [
+        {
+          question: "The 'try in research' prompt at the end of each lesson:",
+          options: [
+            "Posts to social media",
+            "Opens Chat pre-loaded to apply the concept to a real ticker",
+            "Buys the stock",
+            "Closes the lesson",
+          ],
+          answerIndex: 1,
+          explanation: "It deep-links into the Council so you can immediately apply what you just learned to live data.",
+        },
+        {
+          question: "The repeatable research loop runs:",
+          options: [
+            "Buy, hope, sell",
+            "Concept → query → cited evidence → decision, then check the track record",
+            "Read news, then guess",
+            "Only analyze, never decide",
+          ],
+          answerIndex: 1,
+          explanation: "The loop ties a lesson concept to a cited query, the disagreement signal, and the Alpha Tracker's record.",
+        },
+        {
+          question: "Citations let you:",
+          options: [
+            "Skip the analysis",
+            "Verify each number against its source rather than trust it",
+            "Avoid reading filings",
+            "Guarantee a profit",
+          ],
+          answerIndex: 1,
+          explanation: "Every rendered number traces to a URL, so you can click through and verify the key claims.",
+        },
+      ],
+      tryInChat: {
+        label: "Run the full loop",
+        prompt: "Analyze a ticker I name, show me the cited facts, where the lenses disagree, and the bear case",
+      },
+      takeaways: [
+        "Each lesson deep-links into Chat to apply the concept to a real ticker.",
+        "Run a repeatable loop: concept → cited query → disagreement → decision → track record.",
+        "Use citations to verify the key claims rather than trust them.",
+      ],
+    },
+    {
       id: "ce-build-your-thesis",
       title: "Build Your Own Thesis",
       hook: "Put every model together into one decision you could defend.",

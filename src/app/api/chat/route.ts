@@ -40,12 +40,12 @@ import { getVerifiedUser } from "@/lib/auth";
 //   account before the pipeline runs. No anonymous access.
 //
 // Intents and their credit costs:
-//   analyze  → 15 credits  (Full Council)
-//   focused  →  8 credits  (Focused query)
-//   general  → 18 credits  (Sonnet analyst)
-//   compare  → 25 credits  (two Councils + comparative synthesis; warm sides reuse cache)
-//   sector   → 40 credits  (5-8 abbreviated Council passes + thematic synthesis; warm names reuse cache)
-//   cache    →  1 credit   (any cache hit)
+//   analyze  → 30 credits  (Full Council)
+//   focused  → 16 credits  (Focused query)
+//   general  → 36 credits  (Sonnet analyst)
+//   compare  → 50 credits  (two Councils + comparative synthesis; warm sides reuse cache)
+//   sector   → 80 credits  (5-8 abbreviated Council passes + thematic synthesis; warm names reuse cache)
+//   cache    →  2 credits  (any cache hit)
 //   pick     →  0 credits  (text redirect only)
 
 export const runtime  = "nodejs";

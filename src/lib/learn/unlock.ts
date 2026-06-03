@@ -5,12 +5,10 @@
 // deduct + unlock-row insert lives in the unlock_lesson / unlock_lessons_bulk
 // Postgres functions (migration 010).
 //
-// Pricing is set to roughly COVER the one-time cost of producing a lesson, with
-// a small discount and no profit margin (the user's explicit goal):
-//   1 credit  ≈ 1¢            (credit packs: 500 credits = $5)
-//   authoring one lesson with Sonnet ≈ $0.05  →  ~5 credits of real cost
-// So a lesson unlock is 5 credits; "unlock everything" is 4 credits per still-
-// locked lesson (a ~20% bundle discount). The first lesson is free.
+// Lesson unlock pricing (1 credit ≈ 1¢; credit packs: 500 credits = $5):
+//   a single lesson is a one-time 10-credit unlock, then free forever.
+//   "Unlock everything" is 8 credits per still-locked lesson (a ~20% bundle
+//   discount). The first lesson is free.
 
 import { getSupabaseAdmin } from "../supabase";
 import {

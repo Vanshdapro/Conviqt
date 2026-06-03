@@ -19,8 +19,12 @@ import { positionSizing } from "./content/positionSizing";
 import { riskManagement } from "./content/riskManagement";
 import { macroReflexivity } from "./content/macroReflexivity";
 import { conviqtEngine } from "./content/conviqtEngine";
+import { foundations } from "./content/foundations";
+import { behavioralFinance } from "./content/behavioralFinance";
+import { marketMechanics } from "./content/marketMechanics";
 
-// Curriculum order. New tracks append to the end so existing progression holds.
+// Curriculum order. New tracks append to the end so existing progression holds
+// (the free preview lesson stays the first lesson of the first track).
 const RAW_TRACKS: RawTrack[] = [
   financialStatements,
   fundamentalAnalysis,
@@ -30,6 +34,9 @@ const RAW_TRACKS: RawTrack[] = [
   riskManagement,
   macroReflexivity,
   conviqtEngine,
+  foundations,
+  behavioralFinance,
+  marketMechanics,
 ];
 
 /** Derive a catalog lesson (xp from difficulty) from an authored static lesson. */
@@ -52,17 +59,16 @@ export const TRACKS: Track[] = RAW_TRACKS.map((t) => ({
 export const FREE_LESSON_IDS: Set<string> = new Set(["fs-three-statements"]);
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
-// Set to roughly COVER the one-time cost of producing a lesson, with a small
-// discount and no profit (the user's explicit goal): 1 credit ≈ 1¢, authoring
-// one lesson with Sonnet ≈ $0.05 ≈ 5 credits. "Unlock everything" gives a ~20%
-// bundle discount. These live here (a client-safe module) so the dashboard can
-// render prices without importing the server-only unlock module.
+// Lesson unlock pricing (1 credit ≈ 1¢). A single lesson is a one-time 10-credit
+// unlock, then free forever; "Unlock everything" applies a ~20% bundle discount at
+// 8 credits per still-locked lesson. These live here (a client-safe module) so the
+// dashboard can render prices without importing the server-only unlock module.
 
 /** Credits charged to unlock one lesson (one-time, then free forever). */
-export const PER_LESSON_UNLOCK_COST = 5;
+export const PER_LESSON_UNLOCK_COST = 10;
 
 /** Discounted per-lesson rate when unlocking the whole remaining catalog. */
-export const BUNDLE_RATE_PER_LESSON = 4;
+export const BUNDLE_RATE_PER_LESSON = 8;
 
 /** Cost in credits to unlock a given lesson (0 for the free preview lesson). */
 export function lessonUnlockCost(lessonId: string): number {

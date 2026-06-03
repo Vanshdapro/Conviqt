@@ -9,7 +9,7 @@
 import { getSupabaseAdmin } from "./supabase";
 
 /** Credits charged to reveal one Alpha publication. */
-export const ALPHA_UNLOCK_COST = 30;
+export const ALPHA_UNLOCK_COST = 60;
 
 /** True if the user has already paid to unlock this publication. */
 export async function isUnlocked(email: string, runId: string): Promise<boolean> {

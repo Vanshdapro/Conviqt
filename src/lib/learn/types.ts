@@ -19,7 +19,20 @@ export type WidgetType =
   | "position_sizing"      // Kelly criterion & fractional Kelly
   | "drawdown_recovery"    // the asymmetric cost of losses
   | "expected_value"       // probability-weighted asymmetric bets
-  | "reverse_dcf";         // what growth is already priced in
+  | "reverse_dcf"          // what growth is already priced in
+  // ── Business-quality & valuation simulators ──
+  | "ltv_cac"              // customer unit economics: LTV, payback, LTV/CAC
+  | "rule_of_40"           // SaaS growth + margin tradeoff
+  | "operating_leverage"   // fixed vs variable cost, how profit scales
+  | "dilution"             // stock-based comp / issuance eroding ownership
+  | "earnings_yield"       // earnings yield vs the risk-free rate (the Fed model)
+  | "margin_of_safety"     // price vs conservative value, the discount cushion
+  // ── Macro / risk / behavioral simulators ──
+  | "inflation_real_return"// nominal return minus inflation = real purchasing power
+  | "options_payoff"       // call / put payoff at expiry
+  | "loss_aversion"        // prospect-theory value function (losses loom larger)
+  | "rebalancing"          // disciplined rebalancing vs letting winners run
+  | "sequence_risk";       // same average return, different order, different outcome
 
 export interface LessonWidget {
   type: WidgetType;
@@ -63,7 +76,44 @@ export type FigureKey =
   | "reflexivity"
   | "sentiment"
   | "pipeline"
-  | "disagreement";
+  | "disagreement"
+  // ── Statements & analysis (expansion) ──
+  | "segment"
+  | "goodwill"
+  | "leases"
+  | "stock-comp"
+  | "unit-economics"
+  | "capital-allocation"
+  | "forensic"
+  | "operating-leverage"
+  // ── Valuation (expansion) ──
+  | "sotp"
+  | "normalized-earnings"
+  | "dividend-discount"
+  // ── Mental models (expansion) ──
+  | "inversion"
+  | "incentives"
+  | "bayes"
+  // ── Behavioral finance (new track) ──
+  | "loss-aversion"
+  | "anchoring"
+  | "disposition"
+  | "herding"
+  | "overconfidence"
+  // ── Market mechanics (new track) ──
+  | "order-book"
+  | "short-selling"
+  | "etf-mechanics"
+  | "options-payoff"
+  | "bid-ask"
+  // ── Macro (expansion) ──
+  | "yield-curve"
+  | "business-cycle"
+  | "inflation"
+  | "four-regimes"
+  // ── Foundations (new track) ──
+  | "risk-ladder"
+  | "index-vs-active";
 
 export interface QuizQuestion {
   question: string;

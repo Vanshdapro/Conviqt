@@ -9,7 +9,7 @@
 // One Sonnet call (MODELS.analyst) keeps it well under the cost ceiling. The
 // per-section scores are the model's judgment; the overall, letter grade, and
 // verdict are derived deterministically in code so they can never contradict the
-// section scores. Metered at thesis = 10 credits, refunded on failure upstream.
+// section scores. Metered at thesis = 20 credits, refunded on failure upstream.
 
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
 import type {

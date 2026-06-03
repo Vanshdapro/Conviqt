@@ -5,25 +5,25 @@
 // two concurrent requests can deduct the same credits.
 //
 // Credit costs per intent (deducted before the pipeline runs):
-//   analyze       — 15 credits  (Full Council, 6-agent pipeline)
-//   focused       —  8 credits  (Focused sweep + Haiku judge)
-//   general       — 18 credits  (Sonnet analyst + up to 3 web_search calls)
-//   compare       — 25 credits  (two Council runs + comparative Sonnet synthesis;
+//   analyze       — 30 credits  (Full Council, 6-agent pipeline)
+//   focused       — 16 credits  (Focused sweep + Haiku judge)
+//   general       — 36 credits  (Sonnet analyst + up to 3 web_search calls)
+//   compare       — 50 credits  (two Council runs + comparative Sonnet synthesis;
 //                    each side reuses the 4h Council cache when warm, so a compare
 //                    against two freshly-analyzed tickers only pays the synthesis.)
-//   sector_analyze— 40 credits  (5-8 abbreviated Council passes + thematic Sonnet
+//   sector_analyze— 80 credits  (5-8 abbreviated Council passes + thematic Sonnet
 //                    synthesis; each name reuses the 4h Council cache when warm.)
-//   cache         —  1 credit   (any intent that hits the 4h cache)
+//   cache         —  2 credits  (any intent that hits the 4h cache)
 //   pick          —  0 credits  (text redirect only, no pipeline)
 //   learn         —  0 credits  (Conviqt Learn lessons are pre-authored)
 //   learn_cached  —  0 credits  (legacy key; lesson replays are free)
 //   practice      —  0 credits  (episode drills replay pre-fetched price series)
-//   thesis        — 10 credits  (AI grades a written thesis — one fresh Sonnet call)
-//   paper_mark    —  4 credits  (mark-to-market a live paper account via web_search)
-//   portfolio_audit — 45 credits (batched sweep + 5 risk agents + Sonnet synthesis;
+//   thesis        — 20 credits  (AI grades a written thesis — one fresh Sonnet call)
+//   paper_mark    —  8 credits  (mark-to-market a live paper account via web_search)
+//   portfolio_audit — 90 credits (batched sweep + 5 risk agents + Sonnet synthesis;
 //                     the heaviest pipeline. Re-viewing a SAVED audit is free — a DB
 //                     read costs no credits; only a fresh run is charged.)
-//   allocator      — 40 credits (profile → batched sweep + 4 planning agents +
+//   allocator      — 80 credits (profile → batched sweep + 4 planning agents +
 //                     Sonnet plan synthesis; the forward-looking sibling of the audit.)
 //
 // Monthly allowances:
@@ -46,20 +46,20 @@ export const FREE_MONTHLY_CREDITS = 50;
 export const CREDIT_RESETS_ENABLED = false;
 
 export const CREDITS_PER_INTENT = {
-  analyze: 15,
-  focused: 8,
-  general: 18,
-  compare: 25,  // Head-to-head: two Council runs + comparative Sonnet synthesis
-  sector_analyze: 40,  // Sector Snapshot: 5-8 abbreviated passes + thematic Sonnet synthesis
-  cache:   1,
+  analyze: 30,
+  focused: 16,
+  general: 36,
+  compare: 50,  // Head-to-head: two Council runs + comparative Sonnet synthesis
+  sector_analyze: 80,  // Sector Snapshot: 5-8 abbreviated passes + thematic Sonnet synthesis
+  cache:   2,
   pick:    0,
   learn:         0,
   learn_cached: 0,
   practice:    0,
-  thesis:     10,
-  paper_mark:  4,
-  portfolio_audit: 45,
-  allocator:   40,
+  thesis:     20,
+  paper_mark:  8,
+  portfolio_audit: 90,
+  allocator:   80,
 } as const;
 
 export type Intent = keyof typeof CREDITS_PER_INTENT;

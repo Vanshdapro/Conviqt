@@ -15,6 +15,7 @@ export const riskManagement: RawTrack = {
       hook: "Down 50% needs +100% just to get back to even.",
       difficulty: "core",
       subtitle: "The brutal asymmetry of losses and why avoiding deep drawdowns beats chasing the last bit of upside.",
+      figure: "drawdown",
       widget: {
         type: "drawdown_recovery",
         title: "Feel the asymmetry",
@@ -330,6 +331,255 @@ export const riskManagement: RawTrack = {
         "Asset and funding liquidity both dry up together in a crisis.",
         "Forced sellers set prices in a panic, and correlations converge toward one.",
         "Size for the liquidity you'll have on the bad day — leverage plus illiquidity is ruin.",
+      ],
+    },
+    {
+      id: "rm-volatility-vs-risk",
+      title: "Volatility Is Not Risk",
+      hook: "A stock that swings isn't risky — a stock that can go to zero is.",
+      difficulty: "advanced",
+      subtitle: "Separating the academic definition of risk (volatility) from the one that matters: permanent loss of capital.",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Two different things called 'risk'",
+          body: "Finance often equates risk with volatility — the size of price swings — because it's easy to measure. But for a long-term owner, the real risk is the permanent loss of capital: a business impairment you don't recover from. Volatility is a feeling; permanent loss is the fact.",
+        },
+        {
+          emoji: "",
+          heading: "Volatility can be your friend",
+          body: "If your thesis is intact, a falling price is an opportunity, not a danger — Mr. Market offering you more of a good business cheaper. Volatility only becomes real risk when it forces a sale (via leverage or panic) or when it reflects genuine deterioration.",
+        },
+        {
+          emoji: "",
+          heading: "Where the measures mislead",
+          body: "Beta and standard deviation can label a cheap, sound business 'risky' simply because it moves a lot, and a serene, overvalued one 'safe.' Judge risk by the probability and depth of permanent loss — valuation, balance sheet, business durability — not by the wiggle of the chart.",
+        },
+      ],
+      keyTerms: [
+        { term: "Volatility", definition: "The magnitude of price fluctuations; the academic proxy for risk." },
+        { term: "Permanent loss of capital", definition: "An impairment you don't recover from — the risk that actually matters to owners." },
+        { term: "Beta", definition: "A stock's volatility relative to the market; often mislabeled as 'risk.'" },
+        { term: "Mark-to-market risk", definition: "The danger that paper losses force a sale through leverage or redemptions." },
+        { term: "Drawdown tolerance", definition: "Your real ability to hold through volatility without being forced to sell." },
+      ],
+      realWorldExample: {
+        scenario:
+          "During panics, shares of durable, well-financed businesses fell sharply alongside genuinely impaired ones. For unleveraged owners with intact theses, the volatility was opportunity; for leveraged holders forced to sell, the same swing became a permanent loss.",
+        ticker: "",
+        lesson: "Volatility hurts you only if it forces a sale or signals real deterioration. The risk to fear is permanent impairment, not a noisy chart.",
+      },
+      quiz: [
+        {
+          question: "For a long-term owner, the risk that truly matters is:",
+          options: [
+            "Daily price volatility",
+            "Permanent loss of capital",
+            "Beta",
+            "Standard deviation",
+          ],
+          answerIndex: 1,
+          explanation: "Volatility is recoverable noise; permanent impairment of the business is the real danger.",
+        },
+        {
+          question: "Volatility turns into real risk primarily when:",
+          options: [
+            "The chart looks scary",
+            "It forces a sale (via leverage or panic) or reflects genuine deterioration",
+            "It is above average",
+            "Beta exceeds 1",
+          ],
+          answerIndex: 1,
+          explanation: "A swing only harms an owner who must sell or whose business is actually impaired.",
+        },
+        {
+          question: "Beta and standard deviation can mislead because they:",
+          options: [
+            "Are illegal",
+            "Can call a cheap sound business 'risky' and an overvalued calm one 'safe'",
+            "Measure earnings",
+            "Predict the future perfectly",
+          ],
+          answerIndex: 1,
+          explanation: "They measure price movement, not the probability of permanent loss, so they can invert the real risk.",
+        },
+      ],
+      tryInChat: {
+        label: "Reassess the risk",
+        prompt: "For a volatile stock I name, tell me whether its real risk is permanent loss or just price volatility",
+      },
+      takeaways: [
+        "Volatility is the academic proxy; permanent loss of capital is the risk that matters.",
+        "If the thesis holds and you aren't forced to sell, volatility is opportunity.",
+        "Judge risk by the odds of permanent impairment, not by beta or the chart's wiggle.",
+      ],
+    },
+    {
+      id: "rm-sequence-risk",
+      title: "Sequence-of-Returns Risk",
+      hook: "Same average return, different order — and one of you runs out of money.",
+      difficulty: "advanced",
+      subtitle: "Why the order of returns, not just the average, decides outcomes when you're adding or withdrawing.",
+      widget: {
+        type: "sequence_risk",
+        title: "Reorder the same returns",
+        prompt: "Apply an identical set of returns in two orders while withdrawing each year, and watch the ending balances diverge.",
+        params: { startBalance: 100000, withdrawalPct: 5 },
+      },
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "Order matters when cash flows do",
+          body: "If you neither add nor withdraw, only the average compound return matters and order is irrelevant. The moment you're regularly withdrawing (retirement) or contributing (accumulation), the sequence of returns changes the outcome — sometimes dramatically — even for identical averages.",
+        },
+        {
+          emoji: "",
+          heading: "An early crash is the danger",
+          body: "Withdrawing during an early downturn forces you to sell more shares at low prices, permanently shrinking the base that later gains compound on. Two retirees with the same average return can end with wildly different wealth depending on whether the bad years came first or last.",
+        },
+        {
+          emoji: "",
+          heading: "Defenses against sequence risk",
+          body: "Hold a cash or bond buffer to avoid selling equities into a slump, stay flexible on withdrawal rates in bad years, and de-risk approaching the moment you start drawing down. The goal is to never be a forced seller early in a decline.",
+        },
+      ],
+      keyTerms: [
+        { term: "Sequence-of-returns risk", definition: "The risk that the order of returns hurts outcomes when adding or withdrawing capital." },
+        { term: "Decumulation", definition: "The phase of drawing down a portfolio, when sequence risk bites hardest." },
+        { term: "Safe withdrawal rate", definition: "A withdrawal rate intended to survive bad sequences over a retirement." },
+        { term: "Cash buffer", definition: "Reserves held to avoid selling risk assets during a downturn." },
+        { term: "Glide path", definition: "Gradually reducing risk as you approach and enter withdrawals." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Two retirees earn the same average return over 20 years, but one hits a severe market drop in the first few years of withdrawals and the other late. The early-crash retiree can run out of money; the late-crash retiree finishes comfortably — same average, opposite fate.",
+        ticker: "",
+        lesson: "When you're withdrawing, the order of returns can matter more than the average. Protect against an early-downturn forced sale with buffers and flexibility.",
+      },
+      quiz: [
+        {
+          question: "Sequence-of-returns risk matters most when you are:",
+          options: [
+            "Never touching the portfolio",
+            "Regularly withdrawing from (or contributing to) the portfolio",
+            "Holding only cash",
+            "Invested for one day",
+          ],
+          answerIndex: 1,
+          explanation: "With cash flows in or out, the order of returns affects the base that compounds, unlike a buy-and-hold lump.",
+        },
+        {
+          question: "For a retiree, the most dangerous sequence is:",
+          options: [
+            "Good returns early, bad late",
+            "Bad returns early, while withdrawals force selling at low prices",
+            "Flat returns throughout",
+            "Order never matters",
+          ],
+          answerIndex: 1,
+          explanation: "An early downturn combined with withdrawals shrinks the base permanently, crippling later compounding.",
+        },
+        {
+          question: "A defense against sequence risk is:",
+          options: [
+            "Maximizing leverage",
+            "Holding a cash buffer and staying flexible on withdrawals in bad years",
+            "Selling everything in a slump",
+            "Ignoring the downturn",
+          ],
+          answerIndex: 1,
+          explanation: "Buffers and flexible spending let you avoid being a forced seller early in a decline.",
+        },
+      ],
+      tryInChat: {
+        label: "Stress the sequence",
+        prompt: "Explain how sequence-of-returns risk would affect a withdrawal plan I describe and how to defend against it",
+      },
+      takeaways: [
+        "With contributions or withdrawals, the order of returns — not just the average — drives outcomes.",
+        "An early downturn while withdrawing is the core danger; it permanently shrinks the base.",
+        "Defend with cash buffers, flexible withdrawals, and de-risking into drawdown.",
+      ],
+    },
+    {
+      id: "rm-hedging",
+      title: "Hedging: When It's Worth the Cost",
+      hook: "Insurance you always carry is a drag; insurance you carry at the right time is priceless.",
+      difficulty: "advanced",
+      subtitle: "What hedges actually do, what they cost, and the disciplined cases where they earn their keep.",
+      conceptCards: [
+        {
+          emoji: "",
+          heading: "A hedge is paid insurance",
+          body: "Hedging trades some expected return for reduced risk — buying puts, holding gold or cash, shorting an index. Like insurance, it has an ongoing cost (premium, carry, opportunity cost). Permanent, always-on hedging usually bleeds away more than it saves.",
+        },
+        {
+          emoji: "",
+          heading: "Cheap insurance is the edge",
+          body: "The disciplined approach buys protection when it's cheap and the asymmetry is favorable — low implied volatility, complacent markets — rather than after fear has spiked the price. Tail hedges work precisely because they're convex: small cost, large payoff in a crash.",
+        },
+        {
+          emoji: "",
+          heading: "Often the best hedge is the balance sheet",
+          body: "Before buying complex protection, consider the simplest hedges: less leverage, more cash, and position sizing that survives the bad scenario. Reducing exposure costs nothing in premium and removes the risk at the source — usually superior to paying to offset risk you didn't need to take.",
+        },
+      ],
+      keyTerms: [
+        { term: "Hedge", definition: "A position taken to offset potential losses in another position." },
+        { term: "Tail hedge", definition: "Cheap, convex protection that pays off in rare extreme moves." },
+        { term: "Carry / cost of the hedge", definition: "The ongoing premium or opportunity cost of holding protection." },
+        { term: "Implied volatility", definition: "The market's priced-in expectation of volatility; it sets option (hedge) prices." },
+        { term: "Natural hedge", definition: "Reducing risk at the source via lower leverage, cash, or smaller size." },
+      ],
+      realWorldExample: {
+        scenario:
+          "Funds that bought cheap protection during calm, complacent markets paid little and were rewarded enormously when volatility exploded. Those that rushed to hedge only after the crash began paid sky-high prices for protection that no longer offered the same asymmetry.",
+        ticker: "",
+        lesson: "Hedging pays when protection is cheap and convex, bought before the storm. Always-on hedging bleeds; panic hedging overpays. Often the cleanest hedge is simply taking less risk.",
+      },
+      quiz: [
+        {
+          question: "A hedge fundamentally involves:",
+          options: [
+            "Free downside protection",
+            "Trading some expected return for reduced risk — paid insurance",
+            "Guaranteed profit",
+            "Eliminating all risk at no cost",
+          ],
+          answerIndex: 1,
+          explanation: "Hedges cost premium, carry, or opportunity — protection is never free.",
+        },
+        {
+          question: "The disciplined time to buy tail protection is:",
+          options: [
+            "After a crash has begun and fear is high",
+            "When it's cheap and markets are complacent, before the storm",
+            "Never",
+            "Only when fully invested",
+          ],
+          answerIndex: 1,
+          explanation: "Buying convex protection cheaply, before volatility spikes, preserves the favorable asymmetry.",
+        },
+        {
+          question: "Often the simplest and cheapest hedge is to:",
+          options: [
+            "Buy complex options",
+            "Reduce leverage, hold more cash, and size to survive the bad scenario",
+            "Add more risk",
+            "Ignore the downside",
+          ],
+          answerIndex: 1,
+          explanation: "Cutting exposure removes the risk at the source for no premium — usually better than paying to offset it.",
+        },
+      ],
+      tryInChat: {
+        label: "Evaluate a hedge",
+        prompt: "Help me decide whether and how to hedge a portfolio I describe, weighing the cost against the protection",
+      },
+      takeaways: [
+        "A hedge is paid insurance — always-on hedging usually bleeds away returns.",
+        "Buy cheap, convex protection before the storm, not after fear spikes prices.",
+        "The simplest hedge is often less leverage, more cash, and smaller size.",
       ],
     },
   ],
