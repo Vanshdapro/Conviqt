@@ -9,7 +9,7 @@
 
 import fs from "fs";
 import path from "path";
-import type { AlphaPick } from "./alphaTypes";
+import type { AlphaPick, PredictionResolution } from "./alphaTypes";
 
 // --------------------------------------------------------------------------
 // Interface
@@ -17,11 +17,18 @@ import type { AlphaPick } from "./alphaTypes";
 
 export interface AlphaStore {
   fetchActive(): Promise<AlphaPick[]>;
-  markSold(id: string, price: number, reason: string): Promise<void>;
+  // Mark a position SOLD. When `resolution` is supplied (and the pick was not
+  // already prediction-resolved), also grade the prediction in the same write.
+  markSold(id: string, price: number, reason: string, resolution?: PredictionResolution): Promise<void>;
   updatePrice(id: string, currentPrice: number, changePct: number, date: string): Promise<void>;
   insert(pick: Omit<AlphaPick, "id" | "created_at">): Promise<void>;
   hasPicksForRunId(runId: string): Promise<boolean>;
   fetchRecentlySold(sinceDaysAgo: number): Promise<AlphaPick[]>;
+  // Grade a still-open prediction whose horizon has expired (position stays
+  // ACTIVE; only the prediction is resolved, for the calibration record).
+  resolveHorizon(id: string, resolution: PredictionResolution): Promise<void>;
+  // Resolved predictions (SOLD or horizon-graded) — the calibration sample.
+  fetchResolved(limit?: number): Promise<AlphaPick[]>;
   lastRunDate(): Promise<string | null>;
   /**
    * The most recent active publication: the run_id shared by the newest batch
@@ -61,19 +68,55 @@ class FileAlphaStore implements AlphaStore {
     return readFile().filter((p) => p.status === "ACTIVE");
   }
 
-  async markSold(id: string, price: number, reason: string): Promise<void> {
+  async markSold(id: string, price: number, reason: string, resolution?: PredictionResolution): Promise<void> {
     const picks = readFile();
     const today = new Date().toISOString().slice(0, 10);
     const idx = picks.findIndex((p) => p.id === id);
     if (idx === -1) throw new Error(`FileAlphaStore: pick ${id} not found`);
+    const prev = picks[idx];
     picks[idx] = {
-      ...picks[idx],
+      ...prev,
       status: "SOLD",
       exit_date: today,
       exit_price: price > 0 ? price : null,
       exit_reason: reason,
+      // Grade the prediction in the same write, unless it was already resolved
+      // at horizon (don't let a later exit flip a graded prediction).
+      ...(resolution && !prev.resolved
+        ? {
+            resolved: true,
+            resolved_date: resolution.resolvedDate,
+            resolution_outcome: resolution.outcome,
+            resolved_price: resolution.resolvedPrice > 0 ? resolution.resolvedPrice : null,
+            prediction_correct: resolution.predictionCorrect,
+            realized_return_pct: resolution.realizedReturnPct,
+          }
+        : {}),
     };
     writeFile(picks);
+  }
+
+  async resolveHorizon(id: string, resolution: PredictionResolution): Promise<void> {
+    const picks = readFile();
+    const idx = picks.findIndex((p) => p.id === id);
+    if (idx === -1) throw new Error(`FileAlphaStore: pick ${id} not found for horizon resolve`);
+    picks[idx] = {
+      ...picks[idx],
+      resolved: true,
+      resolved_date: resolution.resolvedDate,
+      resolution_outcome: resolution.outcome,
+      resolved_price: resolution.resolvedPrice > 0 ? resolution.resolvedPrice : null,
+      prediction_correct: resolution.predictionCorrect,
+      realized_return_pct: resolution.realizedReturnPct,
+    };
+    writeFile(picks);
+  }
+
+  async fetchResolved(limit = 200): Promise<AlphaPick[]> {
+    return readFile()
+      .filter((p) => p.resolved === true)
+      .sort((a, b) => (b.resolved_date ?? "").localeCompare(a.resolved_date ?? ""))
+      .slice(0, limit);
   }
 
   async updatePrice(id: string, currentPrice: number, changePct: number, date: string): Promise<void> {
@@ -138,6 +181,45 @@ class FileAlphaStore implements AlphaStore {
 // Supabase store
 // --------------------------------------------------------------------------
 
+// True when a PostgREST error is "this column doesn't exist" — i.e. a migration
+// hasn't been applied yet. Lets writes degrade gracefully so a deploy can
+// precede its migration (migrations 009 and 017 both rely on this).
+function isMissingColumn(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    /column .* does not exist/i.test(error.message ?? "")
+  );
+}
+
+// Optional columns added by later migrations. Stripped from an insert if the
+// table predates the migration, so the core pick still lands.
+const OPTIONAL_PICK_COLUMNS = [
+  // migration 009 — institutional
+  "position_size_pct",
+  "risk_reward",
+  "lens_scores",
+  "regime_stance",
+  "regime_summary",
+  // migration 017 — mosaic + prediction + resolution
+  "edge_factors",
+  "edge_summary",
+  "predicted_price",
+  "horizon_days",
+  "target_date",
+  "confidence_pct",
+  "prob_of_loss_pct",
+  "expected_value_pct",
+  "scenarios",
+  "forecast_basis",
+  "resolved",
+  "resolved_date",
+  "resolution_outcome",
+  "resolved_price",
+  "prediction_correct",
+  "realized_return_pct",
+];
+
 class SupabaseAlphaStore implements AlphaStore {
   private async db() {
     const { getSupabaseAdmin } = await import("./supabase");
@@ -155,19 +237,86 @@ class SupabaseAlphaStore implements AlphaStore {
     return (data ?? []) as AlphaPick[];
   }
 
-  async markSold(id: string, price: number, reason: string): Promise<void> {
+  async markSold(id: string, price: number, reason: string, resolution?: PredictionResolution): Promise<void> {
     const db = await this.db();
     const today = new Date().toISOString().slice(0, 10);
+    const base = {
+      status: "SOLD",
+      exit_date: today,
+      exit_price: price > 0 ? price : null,
+      exit_reason: reason,
+    };
+    const update = resolution
+      ? {
+          ...base,
+          resolved: true,
+          resolved_date: resolution.resolvedDate,
+          resolution_outcome: resolution.outcome,
+          resolved_price: resolution.resolvedPrice > 0 ? resolution.resolvedPrice : null,
+          prediction_correct: resolution.predictionCorrect,
+          realized_return_pct: resolution.realizedReturnPct,
+        }
+      : base;
+
+    const { error } = await db.from("alpha_picks").update(update).eq("id", id);
+    if (!error) return;
+
+    // Resolution columns may not exist yet (pre-migration 017). Retry with just
+    // the core exit fields so the SOLD state still lands.
+    if (resolution && isMissingColumn(error)) {
+      console.warn(
+        `[alphaStore] resolution columns missing — run migration 017. Marking ${id} SOLD without prediction grading.`
+      );
+      const retry = await db.from("alpha_picks").update(base).eq("id", id);
+      if (retry.error) {
+        throw new Error(`SupabaseAlphaStore.markSold ${id} (fallback): ${retry.error.message}`);
+      }
+      return;
+    }
+    throw new Error(`SupabaseAlphaStore.markSold ${id}: ${error.message}`);
+  }
+
+  async resolveHorizon(id: string, resolution: PredictionResolution): Promise<void> {
+    const db = await this.db();
     const { error } = await db
       .from("alpha_picks")
       .update({
-        status: "SOLD",
-        exit_date: today,
-        exit_price: price > 0 ? price : null,
-        exit_reason: reason,
+        resolved: true,
+        resolved_date: resolution.resolvedDate,
+        resolution_outcome: resolution.outcome,
+        resolved_price: resolution.resolvedPrice > 0 ? resolution.resolvedPrice : null,
+        prediction_correct: resolution.predictionCorrect,
+        realized_return_pct: resolution.realizedReturnPct,
       })
       .eq("id", id);
-    if (error) throw new Error(`SupabaseAlphaStore.markSold ${id}: ${error.message}`);
+    if (!error) return;
+    if (isMissingColumn(error)) {
+      console.warn(
+        `[alphaStore] resolution columns missing — run migration 017. Skipping horizon resolve for ${id}.`
+      );
+      return; // no-op until the migration lands
+    }
+    throw new Error(`SupabaseAlphaStore.resolveHorizon ${id}: ${error.message}`);
+  }
+
+  async fetchResolved(limit = 200): Promise<AlphaPick[]> {
+    const db = await this.db();
+    const { data, error } = await db
+      .from("alpha_picks")
+      .select("*")
+      .eq("resolved", true)
+      .order("resolved_date", { ascending: false })
+      .limit(limit);
+    if (error) {
+      if (isMissingColumn(error)) {
+        console.warn(
+          `[alphaStore] resolved column missing — run migration 017. Returning empty calibration set.`
+        );
+        return [];
+      }
+      throw new Error(`SupabaseAlphaStore.fetchResolved: ${error.message}`);
+    }
+    return (data ?? []) as AlphaPick[];
   }
 
   async updatePrice(id: string, currentPrice: number, changePct: number, date: string): Promise<void> {
@@ -188,29 +337,18 @@ class SupabaseAlphaStore implements AlphaStore {
     const { error } = await db.from("alpha_picks").insert(pick);
     if (!error) return;
 
-    // If migration 009 hasn't been applied yet, the institutional columns
-    // won't exist. PostgREST surfaces this as PGRST204 / 42703. Rather than
-    // dropping the whole pick, strip those keys and retry once so the core
-    // pick still lands — then warn so the operator runs the migration.
-    const missingColumn =
-      error.code === "PGRST204" ||
-      error.code === "42703" ||
-      /column .* does not exist/i.test(error.message);
-
-    if (missingColumn) {
+    // If a later migration (009 institutional, 017 prediction/mosaic) hasn't
+    // been applied, its columns won't exist. PostgREST surfaces this as
+    // PGRST204 / 42703. Rather than dropping the whole pick, strip every
+    // optional column and retry once so the core pick still lands — then warn
+    // so the operator runs the migration.
+    if (isMissingColumn(error)) {
       console.warn(
-        `[alphaStore] institutional columns missing — run migration 009_alpha_institutional.sql. ` +
-          `Inserting ${pick.ticker} without position_size_pct/risk_reward/lens_scores/regime fields.`
+        `[alphaStore] optional columns missing — run migrations 009 + 017. ` +
+          `Inserting ${pick.ticker} with core fields only (no sizing / lens / regime / forecast / mosaic).`
       );
-      const {
-        position_size_pct: _psp,
-        risk_reward: _rr,
-        lens_scores: _ls,
-        regime_stance: _rs,
-        regime_summary: _rsum,
-        ...core
-      } = pick as Omit<AlphaPick, "id" | "created_at"> & Record<string, unknown>;
-      void _psp; void _rr; void _ls; void _rs; void _rsum;
+      const core: Record<string, unknown> = { ...(pick as Record<string, unknown>) };
+      for (const k of OPTIONAL_PICK_COLUMNS) delete core[k];
       const retry = await db.from("alpha_picks").insert(core);
       if (retry.error) {
         throw new Error(

@@ -76,6 +76,7 @@ export const MODELS = {
   analyst: "claude-sonnet-4-6", // general chat — Sonnet for institutional depth
   // Alpha Tracker institutional pipeline:
   regime: "claude-haiku-4-5-20251001", // macro regime read — search-driven, structured
+  mosaic: "claude-haiku-4-5-20251001", // deep "small factors" edge scan — search-driven extraction
   council: "claude-haiku-4-5-20251001", // 6-lens scorecard — one tight structured call
   cio: "claude-sonnet-4-6", // CIO + portfolio constructor — the high-stakes synthesis
   // Sector Snapshot pipeline:

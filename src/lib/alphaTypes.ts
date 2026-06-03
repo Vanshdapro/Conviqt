@@ -48,6 +48,117 @@ export interface LensScore {
   note: string; // one-sentence justification
 }
 
+// ── Mosaic edge scan (Feature 1: "the small factors") ───────────────────────
+//
+// The mosaic scan is a deep, Alpha-only evidence pass that hunts the
+// NON-obvious signals surface economics miss — the variant-perception edge a
+// desk builds from many small, cited factors. It runs per finalist candidate
+// after the sweep and feeds the council + CIO so it tilts selection and thesis.
+
+// The analytical lanes the mosaic scan sweeps for edge.
+export type MosaicLane =
+  | "insider" // Form 4 open-market buying/selling clusters
+  | "institutional" // 13F ownership changes, notable new holders
+  | "short_interest" // short %, days-to-cover, squeeze setups
+  | "options" // unusual options flow, skew, dealer positioning
+  | "supply_chain" // suppliers, channel checks, component orders
+  | "customers" // customer wins/losses, demand signals
+  | "management" // exec changes, capital-allocation signals, guidance tone
+  | "hiring" // headcount, job postings, Glassdoor, layoffs
+  | "regulatory" // regulation, agency action, policy shifts
+  | "legal" // litigation, investigations, settlements
+  | "social_sentiment" // retail/social positioning, narrative shifts
+  | "technical_microstructure" // unusual volume, liquidity, flow
+  | "other";
+
+export type EdgeDirection = "bullish" | "bearish" | "neutral";
+export type EdgeWeight = "high" | "medium" | "low";
+
+// One non-obvious, cited signal recovered by the mosaic scan.
+export interface MosaicEdgeFactor {
+  lane: MosaicLane;
+  factor: string; // short label, e.g. "CFO + 2 directors bought open-market"
+  detail: string; // one sentence with the specific number/fact
+  direction: EdgeDirection;
+  weight: EdgeWeight; // how material this factor is to the thesis
+  sourceIndex: number; // index into MosaicScan.sources
+}
+
+// The full mosaic product for one candidate. sources are provenance-validated
+// against real web_search results, exactly like a FactSheet.
+export interface MosaicScan {
+  ticker: string;
+  factors: MosaicEdgeFactor[];
+  edgeSummary: string; // 2-3 sentence variant-perception synthesis
+  sources: AlphaPickSource[];
+  asOf: string; // ISO timestamp
+  costUSD: number;
+  durationMs: number;
+  webSearchCount: number;
+}
+
+// ── Prediction & risk (Feature 2) ───────────────────────────────────────────
+
+// The honesty cap on published confidence. An uncalibrated 95%-confidence call
+// is dishonest, so no pick may claim more than this until the calibration record
+// earns the right to lift it. Surfaced in the UI alongside the calibration
+// stats so the cap is transparent. Raise this manually as Brier/hit-rate prove out.
+export const MAX_PUBLISHABLE_CONFIDENCE = 90;
+
+// The floor — a publishable long should be a coin-flip or better, or why pick it.
+export const MIN_PUBLISHABLE_CONFIDENCE = 50;
+
+export type ScenarioLabel = "bear" | "base" | "bull";
+
+// One leg of the bear/base/bull forecast distribution. returnPct is computed
+// in code from entry; probabilities are normalized in code to sum to 100.
+export interface Scenario {
+  label: ScenarioLabel;
+  price: number; // target price in this scenario
+  probability: number; // 0-100, normalized across the three legs
+  returnPct: number; // (price - entry) / entry * 100
+}
+
+// How a prediction was graded when it resolved.
+export type ResolutionOutcome =
+  | "TARGET_HIT" // sold at/through the target — prediction correct
+  | "STOP_HIT" // sold at/through the stop — prediction wrong
+  | "FUNDAMENTAL_EXIT" // sold on an adverse event before target — prediction wrong
+  | "HORIZON_EXPIRED"; // horizon passed without hitting target — prediction wrong
+
+// What the pipeline hands the store when it grades a prediction.
+export interface PredictionResolution {
+  outcome: ResolutionOutcome;
+  resolvedDate: string; // YYYY-MM-DD
+  resolvedPrice: number; // price the prediction was graded against (0 if unknown)
+  predictionCorrect: boolean; // did predicted_price get reached within horizon
+  realizedReturnPct: number; // (resolvedPrice - entry) / entry * 100
+}
+
+// ── Calibration / self-scoring track record (Feature 2) ─────────────────────
+
+// One confidence band: what the desk predicted vs what actually happened.
+export interface CalibrationBucket {
+  label: string; // e.g. "70-80%"
+  lo: number; // band lower bound (confidence %)
+  hi: number; // band upper bound (confidence %)
+  n: number; // resolved predictions whose confidence fell in this band
+  predicted: number; // average predicted confidence in the band (%)
+  actual: number; // realized hit rate in the band (%)
+}
+
+// Aggregate accuracy derived from resolved picks. The proof behind the risk
+// number — and the engine that lets the confidence cap rise over time.
+export interface CalibrationStats {
+  resolved: number; // resolved predictions that carried a confidence
+  hitRate: number; // % of resolved predictions that came true
+  avgConfidence: number; // average predicted confidence across resolved (%)
+  brier: number; // mean((conf/100 - outcome)^2); 0 = perfectly calibrated
+  avgRealizedReturnPct: number; // average realized return across resolved
+  buckets: CalibrationBucket[]; // populated confidence bands only
+  maxPublishableConfidence: number; // current honesty cap, surfaced to the UI
+}
+
 // Row shape for the alpha_picks Supabase table.
 export interface AlphaPick {
   id?: string;
@@ -79,6 +190,27 @@ export interface AlphaPick {
   lens_scores?: LensScore[] | null; // the 6-lens scorecard
   regime_stance?: RegimeStance | null; // macro regime at entry
   regime_summary?: string | null; // 1-line regime read at entry
+  // Mosaic edge scan (migration 017). Optional so pre-017 rows deserialize.
+  edge_factors?: MosaicEdgeFactor[] | null; // the cited "small factor" signals
+  edge_summary?: string | null; // variant-perception synthesis
+  // Prediction & risk (migration 017). The forecast the desk is putting its
+  // name behind, with an honest, falsifiable confidence.
+  predicted_price?: number | null; // headline base-case target the desk expects
+  horizon_days?: number | null; // prediction window in days
+  target_date?: string | null; // YYYY-MM-DD = entry_date + horizon_days
+  confidence_pct?: number | null; // P(predicted_price reached within horizon); risk = 100 - this
+  prob_of_loss_pct?: number | null; // secondary: P(below entry at horizon)
+  expected_value_pct?: number | null; // probability-weighted return across scenarios
+  scenarios?: Scenario[] | null; // bear/base/bull distribution
+  forecast_basis?: string | null; // 1-2 cited sentences behind the forecast
+  // Resolution / calibration (migration 017). Written when the prediction is
+  // graded — on sell, or when the horizon expires.
+  resolved?: boolean | null;
+  resolved_date?: string | null; // YYYY-MM-DD
+  resolution_outcome?: ResolutionOutcome | null;
+  resolved_price?: number | null; // price the prediction was graded against
+  prediction_correct?: boolean | null; // did predicted_price get reached in time
+  realized_return_pct?: number | null; // (resolved_price - entry) / entry * 100
 }
 
 // What the alpha judge produces before Supabase write validation.
@@ -96,6 +228,19 @@ export interface AlphaPickDraft {
   positionSizePct: number; // % of paper book the CIO sized this at
   riskReward: number; // (target-entry)/(entry-stop), computed in code
   lensScores: LensScore[]; // the 6-lens scorecard for the selected name
+  // Mosaic edge scan carried through from the selected candidate.
+  edgeFactors: MosaicEdgeFactor[];
+  edgeSummary: string;
+  // Prediction & risk — emitted by the CIO, derived numbers computed in code.
+  predictedPrice: number;
+  horizonDays: number;
+  targetDate: string; // YYYY-MM-DD
+  confidencePct: number; // [50, MAX_PUBLISHABLE_CONFIDENCE]
+  riskPct: number; // 100 - confidencePct
+  probOfLossPct: number; // [1, 99]
+  expectedValuePct: number; // probability-weighted return
+  scenarios: Scenario[]; // bear/base/bull, probabilities normalized to 100
+  forecastBasis: string;
 }
 
 // Result returned from the full pipeline run.

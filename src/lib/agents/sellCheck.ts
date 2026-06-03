@@ -57,11 +57,16 @@ const CHECK_SELL_TOOL = {
   },
 };
 
+// The exit classification from the monitor — propagated so the pipeline can
+// record how a prediction resolved (target hit = correct; stop/fundamental = wrong).
+export type SellExitType = "stop" | "target" | "fundamental" | "none";
+
 export interface SellCheckResult {
   ticker: string;
   shouldSell: boolean;
   reason: string;
   currentPrice: number;
+  exitType: SellExitType;
   costUSD: number;
 }
 
@@ -110,6 +115,7 @@ Search for the current price and any major news. Then call check_sell_signal.`,
       shouldSell: false,
       reason: "Sell check inconclusive — model did not return a signal.",
       currentPrice: 0,
+      exitType: "none",
       costUSD: estimateCallCostUSD(MODELS.specialist, response.usage, webSearchCount),
     };
   }
@@ -126,11 +132,19 @@ Search for the current price and any major news. Then call check_sell_signal.`,
   ).length;
   const costUSD = estimateCallCostUSD(MODELS.specialist, response.usage, webSearchCount);
 
+  const exitType: SellExitType =
+    input.exit_type === "stop" ||
+    input.exit_type === "target" ||
+    input.exit_type === "fundamental"
+      ? input.exit_type
+      : "none";
+
   return {
     ticker: pick.ticker,
     shouldSell: !!input.should_sell,
     reason: input.reason?.trim() ?? "",
     currentPrice: typeof input.current_price === "number" ? input.current_price : 0,
+    exitType,
     costUSD,
   };
 }

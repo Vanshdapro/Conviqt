@@ -3,11 +3,21 @@ import { getAnthropic, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "./an
 import { runSweep } from "./agents/sweep";
 import { runPicker } from "./agents/picker";
 import { runMacroRegime } from "./agents/regime";
+import { runMosaicScan } from "./agents/mosaic";
 import { runAlphaCouncil } from "./agents/alphaCouncil";
 import { runCIO, type CIOCandidate } from "./agents/alphaJudge";
 import { runSellCheck } from "./agents/sellCheck";
 import type { FactSheet } from "./agents/types";
-import type { AlphaPick, AlphaRunResult, MacroRegime } from "./alphaTypes";
+import type {
+  AlphaPick,
+  AlphaRunResult,
+  MacroRegime,
+  MosaicScan,
+  PredictionResolution,
+  ResolutionOutcome,
+} from "./alphaTypes";
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 // runId format: "YYYY-MM-DD-MON", "YYYY-MM-DD-TUE", etc.
 export function buildRunId(date: Date = new Date()): string {
@@ -65,23 +75,27 @@ async function fetchCurrentPrice(ticker: string): Promise<{ price: number; costU
 }
 
 // Full alpha pipeline run — an institutional desk modeled on a real flow:
-//   macro regime gate → regime-aware scout → sweep → 6-lens council →
-//   CIO + portfolio constructor. (Order execution is deliberately omitted —
-//   this is a paper portfolio; we never place real trades.)
+//   macro regime gate → regime-aware scout → sweep → mosaic edge scan →
+//   6-lens council → CIO + portfolio constructor + forecaster. (Order execution
+//   is deliberately omitted — this is a paper portfolio; we never trade.)
 //
 // Steps:
 // A.  Fetch active positions.
 // A2. Update current prices of active positions (cheap: 1 search each).
 // B.  Sell checks (parallel, Haiku + 1 web_search each).
-// C.  Mark exited positions SOLD.
+// C.  Mark exited positions SOLD and grade their prediction (target=hit).
+// C2. Resolve predictions whose horizon expired while still open (graded miss).
 // D.  Idempotency guard — skip new picks if this run_id already has entries.
 // E.  Macro regime (Haiku + web_search) — frames the hunt.
 // F.  Regime-aware scout / picker (Sonnet + web_searches).
 // G.  Filter tickers already in active positions; take top 2.
 // H.  Sweep candidates (parallel, Haiku + web_searches each) → FactSheets.
-// I.  6-lens council on each candidate (parallel, Haiku) → scorecards.
-// J.  CIO + portfolio constructor (Sonnet) — selects + sizes the single pick.
-// K.  Validate and write the pick.
+// H2. Mosaic edge scan per candidate (parallel, Haiku + 6 searches) → the
+//     non-obvious "small factor" signals that tilt scoring + selection.
+// I.  6-lens council on each candidate (parallel, Haiku), mosaic-aware → scorecards.
+// J.  CIO + portfolio constructor + forecaster (Sonnet) — selects, sizes, and
+//     issues the price forecast (predicted price, confidence, scenarios).
+// K.  Validate and write the pick + forecast.
 export async function runAlphaPipeline(): Promise<AlphaRunResult> {
   const t0 = Date.now();
   const now = new Date();
@@ -146,17 +160,81 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
     totalCost += res.value.costUSD;
     if (res.value.shouldSell) {
-      // === C. Mark SOLD ===
+      // === C. Mark SOLD (+ grade the prediction) ===
+      // Grade the forecast only if the pick carried one and wasn't already
+      // resolved at horizon — target hit = correct, stop/fundamental = wrong.
+      let resolution: PredictionResolution | undefined;
+      if (typeof pick.confidence_pct === "number" && !pick.resolved) {
+        const exitPrice = res.value.currentPrice;
+        const outcome: ResolutionOutcome =
+          res.value.exitType === "target"
+            ? "TARGET_HIT"
+            : res.value.exitType === "stop"
+              ? "STOP_HIT"
+              : "FUNDAMENTAL_EXIT";
+        const realized =
+          exitPrice > 0 && pick.entry_price > 0
+            ? round1(((exitPrice - pick.entry_price) / pick.entry_price) * 100)
+            : 0;
+        resolution = {
+          outcome,
+          resolvedDate: entry_date,
+          resolvedPrice: exitPrice,
+          predictionCorrect: res.value.exitType === "target",
+          realizedReturnPct: realized,
+        };
+      }
       try {
-        await store.markSold(pick.id!, res.value.currentPrice, res.value.reason);
+        await store.markSold(pick.id!, res.value.currentPrice, res.value.reason, resolution);
         activePicks[i] = { ...pick, status: "SOLD" };
         sells.push({ ticker: pick.ticker, reason: res.value.reason });
-        console.log(`[alphaPipeline] sold ${pick.ticker}: ${res.value.reason}`);
+        console.log(
+          `[alphaPipeline] sold ${pick.ticker}: ${res.value.reason}` +
+            (resolution ? ` | prediction ${resolution.predictionCorrect ? "HIT" : "MISS"} (${resolution.outcome})` : "")
+        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[alphaPipeline] markSold failed:", msg);
         errors.push(msg);
       }
+    }
+  }
+
+  // === C2. Resolve expired predictions (horizon passed, position still open) ===
+  // A prediction has a deadline. If a pick is still ACTIVE past its target_date
+  // and hasn't been graded, the target was not reached in time (a target hit
+  // would have force-sold it above) — grade it HORIZON_EXPIRED / incorrect for
+  // the calibration record. The position itself stays open; only the prediction
+  // resolves.
+  for (const pick of activePicks) {
+    if (pick.status !== "ACTIVE" || pick.resolved) continue;
+    if (typeof pick.confidence_pct !== "number") continue; // no forecast to grade
+    if (!pick.target_date || pick.target_date >= entry_date) continue; // horizon not up
+    if (!pick.id) continue;
+    const px =
+      typeof pick.current_price === "number" && pick.current_price > 0
+        ? pick.current_price
+        : 0;
+    const realized =
+      px > 0 && pick.entry_price > 0
+        ? round1(((px - pick.entry_price) / pick.entry_price) * 100)
+        : 0;
+    try {
+      await store.resolveHorizon(pick.id, {
+        outcome: "HORIZON_EXPIRED",
+        resolvedDate: entry_date,
+        resolvedPrice: px,
+        predictionCorrect: false,
+        realizedReturnPct: realized,
+      });
+      pick.resolved = true; // keep in-memory state consistent
+      console.log(
+        `[alphaPipeline] horizon expired: ${pick.ticker} graded MISS (realized ${realized}%)`
+      );
+    } catch (err) {
+      const msg = `horizon resolve failed for ${pick.ticker}: ${err instanceof Error ? err.message : String(err)}`;
+      console.error("[alphaPipeline]", msg);
+      errors.push(msg);
     }
   }
 
@@ -248,15 +326,37 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };
   }
 
-  // === I. 6-lens council on each candidate (parallel) ===
+  // === H2. Mosaic edge scan on each candidate (parallel, advisory) ===
+  // The deep "small factors" pass — insider/13F/options/short/supply-chain/etc.
+  // It feeds both the council and the CIO so the non-obvious signals tilt the
+  // 6-lens scores AND selection. A failed scan is non-fatal (undefined mosaic).
+  const mosaicResults = await Promise.allSettled(
+    sweptCandidates.map((c) =>
+      runMosaicScan(c.factSheet.ticker, c.factSheet, { asOf: c.factSheet.asOf })
+    )
+  );
+  const mosaicByIndex: Array<MosaicScan | undefined> = sweptCandidates.map((c, i) => {
+    const res = mosaicResults[i];
+    if (res.status === "fulfilled") {
+      totalCost += res.value.costUSD;
+      return res.value;
+    }
+    const msg = `mosaic failed for ${c.factSheet.ticker}: ${res.reason}`;
+    console.warn("[alphaPipeline]", msg);
+    errors.push(msg);
+    return undefined;
+  });
+
+  // === I. 6-lens council on each candidate (parallel), mosaic-aware ===
   const councilResults = await Promise.allSettled(
-    sweptCandidates.map((c) => runAlphaCouncil(c.factSheet))
+    sweptCandidates.map((c, i) => runAlphaCouncil(c.factSheet, mosaicByIndex[i]))
   );
   const validCandidates: CIOCandidate[] = sweptCandidates.map((c, i) => {
+    const mosaic = mosaicByIndex[i];
     const res = councilResults[i];
     if (res.status === "fulfilled") {
       totalCost += res.value.costUSD;
-      return { ...c, lensScores: res.value.lensScores };
+      return { ...c, lensScores: res.value.lensScores, mosaic };
     }
     const msg = `council failed for ${c.factSheet.ticker}: ${res.reason}`;
     console.error("[alphaPipeline]", msg);
@@ -267,6 +367,7 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
       lensScores: (["Fundamental", "Valuation", "Catalyst", "Risk", "Technical", "Sentiment"] as const).map(
         (lens) => ({ lens, score: 5, signal: "neutral" as const, note: "Council unavailable." })
       ),
+      mosaic,
     };
   });
 
@@ -329,13 +430,33 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
       lens_scores: draft.lensScores,
       regime_stance: regime?.stance ?? null,
       regime_summary: regime?.summary ?? null,
+      // Mosaic edge scan (migration 017).
+      edge_factors: draft.edgeFactors,
+      edge_summary: draft.edgeSummary || null,
+      // Prediction & risk (migration 017).
+      predicted_price: draft.predictedPrice,
+      horizon_days: draft.horizonDays,
+      target_date: draft.targetDate,
+      confidence_pct: draft.confidencePct,
+      prob_of_loss_pct: draft.probOfLossPct,
+      expected_value_pct: draft.expectedValuePct,
+      scenarios: draft.scenarios,
+      forecast_basis: draft.forecastBasis || null,
+      // Resolution starts empty — graded later on sell or horizon expiry.
+      resolved: false,
+      resolved_date: null,
+      resolution_outcome: null,
+      resolved_price: null,
+      prediction_correct: null,
+      realized_return_pct: null,
     };
 
     try {
       await store.insert(row);
       new_picks.push({ ticker: draft.ticker });
       console.log(
-        `[alphaPipeline] saved pick: ${draft.ticker} @$${draft.entryPrice} | size ${draft.positionSizePct}% | R:R ${draft.riskReward}:1 | conviction ${draft.conviction}/10`
+        `[alphaPipeline] saved pick: ${draft.ticker} @$${draft.entryPrice} | size ${draft.positionSizePct}% | R:R ${draft.riskReward}:1 | conviction ${draft.conviction}/10 | ` +
+          `predicts $${draft.predictedPrice} in ${draft.horizonDays}d @ ${draft.confidencePct}% conf (${draft.riskPct}% risk) | ${draft.edgeFactors.length} edge factor(s)`
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -344,11 +465,13 @@ export async function runAlphaPipeline(): Promise<AlphaRunResult> {
     }
   }
 
-  // Richer pipeline (regime + council) than the original judge-only flow, so
-  // the warning threshold is a touch higher. A fresh pick run is typically
-  // ~$0.15-0.25; price updates + sell checks scale with active positions.
-  if (totalCost > 0.6) {
-    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $0.60`);
+  // Deeper pipeline now: regime + scout + 2×sweep + 2×mosaic (6 searches each)
+  // + 2×council + CIO, plus price updates + sell checks scaling with active
+  // positions. A fresh pick run is typically ~$0.40-0.80. At ≤2 picks/week this
+  // is ~$3-7/month — trivial against the budget — but warn past $1.20 so a
+  // pathological run (runaway searches) still trips an alarm.
+  if (totalCost > 1.2) {
+    console.warn(`[alphaPipeline] cost ceiling: $${totalCost.toFixed(4)} > $1.20`);
   }
 
   return { run_id, sells, new_picks, errors, costUSD: totalCost, durationMs: Date.now() - t0 };

@@ -4,8 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import type {
   AlphaPick,
   AlphaPickSource,
+  CalibrationStats,
   LensScore,
+  MosaicEdgeFactor,
   RegimeStance,
+  Scenario,
 } from "@/lib/alphaTypes";
 
 // ── Types from the APIs ─────────────────────────────────────────────────────
@@ -43,18 +46,20 @@ function formatDate(iso: string): string {
 export function AlphaGate() {
   const [status, setStatus] = useState<AlphaStatus | null>(null);
   const [picks, setPicks] = useState<PicksData | null>(null);
+  const [calibration, setCalibration] = useState<CalibrationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [sRes, pRes] = await Promise.all([
+      const [sRes, pRes, cRes] = await Promise.all([
         fetch("/api/alpha/status"),
         fetch("/api/alpha/picks"),
+        fetch("/api/alpha/calibration"),
       ]);
 
-      if (sRes.status === 401 || pRes.status === 401) {
+      if (sRes.status === 401 || pRes.status === 401 || cRes.status === 401) {
         window.location.href = "/login?next=/alpha";
         return;
       }
@@ -63,6 +68,8 @@ export function AlphaGate() {
       const p = (await pRes.json()) as PicksData;
       setStatus(s);
       setPicks(p);
+      // Calibration is a trust signal, not gated — tolerate its absence.
+      if (cRes.ok) setCalibration((await cRes.json()) as CalibrationStats);
     } catch {
       setError("Could not load the Alpha Tracker. Please refresh.");
     } finally {
@@ -155,6 +162,9 @@ export function AlphaGate() {
           unlocking={unlocking}
         />
       )}
+
+      {/* Calibration — the self-scoring record behind every risk number */}
+      {calibration && <CalibrationPanel stats={calibration} />}
 
       {/* Recently exited track record — always visible to signed-in users */}
       {picks && picks.recently_exited.length > 0 && (
@@ -478,6 +488,87 @@ function RecentlyExited({ rows }: { rows: AlphaPick[] }) {
   );
 }
 
+// ── Calibration panel (the self-scoring track record) ───────────────────────
+
+function CalStat({ label, value, color, hint }: { label: string; value: string; color: string; hint?: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.4)", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color }}>{value}</div>
+      {hint && <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 10, color: "rgba(232,237,248,0.3)", marginTop: 1 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function CalibrationBar({ bucket }: { bucket: { label: string; n: number; predicted: number; actual: number } }) {
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 6 }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.6)" }}>
+          {bucket.label} <span style={{ color: "rgba(232,237,248,0.3)" }}>· n={bucket.n}</span>
+        </span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.55)" }}>
+          predicted {bucket.predicted.toFixed(0)}% → actual <span style={{ color: "#34d399" }}>{bucket.actual.toFixed(0)}%</span>
+        </span>
+      </div>
+      <div style={{ position: "relative", height: 6, borderRadius: 3, background: "rgba(232,237,248,0.06)" }}>
+        <div style={{ width: `${Math.min(100, Math.max(0, bucket.actual))}%`, height: "100%", borderRadius: 3, background: "rgba(52,211,153,0.6)" }} />
+        {/* predicted marker */}
+        <div title={`predicted ${bucket.predicted.toFixed(0)}%`} style={{ position: "absolute", left: `${Math.min(100, Math.max(0, bucket.predicted))}%`, top: -2, width: 2, height: 10, background: "rgba(110,182,255,0.9)" }} />
+      </div>
+    </div>
+  );
+}
+
+function CalibrationPanel({ stats }: { stats: CalibrationStats }) {
+  const hasData = stats.resolved > 0;
+  return (
+    <section style={{ marginBottom: 48 }}>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(232,237,248,0.4)", marginBottom: 16 }}>
+        Track Record &amp; Calibration
+      </div>
+      <div style={{ background: "rgba(10,19,35,0.5)", border: "1px solid rgba(232,237,248,0.07)", borderRadius: 14, padding: 24 }}>
+        {!hasData ? (
+          <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 13.5, color: "rgba(232,237,248,0.55)", lineHeight: 1.7, margin: 0 }}>
+            No predictions have resolved yet. As each pick reaches its target, stop, or horizon,
+            we grade the forecast and publish our accuracy here — stated confidence versus what
+            actually happened. The risk number on every pick earns its trust from this record.
+          </p>
+        ) : (
+          <>
+            <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 14, color: "rgba(232,237,248,0.78)", lineHeight: 1.7, margin: "0 0 20px" }}>
+              Across <strong style={{ color: "#e8edf8" }}>{stats.resolved}</strong> resolved prediction{stats.resolved === 1 ? "" : "s"},
+              an average stated confidence of <strong style={{ color: "#6eb6ff" }}>{stats.avgConfidence.toFixed(0)}%</strong> has
+              translated into a <strong style={{ color: "#34d399" }}>{stats.hitRate.toFixed(0)}%</strong> hit rate.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 16, marginBottom: 24 }}>
+              <CalStat label="Hit rate" value={`${stats.hitRate.toFixed(0)}%`} color="#34d399" />
+              <CalStat label="Predictions" value={`${stats.resolved}`} color="#e8edf8" />
+              <CalStat label="Brier score" value={stats.brier.toFixed(3)} color="#6eb6ff" hint="0 = perfect" />
+              <CalStat label="Avg return" value={`${stats.avgRealizedReturnPct >= 0 ? "+" : ""}${stats.avgRealizedReturnPct.toFixed(1)}%`} color={stats.avgRealizedReturnPct >= 0 ? "#34d399" : "#f87171"} />
+            </div>
+            {stats.buckets.length > 0 && (
+              <div>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.4)", textTransform: "uppercase", marginBottom: 12 }}>
+                  Predicted vs. actual by confidence band
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {stats.buckets.map((b) => (
+                    <CalibrationBar key={b.label} bucket={b} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "rgba(232,237,248,0.3)", margin: `${hasData ? 20 : 16}px 0 0`, letterSpacing: "0.03em", lineHeight: 1.6 }}>
+          Published confidence is capped at {stats.maxPublishableConfidence}% until the record earns the right to claim more.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function Disclaimer() {
   return (
     <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12, color: "rgba(232,237,248,0.3)", lineHeight: 1.8, fontStyle: "italic" }}>
@@ -644,6 +735,209 @@ function SourceCitations({ sources }: { sources: AlphaPickSource[] }) {
   );
 }
 
+// ── Forecast block (the headline prediction + risk) ─────────────────────────
+
+function StatPair({ label, value, color, hint }: { label: string; value: string; color: string; hint?: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.4)", textTransform: "uppercase", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, fontWeight: 700, color }}>{value}</div>
+      {hint && <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 10, color: "rgba(232,237,248,0.3)", marginTop: 1 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function ConfidenceGauge({ confidence, risk }: { confidence: number; risk: number }) {
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#34d399", fontWeight: 600 }}>
+          {confidence.toFixed(0)}% confidence
+        </span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#f59e0b", fontWeight: 600 }}>
+          {risk.toFixed(0)}% risk
+        </span>
+      </div>
+      <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(232,237,248,0.06)" }}>
+        <div style={{ width: `${confidence}%`, background: "linear-gradient(90deg, #4f87f7, #34d399)" }} />
+        <div style={{ width: `${risk}%`, background: "rgba(245,158,11,0.55)" }} />
+      </div>
+      <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 10.5, color: "rgba(232,237,248,0.32)", marginTop: 5 }}>
+        Modeled probability of reaching the target within the horizon.
+      </div>
+    </div>
+  );
+}
+
+const SCENARIO_THEME: Record<string, { label: string; color: string }> = {
+  bear: { label: "Bear", color: "#f87171" },
+  base: { label: "Base", color: "#6eb6ff" },
+  bull: { label: "Bull", color: "#34d399" },
+};
+
+function ScenarioDistribution({ scenarios }: { scenarios: Scenario[] }) {
+  const order = ["bear", "base", "bull"];
+  const sorted = [...scenarios].sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
+  return (
+    <div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.4)", textTransform: "uppercase", marginBottom: 7 }}>
+        Scenarios at horizon
+      </div>
+      <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 10, gap: 2 }}>
+        {sorted.map((s) => (
+          <div
+            key={s.label}
+            title={`${SCENARIO_THEME[s.label]?.label}: ${s.probability}%`}
+            style={{ width: `${s.probability}%`, background: SCENARIO_THEME[s.label]?.color ?? "#6eb6ff", opacity: 0.75, borderRadius: 2 }}
+          />
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+        {sorted.map((s) => {
+          const t = SCENARIO_THEME[s.label] ?? { label: s.label, color: "#6eb6ff" };
+          return (
+            <div key={s.label} style={{ borderLeft: `2px solid ${t.color}`, paddingLeft: 8 }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: t.color, fontWeight: 600 }}>
+                {t.label} · {s.probability}%
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: "#e8edf8", fontWeight: 600, marginTop: 2 }}>
+                ${s.price.toFixed(2)}
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: s.returnPct >= 0 ? "rgba(52,211,153,0.7)" : "rgba(248,113,113,0.7)", marginTop: 1 }}>
+                {s.returnPct >= 0 ? "+" : ""}{s.returnPct.toFixed(1)}%
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ForecastBlock({ pick }: { pick: AlphaPick }) {
+  if (pick.predicted_price == null || pick.confidence_pct == null) return null;
+  const conf = Math.max(0, Math.min(100, pick.confidence_pct));
+  const risk = Math.round((100 - conf) * 10) / 10;
+  const upside =
+    pick.entry_price > 0
+      ? ((pick.predicted_price - pick.entry_price) / pick.entry_price) * 100
+      : null;
+
+  return (
+    <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(232,237,248,0.06)", background: "linear-gradient(160deg, rgba(79,135,247,0.07), rgba(16,185,129,0.04))" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.18em", color: "rgba(110,182,255,0.85)", textTransform: "uppercase" }}>
+          Forecast
+        </div>
+        {pick.horizon_days != null && (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "rgba(232,237,248,0.5)", border: "1px solid rgba(232,237,248,0.12)", borderRadius: 6, padding: "2px 8px" }}>
+            {pick.horizon_days}-day horizon
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 2 }}>
+        <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 13, color: "rgba(232,237,248,0.55)" }}>Predicts</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 30, fontWeight: 700, color: "#e8edf8", letterSpacing: "-1px", lineHeight: 1 }}>
+          ${pick.predicted_price.toFixed(2)}
+        </span>
+        {upside != null && (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 600, color: upside >= 0 ? "#22c55e" : "#ef4444" }}>
+            {upside >= 0 ? "+" : ""}{upside.toFixed(1)}%
+          </span>
+        )}
+      </div>
+      {pick.target_date && (
+        <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12, color: "rgba(232,237,248,0.45)", marginBottom: 14 }}>
+          by {formatDate(pick.target_date)}
+        </div>
+      )}
+
+      <ConfidenceGauge confidence={conf} risk={risk} />
+
+      {pick.scenarios && pick.scenarios.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <ScenarioDistribution scenarios={pick.scenarios} />
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 24, marginTop: 14, flexWrap: "wrap" }}>
+        {pick.expected_value_pct != null && (
+          <StatPair label="Expected value" value={`${pick.expected_value_pct >= 0 ? "+" : ""}${pick.expected_value_pct.toFixed(1)}%`} color={pick.expected_value_pct >= 0 ? "#34d399" : "#f87171"} hint="probability-weighted" />
+        )}
+        {pick.prob_of_loss_pct != null && (
+          <StatPair label="Downside risk" value={`${pick.prob_of_loss_pct.toFixed(0)}%`} color="#f59e0b" hint="chance below entry" />
+        )}
+      </div>
+
+      {pick.forecast_basis && (
+        <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12.5, color: "rgba(232,237,248,0.62)", lineHeight: 1.6, margin: "14px 0 0" }}>
+          {pick.forecast_basis}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Edge / variant perception block (the mosaic "small factors") ────────────
+
+const EDGE_DIR_COLOR: Record<string, string> = {
+  bullish: "#34d399",
+  bearish: "#f59e0b",
+  neutral: "rgba(232,237,248,0.45)",
+};
+
+const LANE_LABEL: Record<string, string> = {
+  insider: "Insider",
+  institutional: "13F flows",
+  short_interest: "Short interest",
+  options: "Options",
+  supply_chain: "Supply chain",
+  customers: "Customers",
+  management: "Management",
+  hiring: "Hiring",
+  regulatory: "Regulatory",
+  legal: "Legal",
+  social_sentiment: "Social",
+  technical_microstructure: "Microstructure",
+  other: "Signal",
+};
+
+function EdgeBlock({ factors, summary }: { factors: MosaicEdgeFactor[]; summary?: string | null }) {
+  return (
+    <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(167,139,250,0.85)", textTransform: "uppercase", marginBottom: 8 }}>
+        Edge · variant perception
+      </div>
+      {summary && (
+        <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12.5, fontStyle: "italic", color: "rgba(232,237,248,0.68)", lineHeight: 1.6, margin: "0 0 12px" }}>
+          {summary}
+        </p>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {factors.map((f, i) => {
+          const color = EDGE_DIR_COLOR[f.direction] ?? "rgba(232,237,248,0.45)";
+          return (
+            <div key={i} style={{ borderLeft: `2px solid ${color}`, paddingLeft: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(232,237,248,0.55)", background: "rgba(232,237,248,0.05)", borderRadius: 4, padding: "1px 6px" }}>
+                  {LANE_LABEL[f.lane] ?? f.lane}
+                </span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {f.direction} · {f.weight} weight
+                </span>
+              </div>
+              <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 13, color: "rgba(232,237,248,0.82)", lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 600 }}>{f.factor}.</span> {f.detail}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PickCard({ pick, index = 0 }: { pick: AlphaPick; index?: number }) {
   const upside = pick.entry_price > 0
     ? (((pick.target_price - pick.entry_price) / pick.entry_price) * 100).toFixed(1)
@@ -686,6 +980,8 @@ function PickCard({ pick, index = 0 }: { pick: AlphaPick; index?: number }) {
         </div>
         <PriceChange pick={pick} />
       </div>
+
+      <ForecastBlock pick={pick} />
 
       <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.18em", color: "rgba(110,182,255,0.7)", textTransform: "uppercase", marginBottom: 6 }}>
@@ -737,6 +1033,10 @@ function PickCard({ pick, index = 0 }: { pick: AlphaPick; index?: number }) {
           </div>
           <LensScorecard lenses={pick.lens_scores} />
         </div>
+      )}
+
+      {pick.edge_factors && pick.edge_factors.length > 0 && (
+        <EdgeBlock factors={pick.edge_factors} summary={pick.edge_summary} />
       )}
 
       <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(232,237,248,0.05)" }}>

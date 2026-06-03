@@ -1,6 +1,6 @@
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
 import type { FactSheet } from "./types";
-import type { AlphaLens, LensScore, LensSignal } from "../alphaTypes";
+import type { AlphaLens, LensScore, LensSignal, MosaicScan } from "../alphaTypes";
 
 // The 6-Lens Council — the analyst bench between the scout and the CIO.
 //
@@ -39,6 +39,7 @@ Rules:
 - signal: "bullish" (score >= 7), "neutral" (4-6), "bearish" (<= 3). Keep signal consistent with score.
 - note: ONE sentence per lens. Name the specific number or fact that drove the score, with its source index.
 - If a lens has thin or missing evidence, score it 5 / neutral and say so — do NOT guess high or low.
+- If MOSAIC EDGE FACTORS are provided, weigh them into the relevant lenses (especially Catalyst, Risk, and Sentiment). These are the non-obvious "small factor" signals the crowd is not pricing — a strong, high-weight edge factor can and should move a score, and you may name it in the note.
 - Be honest and discriminating. Not everything is a 7+. Strong, differentiated names earn high marks; mediocre ones should look mediocre.`;
 
 const REPORT_LENSES_TOOL = {
@@ -98,6 +99,21 @@ Sources:
 ${sourceLines || "  (none)"}`;
 }
 
+// Render the mosaic edge factors so the council can weigh the non-obvious
+// "small factor" signals into the relevant lenses. Empty when the scan found
+// nothing (or failed) — the council then simply scores off the FactSheet.
+function renderMosaic(mosaic?: MosaicScan): string {
+  if (!mosaic || mosaic.factors.length === 0) return "";
+  const lines = mosaic.factors
+    .map(
+      (f) =>
+        `- [${f.lane}] (${f.direction}, ${f.weight} weight) ${f.factor}: ${f.detail}`
+    )
+    .join("\n");
+  return `\n\nMOSAIC EDGE FACTORS (non-obvious "small factor" signals from the deep scan — the variant perception):
+${lines}${mosaic.edgeSummary ? `\nEdge read: ${mosaic.edgeSummary}` : ""}`;
+}
+
 function clampScore(n: unknown): number {
   const v = typeof n === "number" ? n : 5;
   return Math.max(0, Math.min(10, Math.round(v * 10) / 10));
@@ -119,7 +135,8 @@ export interface AlphaCouncilResult {
 }
 
 export async function runAlphaCouncil(
-  factSheet: FactSheet
+  factSheet: FactSheet,
+  mosaic?: MosaicScan
 ): Promise<AlphaCouncilResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
@@ -133,7 +150,7 @@ export async function runAlphaCouncil(
     messages: [
       {
         role: "user",
-        content: `Score this candidate across all six lenses, then call report_lenses.\n\n${renderFactSheet(factSheet)}`,
+        content: `Score this candidate across all six lenses, then call report_lenses.\n\n${renderFactSheet(factSheet)}${renderMosaic(mosaic)}`,
       },
     ],
   });
