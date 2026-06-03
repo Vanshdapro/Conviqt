@@ -14,7 +14,7 @@ const TABS: { key: ResearchTab; label: string; href: string }[] = [
   { key: "overview", label: "Overview", href: "/research" },
   { key: "analyst", label: "Analyst", href: "/chat" },
   { key: "stocks", label: "Stocks", href: "/stock" },
-  { key: "index", label: "CDI", href: "/index" },
+  { key: "index", label: "CDI", href: "/cdi" },
   { key: "watchlist", label: "Watchlist", href: "/watchlist" },
   { key: "allocator", label: "Allocator", href: "/research/allocator" },
   { key: "portfolio", label: "Portfolio", href: "/research/portfolio" },

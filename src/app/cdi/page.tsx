@@ -4,7 +4,7 @@ import { DashNav } from "@/components/DashNav";
 import { ResearchTabs } from "@/components/research/ResearchTabs";
 import { getDisplayCDI, type CDIEntry, type CDISnapshot } from "@/lib/cdi";
 
-// conviqt.com/index — The Conviqt Disagreement Index (CDI).
+// conviqt.com/cdi — The Conviqt Disagreement Index (CDI).
 //
 // A weekly published ranking of the 20 stocks the AI Council fractured on hardest.
 // This is a named DATA PRODUCT, not just a feature: the goal is earned media and
@@ -14,7 +14,13 @@ import { getDisplayCDI, type CDIEntry, type CDISnapshot } from "@/lib/cdi";
 // clean structured markup (schema.org Dataset + ItemList), an explicit "cite this"
 // block, and a stable canonical URL.
 
-export const revalidate = 3600; // re-read the frozen snapshot hourly
+// Rendered on demand (SSR). The page reads a frozen weekly snapshot, so per-request
+// rendering is cheap. NOTE: this route was moved off the literal /index path to /cdi
+// because a route folder named `index` collides with the root segment under Next
+// 16.2/Turbopack and crashes Vercel's onBuildComplete (ENOENT __PAGE__.segment.rsc);
+// force-dynamic alone did not fix it — the rename does. A 301 from /index lives in
+// next.config.ts so existing citations and inbound links still resolve.
+export const dynamic = "force-dynamic";
 
 const BASE = "https://www.conviqt.com";
 
@@ -35,12 +41,12 @@ export const metadata: Metadata = {
   title: "The Conviqt Disagreement Index (CDI) — the week's most AI-contested stocks",
   description:
     "A weekly ranking of the 20 stocks Conviqt's AI Council disagreed on most. Disagreement scores, week-over-week conviction trend, and what the agents are fighting about — the first published index of AI disagreement on public equities.",
-  alternates: { canonical: `${BASE}/index` },
+  alternates: { canonical: `${BASE}/cdi` },
   openGraph: {
     title: "The Conviqt Disagreement Index (CDI)",
     description:
       "The 20 most AI-contested stocks this week — disagreement scores, conviction trend, and what the agents are fighting about.",
-    url: `${BASE}/index`,
+    url: `${BASE}/cdi`,
     type: "website",
   },
 };
@@ -214,8 +220,8 @@ function StatStrip({ snapshot }: { snapshot: CDISnapshot }) {
 function CiteBlock({ snapshot, week }: { snapshot: CDISnapshot; week: string }) {
   const peak = snapshot.entries[0];
   const citation = peak
-    ? `The Conviqt Disagreement Index ranked ${peak.ticker} the most AI-contested stock the week of ${week}, scoring ${peak.disagreement}/100 as the Council split ${peak.voteSplit || "across the panel"}. (Source: Conviqt Disagreement Index, ${BASE}/index)`
-    : `The Conviqt Disagreement Index, week of ${week}. (Source: ${BASE}/index)`;
+    ? `The Conviqt Disagreement Index ranked ${peak.ticker} the most AI-contested stock the week of ${week}, scoring ${peak.disagreement}/100 as the Council split ${peak.voteSplit || "across the panel"}. (Source: Conviqt Disagreement Index, ${BASE}/cdi)`
+    : `The Conviqt Disagreement Index, week of ${week}. (Source: ${BASE}/cdi)`;
   return (
     <section
       style={{
@@ -406,7 +412,7 @@ function StructuredData({ snapshot }: { snapshot: CDISnapshot }) {
     alternateName: "CDI",
     description:
       "A weekly ranking of the public-equity stocks Conviqt's multi-agent AI Council disagreed on most, scored 0–100 by confidence-weighted verdict spread.",
-    url: `${BASE}/index`,
+    url: `${BASE}/cdi`,
     creator: { "@type": "Organization", name: "Conviqt", url: BASE },
     publisher: { "@type": "Organization", name: "Conviqt", url: BASE },
     temporalCoverage: snapshot.weekOf,

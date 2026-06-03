@@ -424,7 +424,7 @@ function NewsletterInner() {
           style={{ marginTop: 44, textAlign: "center" }}
         >
           <Link
-            href="/index"
+            href="/cdi"
             style={{
               fontFamily: "var(--font-serif), Georgia, serif",
               fontSize: 14,
