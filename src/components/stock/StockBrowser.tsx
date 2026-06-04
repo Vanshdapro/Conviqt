@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ReportSummary } from "@/lib/stockReports";
+import { VerdictDistribution } from "../viz/CouncilViz";
 import type { UniverseEntry } from "@/lib/tickers";
 
 // Client island for the /stock index: a search box over the published Council
@@ -159,6 +160,16 @@ export function StockBrowser({
               {filteredPublished.length}{q ? " match" + (filteredPublished.length === 1 ? "" : "es") : " published"}
             </span>
           </div>
+          {/* Board-level read: how the Council's standing verdicts split across these names */}
+          {(() => {
+            const c = { BUY: 0, HOLD: 0, SELL: 0 } as Record<"BUY" | "HOLD" | "SELL", number>;
+            filteredPublished.forEach((p) => { c[p.verdict] += 1; });
+            return (
+              <div style={{ marginBottom: 22 }}>
+                <VerdictDistribution buy={c.BUY} hold={c.HOLD} sell={c.SELL} label="Council consensus across these names" />
+              </div>
+            );
+          })()}
           <div className="si-grid">
             {filteredPublished.map((p) => {
               const vc = verdictColor(p.verdict);
