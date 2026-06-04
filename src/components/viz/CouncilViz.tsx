@@ -117,6 +117,66 @@ export function ConvictionRing({
   );
 }
 
+// ── Verdict distribution bar ───────────────────────────────────────────────
+//
+// A horizontal stacked bar showing how a set of calls splits across
+// BUY / HOLD / SELL, with counts. Used for a sector basket (and reusable for
+// the public Disagreement Board). Every count comes from real scored names.
+
+export function VerdictDistribution({
+  buy,
+  hold,
+  sell,
+  label = "Basket split",
+}: {
+  buy: number;
+  hold: number;
+  sell: number;
+  label?: string;
+}) {
+  const total = buy + hold + sell;
+  if (total === 0) return null;
+  const seg = (n: number) => `${(n / total) * 100}%`;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+        <span className="caps text-[8px] text-dim tracking-[0.14em]">{label}</span>
+        <div className="flex items-center gap-3 mono text-[9px]">
+          {buy > 0 && (
+            <span className="flex items-center gap-1" style={{ color: "var(--bull)" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--bull)" }} />
+              {buy} buy
+            </span>
+          )}
+          {hold > 0 && (
+            <span className="flex items-center gap-1" style={{ color: "var(--hold)" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--hold)" }} />
+              {hold} hold
+            </span>
+          )}
+          {sell > 0 && (
+            <span className="flex items-center gap-1" style={{ color: "var(--bear)" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--bear)" }} />
+              {sell} sell
+            </span>
+          )}
+        </div>
+      </div>
+      <div
+        className="flex h-2 w-full overflow-hidden rounded-full"
+        style={{ background: "var(--rule)" }}
+        role="img"
+        aria-label={`${buy} buy, ${hold} hold, ${sell} sell`}
+      >
+        {buy > 0 && <div style={{ width: seg(buy), background: "var(--bull)" }} />}
+        {hold > 0 && <div style={{ width: seg(hold), background: "var(--hold)" }} />}
+        {sell > 0 && <div style={{ width: seg(sell), background: "var(--bear)" }} />}
+      </div>
+    </div>
+  );
+}
+
 // ── Agent consensus strip ─────────────────────────────────────────────────
 //
 // The brand promise made visible: all specialist votes shown at once, colour-

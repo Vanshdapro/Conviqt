@@ -7,6 +7,7 @@ import type {
   SectorResult,
   Verdict,
 } from "@/lib/agents/types";
+import { ConvictionRing, VerdictDistribution } from "./viz/CouncilViz";
 
 // ── Color helpers ─────────────────────────────────────────────────────────
 
@@ -51,6 +52,11 @@ export default function SectorReport({
   // Constituents keyed by ticker so ranking rows can pull richer detail.
   const byTicker = new Map(constituents.map((c) => [c.ticker, c]));
   const failed = constituents.filter((c) => c.error);
+  const scored = constituents.filter((c) => !c.error);
+  const basketCounts: Record<Verdict, number> = { BUY: 0, HOLD: 0, SELL: 0 };
+  scored.forEach((c) => {
+    basketCounts[c.verdict] += 1;
+  });
 
   return (
     <article className="border border-rule overflow-hidden" style={{ background: "var(--surface)" }}>
@@ -63,11 +69,17 @@ export default function SectorReport({
               {sectorLabel}
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="mono text-[14px] font-bold tracking-[0.06em]" style={{ color: stanceColor }}>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="mono text-[15px] font-bold tracking-[0.06em]" style={{ color: stanceColor }}>
               {verdict.stance}
             </span>
-            <span className="mono text-[10px] text-muted">conv {verdict.conviction}/100</span>
+            <ConvictionRing
+              value={verdict.conviction}
+              max={verdict.conviction > 10 ? 100 : 10}
+              color={stanceColor}
+              label="conviction"
+              size={50}
+            />
           </div>
         </div>
         {blurb && <p className="serif text-[12px] text-muted mt-1.5 leading-snug">{blurb}</p>}
@@ -82,25 +94,24 @@ export default function SectorReport({
         </section>
       )}
 
-      {/* ── Conviction + basket dispersion bars ─────────────────────── */}
-      <section className="px-5 py-4 border-b border-rule space-y-2">
+      {/* ── Basket verdict split + dispersion ───────────────────────── */}
+      <section className="px-5 py-4 border-b border-rule space-y-3">
+        <VerdictDistribution
+          buy={basketCounts.BUY}
+          hold={basketCounts.HOLD}
+          sell={basketCounts.SELL}
+          label="Basket verdicts"
+        />
         <div className="flex items-center gap-2">
-          <span className="caps text-[8px] text-dim w-24 flex-shrink-0">Theme conviction</span>
-          <div className="flex-1 h-[3px] bg-rule overflow-hidden">
-            <div className="h-full" style={{ width: pct(verdict.conviction), background: stanceColor }} />
-          </div>
-          <span className="mono text-[9px] text-muted w-10 text-right">{verdict.conviction}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="caps text-[8px] text-dim w-24 flex-shrink-0">Basket dispersion</span>
+          <span className="caps text-[8px] text-dim w-24 flex-shrink-0">Dispersion</span>
           <div className="flex-1 h-[3px] bg-rule overflow-hidden">
             <div className="h-full bg-dim" style={{ width: pct(dispersion) }} />
           </div>
           <span className="mono text-[9px] text-dim w-10 text-right">{dispersion}</span>
         </div>
-        <p className="mono text-[9px] text-dim pt-0.5">
+        <p className="mono text-[9px] text-dim">
           The basket is <span style={{ color: "var(--muted)" }}>{dispersionLabel(dispersion)}</span> on direction
-          {" "}({constituents.filter((c) => !c.error).length} names scored
+          {" "}({scored.length} names scored
           {failed.length > 0 ? `, ${failed.length} skipped` : ""}).
         </p>
       </section>

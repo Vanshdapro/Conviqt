@@ -8,6 +8,7 @@ import type {
   Verdict,
 } from "@/lib/agents/types";
 import CouncilReport from "./CouncilReport";
+import { ConvictionRing } from "./viz/CouncilViz";
 
 // ── Color helpers ─────────────────────────────────────────────────────────
 
@@ -15,11 +16,6 @@ function verdictColor(v: Verdict): string {
   if (v === "BUY") return "var(--bull)";
   if (v === "SELL") return "var(--bear)";
   return "var(--hold)";
-}
-
-// Width for a 0-100 bar, clamped so it never overflows its track.
-function pct(value: number): string {
-  return `${Math.max(0, Math.min(100, value))}%`;
 }
 
 // ── Side header chip ──────────────────────────────────────────────────────
@@ -35,6 +31,8 @@ function SideChip({
 }) {
   const { judge, ticker, factSheet } = result;
   const vColor = verdictColor(judge.verdict);
+  const convMax = judge.conviction > 10 ? 100 : 10;
+  const disMax = judge.disagreement > 10 ? 100 : 10;
 
   return (
     <div
@@ -55,39 +53,32 @@ function SideChip({
           </span>
         )}
       </div>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="display text-[26px] text-foreground leading-none tracking-tight">
-          {ticker}
-        </span>
-        <span
-          className="mono text-[14px] font-bold tracking-[0.06em]"
-          style={{ color: vColor }}
-        >
-          {judge.verdict}
-        </span>
-      </div>
-      <div className="mono text-[10px] text-dim mt-1 truncate">
-        {factSheet.companyName}
-      </div>
 
-      {/* conviction + disagreement */}
-      <div className="mt-3 space-y-1.5">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-[3px] bg-rule overflow-hidden">
-            <div className="h-full" style={{ width: pct(judge.conviction), background: vColor }} />
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="display text-[26px] text-foreground leading-none tracking-tight">
+              {ticker}
+            </span>
+            <span
+              className="mono text-[14px] font-bold tracking-[0.06em]"
+              style={{ color: vColor }}
+            >
+              {judge.verdict}
+            </span>
           </div>
-          <span className="mono text-[9px] text-muted w-20 text-right">
-            conv {judge.conviction}/100
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-[3px] bg-rule overflow-hidden">
-            <div className="h-full bg-dim" style={{ width: pct(judge.disagreement) }} />
+          <div className="mono text-[10px] text-dim mt-1 truncate">{factSheet.companyName}</div>
+          <div className="mono text-[9px] text-dim mt-2.5">
+            disagree {judge.disagreement}/{disMax}
           </div>
-          <span className="mono text-[9px] text-dim w-20 text-right">
-            disag {judge.disagreement}/100
-          </span>
         </div>
+        <ConvictionRing
+          value={judge.conviction}
+          max={convMax}
+          color={vColor}
+          label="conviction"
+          size={54}
+        />
       </div>
     </div>
   );
@@ -181,7 +172,7 @@ export default function CompareReport({
                 </div>
                 <div className="w-24 text-center">
                   <div className="caps text-[8px] text-dim leading-tight">{d.dimension}</div>
-                  <EdgeArrow edge={d.edge} />
+                  <EdgeMeter edge={d.edge} />
                 </div>
                 <div className="text-left">
                   <span className="mono text-[12px] px-1.5 py-0.5 rounded" style={edgeStyle(d.edge, "b")}>
@@ -249,15 +240,30 @@ export default function CompareReport({
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function EdgeArrow({ edge }: { edge: CompareEdge }) {
-  if (edge === "tie") {
-    return <div className="mono text-[10px] text-dim mt-0.5">=</div>;
-  }
-  const color = "var(--accent)";
-  // Arrow points toward the winning column.
+// Diverging edge meter: a colored bar leans from the centre toward the side
+// that wins this dimension (left = A, right = B). Ties stay centred and empty.
+function EdgeMeter({ edge }: { edge: CompareEdge }) {
+  const tie = edge === "tie";
+  const a = edge === "a";
   return (
-    <div className="mt-0.5 flex justify-center" style={{ color }}>
-      {edge === "a" ? "←" : "→"}
+    <div className="relative mx-auto mt-1.5" style={{ width: 80, height: 6 }}>
+      <div className="absolute inset-0 rounded-full" style={{ background: "var(--rule)" }} />
+      {/* centre tick */}
+      <div
+        className="absolute"
+        style={{ left: "50%", top: -2, width: 1, height: 10, background: "var(--dim)", transform: "translateX(-0.5px)" }}
+      />
+      {!tie && (
+        <div
+          className="absolute top-0 bottom-0 rounded-full slide-up"
+          style={{
+            background: "var(--accent)",
+            boxShadow: "0 0 6px rgba(79,135,247,0.4)",
+            left: a ? "14%" : "50%",
+            right: a ? "50%" : "14%",
+          }}
+        />
+      )}
     </div>
   );
 }
