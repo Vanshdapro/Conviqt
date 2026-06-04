@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CouncilResult, AgentOutput, Verdict, MetricSignal } from "@/lib/agents/types";
+import { AgentConsensus, ConvictionRing } from "./viz/CouncilViz";
 
 // ── Color helpers ─────────────────────────────────────────────────────────
 
@@ -117,8 +118,8 @@ export default function CouncilReport({
     .map((s, i) => ({ s, i }))
     .filter(({ i }) => citedSourceIds.has(i));
 
-  const convictionPct = `${(judge.conviction / 10) * 100}%`;
-  const disagreementPct = `${(judge.disagreement / 10) * 100}%`;
+  const convMax = judge.conviction > 10 ? 100 : 10;
+  const disMax = judge.disagreement > 10 ? 100 : 10;
 
   return (
     <article
@@ -133,7 +134,7 @@ export default function CouncilReport({
           borderLeft: `4px solid ${vc.dot}`,
         }}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-4">
           {/* Ticker + company — left */}
           <div className="min-w-0">
             <div className="caps text-[9px] text-dim mb-2">Council verdict</div>
@@ -148,50 +149,37 @@ export default function CouncilReport({
             <div className="mono text-[10px] text-dim mt-1">{factSheet.sector}</div>
           </div>
 
-          {/* Verdict + bars — right */}
-          <div className="flex-shrink-0 text-right">
-            <div
-              className="mono text-[22px] font-bold tracking-[0.08em]"
-              style={{ color: vc.text }}
-            >
-              {vc.label}
-            </div>
-            {/* conviction bar */}
-            <div className="flex items-center gap-2 justify-end mt-2">
-              <div className="w-24 h-[3px] bg-rule overflow-hidden">
-                <div
-                  className="h-full bar-animate"
-                  style={{
-                    width: convictionPct,
-                    background: vc.dot,
-                    ["--bar-width" as string]: convictionPct,
-                  }}
-                />
+          {/* Verdict + conviction ring — right */}
+          <div className="flex-shrink-0 flex items-center gap-4">
+            <div className="text-right">
+              <div
+                className="mono text-[22px] font-bold tracking-[0.08em]"
+                style={{ color: vc.text }}
+              >
+                {vc.label}
               </div>
-              <span className="mono text-[10px] text-muted">
-                conviction {judge.conviction}/10
-              </span>
-            </div>
-            {/* disagreement bar — only if > 0 */}
-            {judge.disagreement > 0 && (
-              <div className="flex items-center gap-2 justify-end mt-1.5">
-                <div className="w-24 h-[3px] bg-rule overflow-hidden">
-                  <div
-                    className="h-full bar-animate bg-dim"
-                    style={{
-                      width: disagreementPct,
-                      ["--bar-width" as string]: disagreementPct,
-                    }}
-                  />
-                </div>
-                <span className="mono text-[10px] text-dim">
-                  disagree {judge.disagreement}/10
-                </span>
+              <div className="mono text-[10px] text-dim mt-1">
+                {agents.length}-agent council
               </div>
-            )}
+            </div>
+            <ConvictionRing
+              value={judge.conviction}
+              max={convMax}
+              color={vc.dot}
+              label="conviction"
+              size={62}
+            />
           </div>
         </div>
       </header>
+
+      {/* ── Agent consensus — the disagreement, made visible ────────── */}
+      <AgentConsensus
+        agents={agents}
+        judgeVerdict={judge.verdict}
+        disagreement={judge.disagreement}
+        disagreementMax={disMax}
+      />
 
       {/* ── Investment case ─────────────────────────────────────────── */}
       <section className="px-5 py-5 border-b border-rule">

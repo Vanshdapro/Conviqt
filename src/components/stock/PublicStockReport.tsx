@@ -4,6 +4,7 @@ import type { Verdict } from "@/lib/agents/types";
 import StockReportGate from "./StockReportGate";
 import SharePanel from "./SharePanel";
 import ConvictionTimeline from "./ConvictionTimeline";
+import { AgentConsensus, ConvictionRing } from "../viz/CouncilViz";
 
 // Server-rendered public summary for /stock/[ticker]. Everything here ships in
 // the static HTML — it's the SEO surface Googlebot indexes. The login-gated
@@ -58,27 +59,38 @@ export default function PublicStockReport({
             {sector && <div className="mono text-[10px] text-dim mt-1.5">{sector}</div>}
           </div>
 
-          <div className="flex-shrink-0 text-right">
-            <div className="mono text-[26px] font-bold tracking-[0.08em]" style={{ color: vc }}>
-              {verdict}
-            </div>
-            <div className="flex items-center gap-2 justify-end mt-2.5">
-              <div className="w-28 h-[3px] bg-rule overflow-hidden">
-                <div className="h-full" style={{ width: `${conviction}%`, background: vc }} />
+          <div className="flex-shrink-0 flex items-center gap-4">
+            <div className="text-right">
+              <div className="mono text-[26px] font-bold tracking-[0.08em]" style={{ color: vc }}>
+                {verdict}
               </div>
-              <span className="mono text-[10px] text-muted w-24 text-left">conviction {conviction}/100</span>
-            </div>
-            {disagreement > 0 && (
-              <div className="flex items-center gap-2 justify-end mt-1.5">
-                <div className="w-28 h-[3px] bg-rule overflow-hidden">
-                  <div className="h-full bg-dim" style={{ width: `${disagreement}%` }} />
+              {report.agents.length > 0 && (
+                <div className="mono text-[10px] text-dim mt-1.5">
+                  {report.agents.length}-agent council
                 </div>
-                <span className="mono text-[10px] text-dim w-24 text-left">disagree {disagreement}/100</span>
-              </div>
-            )}
+              )}
+            </div>
+            <ConvictionRing
+              value={conviction}
+              max={conviction > 10 ? 100 : 10}
+              color={vc}
+              label="conviction"
+              size={68}
+            />
           </div>
         </div>
       </header>
+
+      {/* ── Agent consensus — every specialist vote, made visible ──────── */}
+      {report.agents.length > 0 && (
+        <AgentConsensus
+          agents={report.agents}
+          judgeVerdict={verdict}
+          disagreement={disagreement}
+          disagreementMax={disagreement > 10 ? 100 : 10}
+          standalone
+        />
+      )}
 
       {/* ── Conviction timeline (the historical AI-consensus moat) ──────── */}
       <ConvictionTimeline history={history} windowDays={90} />
