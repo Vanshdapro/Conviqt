@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { track } from "@/lib/analytics/track";
 import {
   AuthShell,
   authInputStyle,
@@ -74,6 +75,7 @@ function SignupInner() {
         return;
       }
 
+      track("signup", { method: "password" });
       setSent(true);
     } catch {
       setError("Network error — check your connection and try again.");

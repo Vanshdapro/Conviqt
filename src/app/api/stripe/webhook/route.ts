@@ -23,6 +23,7 @@ import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, DEVEL
 import { upsertSubscriber, type Plan } from "@/lib/subscription";
 import { addCreditsOnce, resetSubscriptionCredits, MAX_PLAN_MONTHLY_CREDITS } from "@/lib/credits";
 import { setDeveloperTier, setDeveloperStatus } from "@/lib/apiKeys";
+import { recordServerEvent } from "@/lib/analytics/server";
 
 export const runtime  = "nodejs";
 export const dynamic  = "force-dynamic";
@@ -83,6 +84,18 @@ async function handleCheckoutCompleted(
     console.warn("[webhook] checkout.completed: unknown plan in metadata", session.metadata);
     return;
   }
+
+  // Authoritative `paid` funnel event — recorded straight from Stripe so the
+  // funnel dashboard counts real conversions (covers dev, pack, and subscription).
+  void recordServerEvent("paid", {
+    email,
+    meta: {
+      plan,
+      mode: session.mode,
+      amount: session.amount_total != null ? session.amount_total / 100 : null,
+      currency: session.currency,
+    },
+  });
 
   // Developer (API) plans grant a call quota, not credits, and live in a
   // separate table. Provision the entitlement and return early.

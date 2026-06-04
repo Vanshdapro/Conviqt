@@ -9,6 +9,8 @@ import {
   universeName,
   isUniverseTicker,
   slugToTicker,
+  comparePairsFor,
+  comparePairToSlug,
 } from "@/lib/tickers";
 import PublicStockReport from "@/components/stock/PublicStockReport";
 
@@ -133,6 +135,39 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Cross-link this ticker into the head-to-head graph: curated matchups that
+// include it. Internal links both ways (ticker ⇄ compare) are what make the
+// pSEO pages compound. Renders nothing when the ticker has no curated rival.
+function RelatedCompares({ ticker }: { ticker: string }) {
+  const pairs = comparePairsFor(ticker);
+  if (pairs.length === 0) return null;
+  return (
+    <section className="mt-10 border-t border-rule pt-6">
+      <div className="caps text-[9px] text-accent mb-3">Head-to-head</div>
+      <div className="flex flex-wrap gap-2">
+        {pairs.map((p) => {
+          const other = p.a === ticker.toUpperCase() ? p.b : p.a;
+          return (
+            <Link
+              key={`${p.a}-${p.b}`}
+              href={`/compare/${comparePairToSlug(p.a, p.b)}`}
+              className="mono text-[11px] text-muted border border-rule px-3 py-2 rounded-sm hover:text-foreground transition-colors"
+            >
+              {ticker.toUpperCase()} vs {other}
+            </Link>
+          );
+        })}
+        <Link
+          href="/compare"
+          className="mono text-[11px] text-dim px-3 py-2 hover:text-foreground transition-colors"
+        >
+          all comparisons →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default async function StockPage({
   params,
 }: {
@@ -179,6 +214,7 @@ export default async function StockPage({
             </Link>
           </div>
         </div>
+        <RelatedCompares ticker={TICK} />
       </Shell>
     );
   }
@@ -224,6 +260,7 @@ export default async function StockPage({
         <span className="text-foreground">{TICK}</span>
       </div>
       <PublicStockReport data={stored} history={history} />
+      <RelatedCompares ticker={TICK} />
     </Shell>
   );
 }

@@ -22,6 +22,7 @@ import {
   sectorCacheKey,
 } from "@/lib/cache";
 import { persistStockReport } from "@/lib/stockReports";
+import { persistCompareReport } from "@/lib/compareReports";
 import {
   deductCredits,
   grantFreeCreditsIfDue,
@@ -542,6 +543,9 @@ function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD }: St
         // a compare warms the same per-ticker reports a direct analyze would.
         if (freshSides.includes("a")) void persistStockReport(compareResult.a);
         if (freshSides.includes("b")) void persistStockReport(compareResult.b);
+        // Publish the head-to-head verdict to its public /compare/[pair] page.
+        // Fresh runs only — the cached branch above returns before reaching here.
+        void persistCompareReport(compareResult);
         emit({ type: "compare_done", result: compareResult, costUSD: compareResult.estCostUSD + intentCostUSD, intentCostUSD });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

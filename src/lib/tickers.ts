@@ -290,3 +290,131 @@ export function tickerToSlug(ticker: string): string {
 export function slugToTicker(slug: string): string {
   return decodeURIComponent(slug).toUpperCase();
 }
+
+// ── Head-to-head compare pairs ────────────────────────────────────────────
+//
+// Powers /compare/[pair]. A pair is canonicalized by sorting the two tickers
+// alphabetically (same ordering as compareCacheKey in cache.ts), so
+// "MSFT vs AAPL" and "AAPL vs MSFT" collapse to ONE canonical URL
+// (/compare/aapl-vs-msft). The page 301s the non-canonical order to the
+// canonical one so Google never sees duplicate content across both spellings.
+//
+// The slug separator is "-vs-". Tickers are letters + optional .A/.B, so they
+// never contain "-vs-" and the split is unambiguous (e.g. brk.b-vs-jpm).
+
+export interface ComparePair {
+  a: string; // alphabetically-first ticker (uppercase)
+  b: string; // alphabetically-second ticker (uppercase)
+}
+
+// Canonical storage key — "AAPL|MSFT". Order-independent; mirrors compareCacheKey.
+export function comparePairKey(a: string, b: string): string {
+  return [a.toUpperCase(), b.toUpperCase()].sort().join("|");
+}
+
+// Canonical URL slug — "aapl-vs-msft" (sorted, lowercased).
+export function comparePairToSlug(a: string, b: string): string {
+  return [a.toUpperCase(), b.toUpperCase()]
+    .sort()
+    .map((t) => t.toLowerCase())
+    .join("-vs-");
+}
+
+// Parse a slug into the canonical {a, b} pair, or null if it isn't a valid
+// "x-vs-y" of two DISTINCT tickers. Always returns sorted order, so the caller
+// can compare the input slug against comparePairToSlug(a, b) to detect a
+// non-canonical (reverse-order / wrong-case) request and redirect.
+export function slugToComparePair(slug: string): ComparePair | null {
+  const parts = decodeURIComponent(slug).toLowerCase().split("-vs-");
+  if (parts.length !== 2) return null;
+  const [x, y] = parts.map((p) => p.trim().toUpperCase());
+  if (!x || !y || x === y) return null;
+  const [a, b] = [x, y].sort();
+  return { a, b };
+}
+
+// Curated high-search-volume matchups we pre-generate (generateStaticParams)
+// and surface on the /compare hub for internal linking. Every ticker here is a
+// STOCK_UNIVERSE member so the cross-links resolve to a real /stock page. The
+// pages stay noindex until a real cached Compare run populates them — this list
+// only warms the shell + seeds the internal link graph.
+const COMPARE_RAW: Array<[string, string]> = [
+  // Semis / AI hardware
+  ["NVDA", "AMD"],
+  ["AMD", "INTC"],
+  ["NVDA", "INTC"],
+  ["AVGO", "QCOM"],
+  ["ARM", "QCOM"],
+  ["MU", "INTC"],
+  ["SMCI", "DELL"],
+  // Mega-cap tech
+  ["AAPL", "MSFT"],
+  ["MSFT", "GOOGL"],
+  ["AAPL", "GOOGL"],
+  ["GOOGL", "META"],
+  ["META", "SNAP"],
+  ["AMZN", "WMT"],
+  ["AMZN", "SHOP"],
+  // Software / cloud
+  ["CRM", "NOW"],
+  ["SNOW", "DDOG"],
+  ["PLTR", "SNOW"],
+  ["CRWD", "PANW"],
+  ["PANW", "ZS"],
+  ["NET", "CRWD"],
+  // EV / autos
+  ["TSLA", "RIVN"],
+  ["TSLA", "LCID"],
+  ["RIVN", "LCID"],
+  ["F", "GM"],
+  ["TSLA", "F"],
+  // Fintech / payments
+  ["V", "MA"],
+  ["PYPL", "SQ"],
+  ["COIN", "HOOD"],
+  // Consumer
+  ["KO", "PEP"],
+  ["MCD", "SBUX"],
+  ["HD", "LOW"],
+  ["NKE", "LULU"],
+  ["COST", "WMT"],
+  ["TGT", "WMT"],
+  // Financials
+  ["JPM", "BAC"],
+  ["GS", "MS"],
+  // Media / streaming
+  ["DIS", "NFLX"],
+  ["NFLX", "WBD"],
+  // Travel / gig
+  ["UBER", "DASH"],
+  ["UBER", "ABNB"],
+  // Energy / healthcare
+  ["XOM", "CVX"],
+  ["UNH", "CVS"],
+  ["PFE", "MRNA"],
+  // Industrials
+  ["BA", "LMT"],
+  ["CAT", "DE"],
+  ["UPS", "FDX"],
+];
+
+// De-duplicated, canonicalized list of compare pairs for static generation.
+export const COMPARE_UNIVERSE: ComparePair[] = (() => {
+  const seen = new Set<string>();
+  const out: ComparePair[] = [];
+  for (const [a, b] of COMPARE_RAW) {
+    const key = comparePairKey(a, b);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const [x, y] = [a.toUpperCase(), b.toUpperCase()].sort();
+    out.push({ a: x, b: y });
+  }
+  return out;
+})();
+
+// Curated matchups that include `ticker` — powers the "Head-to-head" cross-link
+// block on /stock/[ticker], wiring ticker pages into the compare link graph.
+export function comparePairsFor(ticker: string, limit = 6): ComparePair[] {
+  const T = ticker.toUpperCase();
+  return COMPARE_UNIVERSE.filter((p) => p.a === T || p.b === T).slice(0, limit);
+}

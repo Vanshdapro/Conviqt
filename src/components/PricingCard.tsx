@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { track } from "@/lib/analytics/track";
 
 export interface PricingPlan {
   id:          string;
@@ -47,6 +48,9 @@ export function PricingCard({ plan }: PricingCardProps) {
         setError(data.error ?? "Something went wrong. Please try again.");
         return;
       }
+      // Fire before the redirect to Stripe — the `paid` event is recorded
+      // server-side by the Stripe webhook once checkout completes.
+      track("checkout_started", { plan: plan.id, kind: plan.kind });
       window.location.href = data.url;
     } catch {
       setError("Network error. Please check your connection and try again.");

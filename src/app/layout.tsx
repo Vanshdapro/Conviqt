@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TranslationProvider } from "@/components/i18n/TranslationProvider";
+import Analytics from "@/components/analytics/Analytics";
 
 const SITE_URL = "https://www.conviqt.com";
 const SITE_NAME = "Conviqt";
@@ -97,6 +98,18 @@ export const viewport: Viewport = {
 const SCRIPT_FALLBACKS =
   "'Noto Sans SC', 'Noto Sans Devanagari', 'Noto Sans Arabic'";
 
+// Fonts are loaded in two non-render-blocking requests (see <head> below):
+//   1. Latin — the families the default English site actually paints.
+//   2. Noto  — CJK / Devanagari / Arabic script fallbacks, only needed once
+//      Conviqt Translate switches to a non-Latin language. Splitting these out
+//      keeps the heavy CJK @font-face blocks off the critical path on every
+//      page (the big LCP/FCP win) without changing the --font-* cascade, so the
+//      glyph fallback still resolves once the deferred sheet lands.
+const FONTS_LATIN =
+  "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&display=swap";
+const FONTS_NOTO =
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap";
+
 const FONT_VARS = {
   "--font-sans":
     `'Inter', ${SCRIPT_FALLBACKS}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
@@ -174,10 +187,20 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap"
-        />
+        {/* Async font loading: media="print" makes the browser fetch the CSS
+            without blocking first paint. The <Analytics> client component flips
+            media to "all" right after hydration (display=swap keeps text visible
+            meanwhile), so SSR and the initial client render are IDENTICAL —
+            no hydration mismatch even with React 19's stylesheet hoisting. The
+            <noscript> path keeps fonts working with JS disabled. */}
+        <link rel="stylesheet" href={FONTS_LATIN} media="print" id="cvq-fonts-latin" />
+        <link rel="stylesheet" href={FONTS_NOTO} media="print" id="cvq-fonts-noto" />
+        <noscript>
+          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+          <link rel="stylesheet" href={FONTS_LATIN} />
+          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+          <link rel="stylesheet" href={FONTS_NOTO} />
+        </noscript>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -185,6 +208,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col relative">
         <TranslationProvider>{children}</TranslationProvider>
+        <Analytics />
       </body>
     </html>
   );
