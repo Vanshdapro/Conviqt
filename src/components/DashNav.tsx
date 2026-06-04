@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 export function DashNav({ active }: { active?: "research" | "alpha" | "academy" | "methodology" | "pricing" | "developers" | "about" }) {
   const links = [
@@ -62,6 +63,7 @@ export function DashNav({ active }: { active?: "research" | "alpha" | "academy" 
       `}</style>
       <Link
         href="/"
+        data-no-translate
         style={{
           fontFamily:    "var(--font-display), Georgia, serif",
           fontWeight:    400,
@@ -97,8 +99,9 @@ export function DashNav({ active }: { active?: "research" | "alpha" | "academy" 
         ))}
       </ul>
 
-      {/* Right side: live credit balance + account */}
+      {/* Right side: language switcher + live credit balance + account */}
       <div className="dash-nav-account" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <LanguageSwitcher />
         <AccountControls />
       </div>
     </nav>
@@ -230,6 +233,7 @@ function AccountControls() {
       >
         <span
           aria-hidden
+          data-no-translate
           style={{
             width: 30,
             height: 30,

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const BG = "#020810";
@@ -1053,7 +1054,7 @@ export default function IntroAnimation() {
                 .lp-nav-cta { padding: 9px 18px !important; }
               }
             `}</style>
-            <span style={{
+            <span data-no-translate style={{
               fontFamily: "var(--font-display), Georgia, serif",
               fontWeight: 400, fontSize: "17px", letterSpacing: "0.22em",
               textTransform: "uppercase", color: "#e8edf8",
@@ -1079,17 +1080,20 @@ export default function IntroAnimation() {
                 </li>
               ))}
             </ul>
-            <Link className="lp-nav-cta" href="/chat" style={{
-              fontFamily: "var(--font-serif), Georgia, serif",
-              fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase",
-              color: "#e8edf8", background: "transparent",
-              border: "1px solid rgba(232,237,248,0.55)",
-              borderRadius: "100px", padding: "11px 26px",
-              display: "flex", alignItems: "center", gap: "9px",
-              textDecoration: "none", whiteSpace: "nowrap",
-            }}>
-              Analyze a Stock <span style={{ fontSize: "18px", lineHeight: "0" }}>•</span>
-            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <LanguageSwitcher />
+              <Link className="lp-nav-cta" href="/chat" style={{
+                fontFamily: "var(--font-serif), Georgia, serif",
+                fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase",
+                color: "#e8edf8", background: "transparent",
+                border: "1px solid rgba(232,237,248,0.55)",
+                borderRadius: "100px", padding: "11px 26px",
+                display: "flex", alignItems: "center", gap: "9px",
+                textDecoration: "none", whiteSpace: "nowrap",
+              }}>
+                Analyze a Stock <span style={{ fontSize: "18px", lineHeight: "0" }}>•</span>
+              </Link>
+            </div>
           </nav>
 
           {/* Hero copy */}

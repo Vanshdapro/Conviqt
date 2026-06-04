@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { TranslationProvider } from "@/components/i18n/TranslationProvider";
 
 const SITE_URL = "https://www.conviqt.com";
 const SITE_NAME = "Conviqt";
@@ -90,15 +91,21 @@ export const viewport: Viewport = {
   themeColor: "#050d1a",
 };
 
+// Script fallbacks (Chinese / Devanagari / Arabic) are appended to every font
+// chain so translated copy — including headings — renders real glyphs instead
+// of tofu boxes when Conviqt Translate switches language.
+const SCRIPT_FALLBACKS =
+  "'Noto Sans SC', 'Noto Sans Devanagari', 'Noto Sans Arabic'";
+
 const FONT_VARS = {
   "--font-sans":
-    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    `'Inter', ${SCRIPT_FALLBACKS}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
   "--font-mono":
     "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
   "--font-serif":
-    "'Source Serif 4', Georgia, 'Times New Roman', serif",
+    `'Source Serif 4', ${SCRIPT_FALLBACKS}, Georgia, 'Times New Roman', serif`,
   "--font-display":
-    "'Playfair Display', Georgia, 'Times New Roman', serif",
+    `'Playfair Display', ${SCRIPT_FALLBACKS}, Georgia, 'Times New Roman', serif`,
 } as React.CSSProperties;
 
 const jsonLd = {
@@ -169,14 +176,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap"
         />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="min-h-full flex flex-col relative">{children}</body>
+      <body className="min-h-full flex flex-col relative">
+        <TranslationProvider>{children}</TranslationProvider>
+      </body>
     </html>
   );
 }
