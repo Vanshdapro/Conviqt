@@ -352,7 +352,7 @@ export function AuditReport({ result }: { result: PortfolioAuditResult }) {
       {/* ── Sources ─────────────────────────────────────────────────── */}
       <section style={{ paddingTop: 4 }}>
         <SourceList sources={factSheet.sources} />
-        <footer style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
+        <footer suppressHydrationWarning style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
           Analysis only, not personalized financial advice. Weights are computed from your own share counts times live sourced prices. As of {new Date(result.asOf).toLocaleString()} · est. cost ${result.estCostUSD.toFixed(3)}{result.cached ? " · cached" : ""}.
         </footer>
       </section>

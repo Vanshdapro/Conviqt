@@ -1611,7 +1611,7 @@ function FocusedReport({
       )}
 
       <footer className="px-5 py-3 mono text-[10px] text-dim flex flex-wrap gap-4">
-        <span>asOf {new Date(result.asOf).toLocaleString()}</span>
+        <span suppressHydrationWarning>asOf {new Date(result.asOf).toLocaleString()}</span>
         <span>run {(result.totalDurationMs / 1000).toFixed(1)}s</span>
         <span>cost ${(costUSD ?? result.estCostUSD).toFixed(4)}</span>
         {result.cached && <span style={{ color: "var(--hold)" }}>cached</span>}

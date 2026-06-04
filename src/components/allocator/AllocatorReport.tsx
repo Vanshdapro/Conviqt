@@ -433,7 +433,7 @@ export function AllocatorReport({ result }: { result: AllocatorResult }) {
             ))}
           </div>
         )}
-        <footer style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
+        <footer suppressHydrationWarning style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
           Educational planning only, not personalized financial advice. Allocation percentages and dollar splits are computed from the capacity you entered; every live market figure links to a source above. Capacity tier {baseline.capacityTier} · as of {new Date(result.asOf).toLocaleString()} · est. cost ${result.estCostUSD.toFixed(3)}.
         </footer>
       </section>

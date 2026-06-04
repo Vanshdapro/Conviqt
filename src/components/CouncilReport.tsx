@@ -359,7 +359,7 @@ export default function CouncilReport({
       {/* ── Footer ──────────────────────────────────────────────────── */}
       <footer className="px-5 py-3 flex flex-wrap items-center justify-between gap-3 mono text-[10px] text-dim">
         <div className="flex flex-wrap items-center gap-4">
-          <span>asOf {new Date(result.asOf).toLocaleString()}</span>
+          <span suppressHydrationWarning>asOf {new Date(result.asOf).toLocaleString()}</span>
           {result.cached && (
             <span style={{ color: "var(--hold)" }}>cached</span>
           )}

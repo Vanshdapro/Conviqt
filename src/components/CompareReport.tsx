@@ -229,7 +229,10 @@ export default function CompareReport({
 
       {/* ── Footer ──────────────────────────────────────────────────── */}
       <footer className="px-5 py-3 flex flex-wrap items-center gap-4 mono text-[10px] text-dim">
-        <span>asOf {new Date(result.asOf).toLocaleString()}</span>
+        {/* Locale-dependent: server/client locales differ, so this is an
+            expected SSR/client text diff now that /compare/[pair] renders this
+            component on the server. Suppress the hydration warning. */}
+        <span suppressHydrationWarning>asOf {new Date(result.asOf).toLocaleString()}</span>
         <span>run {(result.totalDurationMs / 1000).toFixed(1)}s</span>
         <span>cost ${(costUSD ?? result.estCostUSD).toFixed(4)}</span>
         {result.cached && <span style={{ color: "var(--hold)" }}>cached</span>}

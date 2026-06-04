@@ -206,6 +206,10 @@ export default function IntroAnimation() {
 
     // ── Wordmark helpers (client-only, inside useEffect) ─────────────────────
     function buildWordmarkDots(W: number, H: number, step: number): CDot[] {
+      // Bail on a zero-sized viewport (can happen on first paint in a hidden /
+      // not-yet-laid-out frame). getImageData throws IndexSizeError at width 0;
+      // the next resize rebuilds the dots once real dimensions exist.
+      if (W < 1 || H < 1) return [];
       const oc = document.createElement("canvas");
       oc.width = W; oc.height = H;
       const ox = oc.getContext("2d")!;
