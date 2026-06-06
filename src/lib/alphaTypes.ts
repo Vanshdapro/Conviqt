@@ -159,6 +159,27 @@ export interface CalibrationStats {
   maxPublishableConfidence: number; // current honesty cap, surfaced to the UI
 }
 
+// ── Aggregate performance (the headline "how is the desk doing" stat) ───────
+//
+// A simple, equal-weighted average return across every published position —
+// active positions marked at their current unrealized price_change_pct, closed
+// positions at their realized exit return. It answers one plain question for a
+// visitor: across everything the Council has published, what has the average
+// position returned? Computed server-side from the FULL position set (before
+// the per-publication unlock gate) so it can be shown to every signed-in
+// visitor as a track-record signal without revealing the gated picks themselves
+// — only the blended numbers cross the gate, never the individual names.
+export interface AlphaAggregate {
+  avgReturnPct: number; // equal-weighted mean return across all counted positions
+  positions: number; // total positions counted (active + closed)
+  winners: number; // counted positions with return >= 0
+  losers: number; // counted positions with return < 0
+  activeCount: number; // active positions contributing an unrealized return
+  closedCount: number; // closed positions contributing a realized return
+  activeAvgReturnPct: number | null; // avg unrealized return across the live book
+  closedAvgReturnPct: number | null; // avg realized return across closed positions
+}
+
 // Row shape for the alpha_picks Supabase table.
 export interface AlphaPick {
   id?: string;

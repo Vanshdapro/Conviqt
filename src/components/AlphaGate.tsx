@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type {
+  AlphaAggregate,
   AlphaPick,
   AlphaPickSource,
   CalibrationStats,
@@ -28,6 +29,7 @@ interface PicksData {
   recently_exited: AlphaPick[];
   last_run: string | null;
   locked: boolean;
+  aggregate: AlphaAggregate | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -133,6 +135,10 @@ export function AlphaGate() {
         hasPublication={status?.hasPublication ?? false}
       />
 
+      {/* Aggregate return — ungated trust signal, shown whether or not the
+          current publication is unlocked. Hidden until a position has a return. */}
+      {picks?.aggregate && <AggregateBar agg={picks.aggregate} />}
+
       {error && (
         <div style={{
           background: "rgba(239,68,68,0.08)",
@@ -222,6 +228,86 @@ function AlphaHeader({
         </div>
       )}
     </div>
+  );
+}
+
+// ── Aggregate return bar (the headline "how is the desk doing" stat) ────────
+
+function AggStat({ label, value, color, hint }: { label: string; value: string; color: string; hint?: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "0.14em", color: "rgba(232,237,248,0.4)", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 19, fontWeight: 700, color }}>{value}</div>
+      {hint && <div style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 10, color: "rgba(232,237,248,0.3)", marginTop: 1 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function AggregateBar({ agg }: { agg: AlphaAggregate }) {
+  const up = agg.avgReturnPct >= 0;
+  const color = up ? "#22c55e" : "#ef4444";
+  const sign = up ? "+" : "";
+  // Only break out live-vs-closed when there is a genuine mix; otherwise the
+  // headline already IS that single bucket and the split would just repeat it.
+  const showSplit = agg.activeCount > 0 && agg.closedCount > 0;
+
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 24,
+        background: `linear-gradient(160deg, ${up ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.07)"} 0%, rgba(10,19,35,0.6) 62%)`,
+        border: `1px solid ${up ? "rgba(16,185,129,0.22)" : "rgba(239,68,68,0.22)"}`,
+        borderRadius: 16,
+        padding: "20px 26px",
+      }}>
+        {/* Headline */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span className="pulse" style={{ width: 7, height: 7, borderRadius: "50%", background: color }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(232,237,248,0.55)" }}>
+              Aggregate Return
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 44, fontWeight: 700, color, letterSpacing: "-1.5px", lineHeight: 1 }}>
+              {sign}{agg.avgReturnPct.toFixed(1)}%
+            </span>
+            <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12.5, color: "rgba(232,237,248,0.45)" }}>
+              avg per position
+            </span>
+          </div>
+        </div>
+
+        {/* Breakdown */}
+        <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
+          <AggStat label="Positions" value={`${agg.positions}`} color="#e8edf8" />
+          <AggStat label="Up / Down" value={`${agg.winners} / ${agg.losers}`} color="#6eb6ff" />
+          {showSplit && agg.activeAvgReturnPct !== null && (
+            <AggStat
+              label="Live book"
+              value={`${agg.activeAvgReturnPct >= 0 ? "+" : ""}${agg.activeAvgReturnPct.toFixed(1)}%`}
+              color={agg.activeAvgReturnPct >= 0 ? "#34d399" : "#f87171"}
+              hint={`${agg.activeCount} open`}
+            />
+          )}
+          {showSplit && agg.closedAvgReturnPct !== null && (
+            <AggStat
+              label="Closed"
+              value={`${agg.closedAvgReturnPct >= 0 ? "+" : ""}${agg.closedAvgReturnPct.toFixed(1)}%`}
+              color={agg.closedAvgReturnPct >= 0 ? "#34d399" : "#f87171"}
+              hint={`${agg.closedCount} realized`}
+            />
+          )}
+        </div>
+      </div>
+      <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 11, fontStyle: "italic", color: "rgba(232,237,248,0.3)", margin: "8px 4px 0", lineHeight: 1.5 }}>
+        Equal-weighted average return across every position the Council has published — open marks and closed exits, winners and losers alike. Past performance is not indicative of future results.
+      </p>
+    </section>
   );
 }
 
