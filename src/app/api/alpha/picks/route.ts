@@ -19,26 +19,42 @@ import type { AlphaAggregate, AlphaPick } from "@/lib/alphaTypes";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Equal-weighted average return across the full published book. Active picks
-// contribute their unrealized mark (price_change_pct); closed (SOLD) picks
-// contribute their realized exit return. Deliberately simple — one mean plus a
-// winners/losers split — so a visitor can read "what has the average pick done"
-// at a glance. Computed from the ungated position set so it survives the unlock
-// gate (only these blended numbers cross it, never the picks). null when no
-// position carries a usable return yet.
+// Portfolio return across every published position that has had time to move.
+//
+// Rules (permanent — enforced in code, not config):
+//   1. Same-day entries are EXCLUDED. A position entered today has 0% change
+//      by definition (it was just priced at entry). Including it would dilute
+//      the number with a guaranteed zero and misrepresent the desk's track
+//      record. Once the next pipeline run re-prices it, it joins automatically.
+//   2. Return is POSITION-SIZE WEIGHTED when position_size_pct is available
+//      (migration 009+). When it is null (pre-009 picks), the position gets
+//      an equal share of the book alongside the others that also lack a size.
+//      This is the correct treatment: equal-dollar-invested per position, not
+//      a naive per-stock average that ignores book allocation.
+//   3. Closed (SOLD) positions contribute their realized exit return, computed
+//      from exit_price/entry_price when available, falling back to the stored
+//      realized_return_pct.
+//
+// The result is the total return you would have earned on this portfolio —
+// not a per-stock figure, but what the whole book produced.
 function computeAggregate(active: AlphaPick[], resolved: AlphaPick[]): AlphaAggregate | null {
   const round1 = (n: number) => Math.round(n * 10) / 10;
-  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const today = new Date().toISOString().slice(0, 10);
 
-  const activeReturns: number[] = [];
+  // --- Active positions that have had at least one price update ---
+  const activeItems: Array<{ ret: number; weight: number | null }> = [];
   for (const p of active) {
-    if (typeof p.price_change_pct === "number") activeReturns.push(p.price_change_pct);
+    // Rule 1: skip same-day entries — they haven't moved yet.
+    if (p.entry_date === today) continue;
+    if (typeof p.price_change_pct !== "number") continue;
+    activeItems.push({
+      ret: p.price_change_pct,
+      weight: typeof p.position_size_pct === "number" ? p.position_size_pct : null,
+    });
   }
 
-  // Closed positions: realized return. Prefer recomputing from the exit print
-  // (most faithful to the actual round-trip); fall back to the stored grade.
-  // Skip horizon-graded picks that are still open — they count as active above.
-  const closedReturns: number[] = [];
+  // --- Closed (SOLD) positions ---
+  const closedItems: Array<{ ret: number; weight: number | null }> = [];
   for (const p of resolved) {
     if (p.status !== "SOLD") continue;
     let r: number | null = null;
@@ -47,21 +63,55 @@ function computeAggregate(active: AlphaPick[], resolved: AlphaPick[]): AlphaAggr
     } else if (typeof p.realized_return_pct === "number") {
       r = p.realized_return_pct;
     }
-    if (r !== null) closedReturns.push(r);
+    if (r === null) continue;
+    closedItems.push({
+      ret: r,
+      weight: typeof p.position_size_pct === "number" ? p.position_size_pct : null,
+    });
   }
 
-  const all = [...activeReturns, ...closedReturns];
-  if (all.length === 0) return null;
+  const allItems = [...activeItems, ...closedItems];
+  if (allItems.length === 0) return null;
+
+  // --- Portfolio-weighted return (Rule 2) ---
+  // If every item has an explicit weight, use it directly.
+  // If any item has a null weight, treat ALL null-weight items as equal-share
+  // within their group (active or closed), proportioned against the weighted items.
+  // The simplest correct fallback: assign null-weight items a weight of 1 each,
+  // then normalise the whole set — this gives equal-dollar treatment across the
+  // book when allocation data is absent, which is identical to equal-weight.
+  const totalWeight = allItems.reduce(
+    (sum, x) => sum + (x.weight ?? 1),
+    0
+  );
+  const portfolioReturn = allItems.reduce(
+    (sum, x) => sum + x.ret * (x.weight ?? 1),
+    0
+  ) / totalWeight;
+
+  const activeReturns = activeItems.map((x) => x.ret);
+  const closedReturns = closedItems.map((x) => x.ret);
+  const allReturns = allItems.map((x) => x.ret);
+
+  const activeWeight = activeItems.reduce((s, x) => s + (x.weight ?? 1), 0);
+  const closedWeight = closedItems.reduce((s, x) => s + (x.weight ?? 1), 0);
+
+  const activePortfolioReturn = activeItems.length
+    ? activeItems.reduce((s, x) => s + x.ret * (x.weight ?? 1), 0) / activeWeight
+    : null;
+  const closedPortfolioReturn = closedItems.length
+    ? closedItems.reduce((s, x) => s + x.ret * (x.weight ?? 1), 0) / closedWeight
+    : null;
 
   return {
-    avgReturnPct: round1(mean(all)),
-    positions: all.length,
-    winners: all.filter((r) => r >= 0).length,
-    losers: all.filter((r) => r < 0).length,
+    avgReturnPct: round1(portfolioReturn),
+    positions: allItems.length,
+    winners: allReturns.filter((r) => r >= 0).length,
+    losers: allReturns.filter((r) => r < 0).length,
     activeCount: activeReturns.length,
     closedCount: closedReturns.length,
-    activeAvgReturnPct: activeReturns.length ? round1(mean(activeReturns)) : null,
-    closedAvgReturnPct: closedReturns.length ? round1(mean(closedReturns)) : null,
+    activeAvgReturnPct: activePortfolioReturn !== null ? round1(activePortfolioReturn) : null,
+    closedAvgReturnPct: closedPortfolioReturn !== null ? round1(closedPortfolioReturn) : null,
   };
 }
 

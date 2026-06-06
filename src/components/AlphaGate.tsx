@@ -277,7 +277,7 @@ function AggregateBar({ agg }: { agg: AlphaAggregate }) {
               {sign}{agg.avgReturnPct.toFixed(1)}%
             </span>
             <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12.5, color: "rgba(232,237,248,0.45)" }}>
-              avg per position
+              portfolio return
             </span>
           </div>
         </div>
@@ -305,7 +305,7 @@ function AggregateBar({ agg }: { agg: AlphaAggregate }) {
         </div>
       </div>
       <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 11, fontStyle: "italic", color: "rgba(232,237,248,0.3)", margin: "8px 4px 0", lineHeight: 1.5 }}>
-        Equal-weighted average return across every position the Council has published — open marks and closed exits, winners and losers alike. Past performance is not indicative of future results.
+        Portfolio return across every position the Council has published, weighted by book allocation — open marks and closed exits, winners and losers alike. New entries excluded until repriced. Past performance is not indicative of future results.
       </p>
     </section>
   );
