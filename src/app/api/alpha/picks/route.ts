@@ -19,42 +19,35 @@ import type { AlphaAggregate, AlphaPick } from "@/lib/alphaTypes";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Portfolio return across every published position that has had time to move.
+// CUMULATIVE return across every published position — the SUM of each
+// position's return, never an average.
 //
-// Rules (permanent — enforced in code, not config):
-//   1. Same-day entries are EXCLUDED. A position entered today has 0% change
-//      by definition (it was just priced at entry). Including it would dilute
-//      the number with a guaranteed zero and misrepresent the desk's track
-//      record. Once the next pipeline run re-prices it, it joins automatically.
-//   2. Return is POSITION-SIZE WEIGHTED when position_size_pct is available
-//      (migration 009+). When it is null (pre-009 picks), the position gets
-//      an equal share of the book alongside the others that also lack a size.
-//      This is the correct treatment: equal-dollar-invested per position, not
-//      a naive per-stock average that ignores book allocation.
-//   3. Closed (SOLD) positions contribute their realized exit return, computed
-//      from exit_price/entry_price when available, falling back to the stored
-//      realized_return_pct.
+// Two permanent rules, enforced here in code (not config, not a flag):
+//   1. We SUM the returns. We do NOT divide by the number of positions.
+//      Dividing gives a "per stock" average (e.g. four picks at +12.4% total
+//      would read as +3.1%) — that is explicitly not what we report. The
+//      headline is the total return the Council's picks have generated.
+//   2. Positions entered TODAY are EXCLUDED. A pick entered today sits at
+//      exactly 0% (it was just priced at entry) and would add nothing but
+//      noise. It joins automatically once the next pipeline run re-prices it.
 //
-// The result is the total return you would have earned on this portfolio —
-// not a per-stock figure, but what the whole book produced.
+// Active positions contribute their unrealized price_change_pct; closed (SOLD)
+// positions contribute their realized exit return (from exit_price/entry_price,
+// falling back to the stored realized_return_pct).
 function computeAggregate(active: AlphaPick[], resolved: AlphaPick[]): AlphaAggregate | null {
   const round1 = (n: number) => Math.round(n * 10) / 10;
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
   const today = new Date().toISOString().slice(0, 10);
 
-  // --- Active positions that have had at least one price update ---
-  const activeItems: Array<{ ret: number; weight: number | null }> = [];
+  // --- Active positions (Rule 2: skip same-day entries — they haven't moved) ---
+  const activeReturns: number[] = [];
   for (const p of active) {
-    // Rule 1: skip same-day entries — they haven't moved yet.
     if (p.entry_date === today) continue;
-    if (typeof p.price_change_pct !== "number") continue;
-    activeItems.push({
-      ret: p.price_change_pct,
-      weight: typeof p.position_size_pct === "number" ? p.position_size_pct : null,
-    });
+    if (typeof p.price_change_pct === "number") activeReturns.push(p.price_change_pct);
   }
 
   // --- Closed (SOLD) positions ---
-  const closedItems: Array<{ ret: number; weight: number | null }> = [];
+  const closedReturns: number[] = [];
   for (const p of resolved) {
     if (p.status !== "SOLD") continue;
     let r: number | null = null;
@@ -63,55 +56,22 @@ function computeAggregate(active: AlphaPick[], resolved: AlphaPick[]): AlphaAggr
     } else if (typeof p.realized_return_pct === "number") {
       r = p.realized_return_pct;
     }
-    if (r === null) continue;
-    closedItems.push({
-      ret: r,
-      weight: typeof p.position_size_pct === "number" ? p.position_size_pct : null,
-    });
+    if (r !== null) closedReturns.push(r);
   }
 
-  const allItems = [...activeItems, ...closedItems];
-  if (allItems.length === 0) return null;
+  const allReturns = [...activeReturns, ...closedReturns];
+  if (allReturns.length === 0) return null;
 
-  // --- Portfolio-weighted return (Rule 2) ---
-  // If every item has an explicit weight, use it directly.
-  // If any item has a null weight, treat ALL null-weight items as equal-share
-  // within their group (active or closed), proportioned against the weighted items.
-  // The simplest correct fallback: assign null-weight items a weight of 1 each,
-  // then normalise the whole set — this gives equal-dollar treatment across the
-  // book when allocation data is absent, which is identical to equal-weight.
-  const totalWeight = allItems.reduce(
-    (sum, x) => sum + (x.weight ?? 1),
-    0
-  );
-  const portfolioReturn = allItems.reduce(
-    (sum, x) => sum + x.ret * (x.weight ?? 1),
-    0
-  ) / totalWeight;
-
-  const activeReturns = activeItems.map((x) => x.ret);
-  const closedReturns = closedItems.map((x) => x.ret);
-  const allReturns = allItems.map((x) => x.ret);
-
-  const activeWeight = activeItems.reduce((s, x) => s + (x.weight ?? 1), 0);
-  const closedWeight = closedItems.reduce((s, x) => s + (x.weight ?? 1), 0);
-
-  const activePortfolioReturn = activeItems.length
-    ? activeItems.reduce((s, x) => s + x.ret * (x.weight ?? 1), 0) / activeWeight
-    : null;
-  const closedPortfolioReturn = closedItems.length
-    ? closedItems.reduce((s, x) => s + x.ret * (x.weight ?? 1), 0) / closedWeight
-    : null;
-
+  // Rule 1: SUM, do not average.
   return {
-    avgReturnPct: round1(portfolioReturn),
-    positions: allItems.length,
+    totalReturnPct: round1(sum(allReturns)),
+    positions: allReturns.length,
     winners: allReturns.filter((r) => r >= 0).length,
     losers: allReturns.filter((r) => r < 0).length,
     activeCount: activeReturns.length,
     closedCount: closedReturns.length,
-    activeAvgReturnPct: activePortfolioReturn !== null ? round1(activePortfolioReturn) : null,
-    closedAvgReturnPct: closedPortfolioReturn !== null ? round1(closedPortfolioReturn) : null,
+    activeTotalReturnPct: activeReturns.length ? round1(sum(activeReturns)) : null,
+    closedTotalReturnPct: closedReturns.length ? round1(sum(closedReturns)) : null,
   };
 }
 

@@ -244,7 +244,7 @@ function AggStat({ label, value, color, hint }: { label: string; value: string; 
 }
 
 function AggregateBar({ agg }: { agg: AlphaAggregate }) {
-  const up = agg.avgReturnPct >= 0;
+  const up = agg.totalReturnPct >= 0;
   const color = up ? "#22c55e" : "#ef4444";
   const sign = up ? "+" : "";
   // Only break out live-vs-closed when there is a genuine mix; otherwise the
@@ -274,10 +274,10 @@ function AggregateBar({ agg }: { agg: AlphaAggregate }) {
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 44, fontWeight: 700, color, letterSpacing: "-1.5px", lineHeight: 1 }}>
-              {sign}{agg.avgReturnPct.toFixed(1)}%
+              {sign}{agg.totalReturnPct.toFixed(1)}%
             </span>
             <span style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 12.5, color: "rgba(232,237,248,0.45)" }}>
-              portfolio return
+              cumulative return
             </span>
           </div>
         </div>
@@ -286,26 +286,26 @@ function AggregateBar({ agg }: { agg: AlphaAggregate }) {
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
           <AggStat label="Positions" value={`${agg.positions}`} color="#e8edf8" />
           <AggStat label="Up / Down" value={`${agg.winners} / ${agg.losers}`} color="#6eb6ff" />
-          {showSplit && agg.activeAvgReturnPct !== null && (
+          {showSplit && agg.activeTotalReturnPct !== null && (
             <AggStat
               label="Live book"
-              value={`${agg.activeAvgReturnPct >= 0 ? "+" : ""}${agg.activeAvgReturnPct.toFixed(1)}%`}
-              color={agg.activeAvgReturnPct >= 0 ? "#34d399" : "#f87171"}
+              value={`${agg.activeTotalReturnPct >= 0 ? "+" : ""}${agg.activeTotalReturnPct.toFixed(1)}%`}
+              color={agg.activeTotalReturnPct >= 0 ? "#34d399" : "#f87171"}
               hint={`${agg.activeCount} open`}
             />
           )}
-          {showSplit && agg.closedAvgReturnPct !== null && (
+          {showSplit && agg.closedTotalReturnPct !== null && (
             <AggStat
               label="Closed"
-              value={`${agg.closedAvgReturnPct >= 0 ? "+" : ""}${agg.closedAvgReturnPct.toFixed(1)}%`}
-              color={agg.closedAvgReturnPct >= 0 ? "#34d399" : "#f87171"}
+              value={`${agg.closedTotalReturnPct >= 0 ? "+" : ""}${agg.closedTotalReturnPct.toFixed(1)}%`}
+              color={agg.closedTotalReturnPct >= 0 ? "#34d399" : "#f87171"}
               hint={`${agg.closedCount} realized`}
             />
           )}
         </div>
       </div>
       <p style={{ fontFamily: "var(--font-serif), Georgia, serif", fontSize: 11, fontStyle: "italic", color: "rgba(232,237,248,0.3)", margin: "8px 4px 0", lineHeight: 1.5 }}>
-        Portfolio return across every position the Council has published, weighted by book allocation — open marks and closed exits, winners and losers alike. New entries excluded until repriced. Past performance is not indicative of future results.
+        Cumulative return — the sum of every position&apos;s return across all picks the Council has published, open marks and closed exits, winners and losers alike. New entries are excluded until they&apos;ve been repriced. Past performance is not indicative of future results.
       </p>
     </section>
   );

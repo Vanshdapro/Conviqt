@@ -161,23 +161,26 @@ export interface CalibrationStats {
 
 // ── Aggregate performance (the headline "how is the desk doing" stat) ───────
 //
-// A simple, equal-weighted average return across every published position —
-// active positions marked at their current unrealized price_change_pct, closed
-// positions at their realized exit return. It answers one plain question for a
-// visitor: across everything the Council has published, what has the average
-// position returned? Computed server-side from the FULL position set (before
-// the per-publication unlock gate) so it can be shown to every signed-in
-// visitor as a track-record signal without revealing the gated picks themselves
-// — only the blended numbers cross the gate, never the individual names.
+// The CUMULATIVE return across every published position — the sum of each
+// position's return, NOT an average. Active positions contribute their
+// unrealized price_change_pct, closed positions their realized exit return.
+// It answers one plain question for a visitor: across everything the Council
+// has published, how much return has it generated in total? We SUM rather than
+// average on purpose — dividing by the position count produces a "per stock"
+// figure, which is explicitly not what we want. Computed server-side from the
+// FULL position set (before the per-publication unlock gate) so it shows as a
+// track-record signal to every signed-in visitor without revealing the gated
+// picks themselves — only the totals cross the gate, never the individual names.
+// Positions entered TODAY are excluded (they haven't moved off entry yet).
 export interface AlphaAggregate {
-  avgReturnPct: number; // equal-weighted mean return across all counted positions
+  totalReturnPct: number; // SUM of every counted position's return (cumulative, not averaged)
   positions: number; // total positions counted (active + closed)
   winners: number; // counted positions with return >= 0
   losers: number; // counted positions with return < 0
   activeCount: number; // active positions contributing an unrealized return
   closedCount: number; // closed positions contributing a realized return
-  activeAvgReturnPct: number | null; // avg unrealized return across the live book
-  closedAvgReturnPct: number | null; // avg realized return across closed positions
+  activeTotalReturnPct: number | null; // summed unrealized return across the live book
+  closedTotalReturnPct: number | null; // summed realized return across closed positions
 }
 
 // Row shape for the alpha_picks Supabase table.
