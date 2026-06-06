@@ -134,13 +134,12 @@ export function LearnDashboard() {
       });
       if (res.status === 401) { setAuthed(false); setError("Sign in to unlock lessons."); setConfirm(null); return; }
       if (res.status === 402) {
-        const d = (await res.json().catch(() => null)) as { credits?: number } | null;
-        if (d && typeof d.credits === "number") setCredits(d.credits);
         setError("Not enough credits to unlock that. Top up to continue.");
         setConfirm(null);
+        refreshCredits();
         return;
       }
-      if (!res.ok) { setError("Could not complete that unlock. Try again in a moment."); setConfirm(null); return; }
+      if (!res.ok) { setError("Could not complete that unlock. Try again in a moment."); setConfirm(null); refreshCredits(); return; }
       const data = (await res.json()) as { remaining?: number };
       if (typeof data.remaining === "number" && data.remaining >= 0) setCredits(data.remaining);
       if (pending.kind === "all") {

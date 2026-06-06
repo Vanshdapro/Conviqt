@@ -64,9 +64,71 @@ export async function isLessonUnlocked(email: string, lessonId: string): Promise
   }
 }
 
+// Returns true when a PostgREST / Postgres error indicates the function doesn't exist.
+function isMissingFnError(code: string | undefined, message: string | undefined): boolean {
+  return (
+    code === "PGRST202" ||
+    code === "42883" ||
+    /function .* does not exist/i.test(message ?? "") ||
+    /unlock_lesson/.test(message ?? "")
+  );
+}
+
+/**
+ * Fallback for unlock_lesson when migration 010 hasn't been applied.
+ * Uses the migration-004 deduct_credits function + a direct learn_unlocks insert.
+ */
+async function unlockLessonFallback(
+  email: string,
+  lessonId: string,
+  cost: number,
+): Promise<{ ok: boolean; already: boolean; remaining: number }> {
+  console.warn("[learnUnlock] unlock_lesson RPC missing — using deduct_credits fallback");
+  const normalizedEmail = email.toLowerCase().trim();
+  const supabase = getSupabaseAdmin();
+
+  // Already unlocked?
+  const { data: existing } = await supabase
+    .from("learn_unlocks")
+    .select("lesson_id")
+    .eq("email", normalizedEmail)
+    .eq("lesson_id", lessonId)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    const { data: row } = await supabase
+      .from("user_credits")
+      .select("credits")
+      .eq("email", normalizedEmail)
+      .single();
+    return { ok: true, already: true, remaining: (row as { credits: number } | null)?.credits ?? 0 };
+  }
+
+  // Deduct credits atomically (migration 004 — always present).
+  const { data: deductData, error: deductErr } = await supabase.rpc("deduct_credits", {
+    p_email: normalizedEmail,
+    p_credits: cost,
+    p_reason: "learn_unlock",
+    p_cost_usd: 0,
+  });
+
+  if (deductErr) throw new Error(`deduct_credits RPC failed: ${deductErr.message}`);
+
+  const deduct = deductData as { ok: boolean; remaining: number };
+  if (!deduct.ok) return { ok: false, already: false, remaining: deduct.remaining };
+
+  // Record the unlock row (upsert so a concurrent race doesn't double-error).
+  await supabase
+    .from("learn_unlocks")
+    .upsert({ email: normalizedEmail, lesson_id: lessonId, credits_paid: cost }, { onConflict: "email,lesson_id" });
+
+  return { ok: true, already: false, remaining: deduct.remaining };
+}
+
 /**
  * Atomically unlock one lesson. Charges lessonUnlockCost unless already
  * unlocked or free. Returns { ok, already, remaining }.
+ * Throws on unexpected RPC errors so the caller returns 500, not a misleading 402.
  */
 export async function unlockLesson(
   email: string,
@@ -80,8 +142,11 @@ export async function unlockLesson(
   });
 
   if (error) {
-    console.error("[learnUnlock] unlockLesson RPC error:", error.message);
-    return { ok: false, already: false, remaining: 0 };
+    console.error("[learnUnlock] unlockLesson RPC error:", error.code, error.message);
+    if (isMissingFnError(error.code, error.message)) {
+      return unlockLessonFallback(email, lessonId, lessonUnlockCost(lessonId));
+    }
+    throw new Error(`unlock_lesson RPC failed: ${error.message}`);
   }
 
   const result = data as { ok: boolean; already: boolean; remaining: number };
@@ -94,6 +159,7 @@ export async function unlockLesson(
 /**
  * Atomically unlock every still-locked lesson in `lessonIds` at the bundle rate.
  * Returns { ok, unlocked, charged, remaining }.
+ * Throws on unexpected RPC errors so the caller returns 500, not a misleading 402.
  */
 export async function unlockAllLessons(
   email: string,
@@ -109,8 +175,8 @@ export async function unlockAllLessons(
   });
 
   if (error) {
-    console.error("[learnUnlock] unlockAllLessons RPC error:", error.message);
-    return { ok: false, unlocked: 0, charged: 0, remaining: 0 };
+    console.error("[learnUnlock] unlockAllLessons RPC error:", error.code, error.message);
+    throw new Error(`unlock_lessons_bulk RPC failed: ${error.message}`);
   }
 
   const result = data as { ok: boolean; unlocked: number; charged: number; remaining: number };
