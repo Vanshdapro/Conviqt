@@ -87,13 +87,19 @@ async function unlockLessonFallback(
   const normalizedEmail = email.toLowerCase().trim();
   const supabase = getSupabaseAdmin();
 
-  // Already unlocked?
-  const { data: existing } = await supabase
+  // Already unlocked? A read error here (e.g. the learn_unlocks table doesn't
+  // exist yet) MUST abort before we touch credits — otherwise we'd charge the
+  // user and then be unable to record the unlock, leaving them paid-but-locked.
+  const { data: existing, error: existingErr } = await supabase
     .from("learn_unlocks")
     .select("lesson_id")
     .eq("email", normalizedEmail)
     .eq("lesson_id", lessonId)
     .limit(1);
+
+  if (existingErr) {
+    throw new Error(`learn_unlocks unavailable (pre-charge check): ${existingErr.message}`);
+  }
 
   if (existing && existing.length > 0) {
     const { data: row } = await supabase
@@ -118,9 +124,26 @@ async function unlockLessonFallback(
   if (!deduct.ok) return { ok: false, already: false, remaining: deduct.remaining };
 
   // Record the unlock row (upsert so a concurrent race doesn't double-error).
-  await supabase
+  // CRITICAL: if this insert fails, the credits we just deducted bought the
+  // user nothing — so we refund them and surface the failure as a 500 instead
+  // of returning a misleading "ok". This is the exact bug that let users pay
+  // repeatedly for a lesson that never unlocked.
+  const { error: insertErr } = await supabase
     .from("learn_unlocks")
     .upsert({ email: normalizedEmail, lesson_id: lessonId, credits_paid: cost }, { onConflict: "email,lesson_id" });
+
+  if (insertErr) {
+    console.error("[learnUnlock] unlock insert failed after charge — refunding:", insertErr.message);
+    const { error: refundErr } = await supabase.rpc("add_credits", {
+      p_email: normalizedEmail,
+      p_credits: cost,
+      p_reason: "learn_unlock_refund",
+    });
+    if (refundErr) {
+      console.error("[learnUnlock] REFUND ALSO FAILED — manual credit owed:", normalizedEmail, cost, refundErr.message);
+    }
+    throw new Error(`learn_unlocks insert failed (refunded ${cost}cr): ${insertErr.message}`);
+  }
 
   return { ok: true, already: false, remaining: deduct.remaining };
 }
