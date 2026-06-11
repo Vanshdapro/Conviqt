@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { DashNav } from "@/components/DashNav";
 
 // ── Theme tokens (mirrors /pricing + /methodology) ───────────────────────────
 
@@ -446,7 +445,6 @@ function TierCard({ tier }: { tier: (typeof TIERS)[number] }) {
 export default function DevelopersPage() {
   return (
     <div style={{ background: "#050d1a", minHeight: "100vh" }}>
-      <DashNav active="developers" />
 
       <main style={{ padding: "80px clamp(20px, 5vw, 80px) 100px", maxWidth: 920, margin: "0 auto" }}>
         {/* Hero */}

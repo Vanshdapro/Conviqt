@@ -4,7 +4,6 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { DashNav } from "@/components/DashNav";
 
 // The public home of the Disagreement Digest (Deliverable 6). Subscribe form
 // posts to /api/newsletter/subscribe (double opt-in); the confirm + unsubscribe
@@ -284,7 +283,6 @@ function NewsletterInner() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#050d1a", overflowX: "hidden" }}>
-      <DashNav />
 
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px 100px" }}>
         {status && <StatusBanner status={status} />}

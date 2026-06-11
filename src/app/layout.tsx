@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import "../styles/tokens.css";
+import "../styles/app.css";
+import { fontVars } from "@/lib/fonts";
+import { AppFrame } from "@/components/shell/AppShell";
 import { TranslationProvider } from "@/components/i18n/TranslationProvider";
 import Analytics from "@/components/analytics/Analytics";
 
@@ -82,6 +86,14 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
   },
   manifest: "/site.webmanifest",
+  // iOS Safari "Add to Home Screen": these emit apple-mobile-web-app-* meta so
+  // the installed icon launches standalone (no browser chrome) with a warm-paper
+  // status bar — the app must feel installable with no App Store presence yet.
+  appleWebApp: {
+    capable: true,
+    title: "Conviqt",
+    statusBarStyle: "default",
+  },
   // NOTE: no site-wide `alternates.canonical` here. A canonical set on the root
   // layout is inherited by every child page that doesn't override it, which
   // would wrongly point pages like /developers at the homepage and de-index
@@ -109,27 +121,24 @@ const ADS_TAG_ENABLED = process.env.VERCEL_ENV === "production";
 const SCRIPT_FALLBACKS =
   "'Noto Sans SC', 'Noto Sans Devanagari', 'Noto Sans Arabic'";
 
-// Fonts are loaded in two non-render-blocking requests (see <head> below):
-//   1. Latin — the families the default English site actually paints.
-//   2. Noto  — CJK / Devanagari / Arabic script fallbacks, only needed once
-//      Conviqt Translate switches to a non-Latin language. Splitting these out
-//      keeps the heavy CJK @font-face blocks off the critical path on every
-//      page (the big LCP/FCP win) without changing the --font-* cascade, so the
-//      glyph fallback still resolves once the deferred sheet lands.
-const FONTS_LATIN =
-  "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&display=swap";
+// The Almanac Latin type pairing (Cabinet Grotesk + General Sans) is now
+// SELF-HOSTED via next/font/local (see src/lib/fonts.ts) — no CDN <link>. Only
+// the Noto script fallbacks (CJK / Devanagari / Arabic) still load from the
+// Google CDN, and only matter once Conviqt Translate switches to a non-Latin
+// language; kept off the critical path with media="print" (flipped post-hydration).
 const FONTS_NOTO =
   "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap";
 
+// Map the next/font custom properties (--font-cabinet / --font-general, emitted
+// by the className on <html>) into the cascade the app + legacy pages read.
+// tokens.css also defines --font-display / --font-ui from these; this inline set
+// additionally rebinds the legacy --font-sans/-serif/-display vars onto the new
+// brand so pre-rebrand pages inherit Almanac type instead of Inter/Playfair.
 const FONT_VARS = {
-  "--font-sans":
-    `'Inter', ${SCRIPT_FALLBACKS}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
-  "--font-mono":
-    "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-  "--font-serif":
-    `'Source Serif 4', ${SCRIPT_FALLBACKS}, Georgia, 'Times New Roman', serif`,
-  "--font-display":
-    `'Playfair Display', ${SCRIPT_FALLBACKS}, Georgia, 'Times New Roman', serif`,
+  "--font-sans": `var(--font-general), ${SCRIPT_FALLBACKS}, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`,
+  "--font-serif": `var(--font-general), ${SCRIPT_FALLBACKS}, system-ui, sans-serif`,
+  "--font-display": `var(--font-cabinet), ${SCRIPT_FALLBACKS}, Georgia, "Times New Roman", serif`,
+  "--font-mono": "ui-monospace, SFMono-Regular, Menlo, monospace",
 } as React.CSSProperties;
 
 const jsonLd = {
@@ -194,21 +203,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased" style={FONT_VARS}>
+    <html lang="en" className={`h-full antialiased ${fontVars}`} style={FONT_VARS}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* Async font loading: media="print" makes the browser fetch the CSS
-            without blocking first paint. The <Analytics> client component flips
-            media to "all" right after hydration (display=swap keeps text visible
-            meanwhile), so SSR and the initial client render are IDENTICAL —
-            no hydration mismatch even with React 19's stylesheet hoisting. The
-            <noscript> path keeps fonts working with JS disabled. */}
-        <link rel="stylesheet" href={FONTS_LATIN} media="print" id="cvq-fonts-latin" />
+        {/* The brand Latin fonts are self-hosted (next/font/local); only the Noto
+            script fallbacks load from the CDN, off the critical path with
+            media="print". <Analytics> flips it to "all" post-hydration, so SSR
+            and the first client render stay identical (no hydration mismatch).
+            The <noscript> path keeps the fallbacks working with JS disabled. */}
         <link rel="stylesheet" href={FONTS_NOTO} media="print" id="cvq-fonts-noto" />
         <noscript>
-          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-          <link rel="stylesheet" href={FONTS_LATIN} />
           {/* eslint-disable-next-line @next/next/no-page-custom-font */}
           <link rel="stylesheet" href={FONTS_NOTO} />
         </noscript>
@@ -218,7 +223,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col relative">
-        <TranslationProvider>{children}</TranslationProvider>
+        <TranslationProvider>
+          <AppFrame>{children}</AppFrame>
+        </TranslationProvider>
         <Analytics />
         {ADS_TAG_ENABLED && (
           <>

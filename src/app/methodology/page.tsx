@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect, useCallback, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { DashNav } from "@/components/DashNav";
 
 // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -387,7 +386,6 @@ export default function MethodologyPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#050d1a", overflowX: "hidden" }}>
-      <DashNav active="methodology" />
 
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 100px" }}>
 

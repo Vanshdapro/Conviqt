@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DashNav } from "@/components/DashNav";
 
 // Server-rendered brand page. The homepage is a client-side 3D animation, so
 // crawlers and LLMs see very little text there. This page is the opposite:
@@ -93,7 +92,6 @@ export default function AboutPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }}
       />
-      <DashNav />
 
       <main
         style={{

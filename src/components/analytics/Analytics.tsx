@@ -13,14 +13,12 @@ export default function Analytics() {
 
   useEffect(() => {
     captureUtmFirstTouch();
-    // Activate the async fonts: the root layout renders the Google Fonts links
-    // with media="print" so they don't block first paint. Flipping to "all"
-    // here (post-hydration) applies them without any SSR/client attribute
-    // mismatch on the <link> elements.
-    for (const id of ["cvq-fonts-latin", "cvq-fonts-noto"]) {
-      const link = document.getElementById(id) as HTMLLinkElement | null;
-      if (link) link.media = "all";
-    }
+    // Activate the deferred Noto script-fallback sheet: the layout renders it
+    // with media="print" so it doesn't block first paint (the brand Latin fonts
+    // are self-hosted via next/font and need no flip). Flipping to "all" here
+    // (post-hydration) applies it with no SSR/client attribute mismatch.
+    const noto = document.getElementById("cvq-fonts-noto") as HTMLLinkElement | null;
+    if (noto) noto.media = "all";
   }, []);
 
   useEffect(() => {

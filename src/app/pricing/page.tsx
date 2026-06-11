@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { DashNav } from "@/components/DashNav";
 import { PricingCard, ManageSubscriptionButton } from "@/components/PricingCard";
 import type { PricingPlan } from "@/components/PricingCard";
 
@@ -438,7 +437,6 @@ function PricingContent() {
 
   return (
     <div style={{ background: "#050d1a", minHeight: "100vh" }}>
-      <DashNav active="pricing" />
 
       <main style={{ padding: "80px clamp(20px, 5vw, 80px) 0", position: "relative" }}>
 
