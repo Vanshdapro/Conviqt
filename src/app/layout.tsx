@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { TranslationProvider } from "@/components/i18n/TranslationProvider";
 import Analytics from "@/components/analytics/Analytics";
 
 const SITE_URL = "https://www.conviqt.com";
 const SITE_NAME = "Conviqt";
-const TITLE = "Conviqt — AI Equity Research. Cited. Accountable.";
+const TITLE = "Conviqt — Your personal team of AI analysts";
 const DESCRIPTION =
-  "Five AI agents debate every stock with live web data. Every number has a source URL. Alpha Tracker shows every trade — winners and losers.";
+  "Ask anything about any stock and get plain-English answers backed by live market data — plus a public track record we can't hide from, losses included.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -91,8 +92,16 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#050d1a",
+  // Almanac light theme — warm-paper page background (--bg-page).
+  themeColor: "#F5EFE1",
 };
+
+// Google Ads conversion tag. Fire ONLY on the production deploy — never from
+// localhost or a Vercel preview, where it would pollute real conversion data.
+// ID is overridable via NEXT_PUBLIC_GOOGLE_ADS_ID.
+const GOOGLE_ADS_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "AW-18214353433";
+const ADS_TAG_ENABLED = process.env.VERCEL_ENV === "production";
 
 // Script fallbacks (Chinese / Devanagari / Arabic) are appended to every font
 // chain so translated copy — including headings — renders real glyphs instead
@@ -211,6 +220,17 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col relative">
         <TranslationProvider>{children}</TranslationProvider>
         <Analytics />
+        {ADS_TAG_ENABLED && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+              strategy="lazyOnload"
+            />
+            <Script id="google-ads-config" strategy="lazyOnload">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GOOGLE_ADS_ID}');`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
