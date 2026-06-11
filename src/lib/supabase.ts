@@ -14,7 +14,9 @@ function readEnvLocal(): Map<string, string> {
     const map = new Map<string, string>();
     for (const line of text.split("\n")) {
       const m = line.match(/^([A-Z0-9_]+)=(.+)$/);
-      if (m) map.set(m[1], m[2].trim());
+      // Strip surrounding quotes — Next's own loader does, so the fallback
+      // must too (a quoted URL otherwise fails createClient validation).
+      if (m) map.set(m[1], m[2].trim().replace(/^["']|["']$/g, ""));
     }
     return map;
   } catch {

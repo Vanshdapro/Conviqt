@@ -111,7 +111,7 @@ export async function runCouncil(
   }
   totalCostUSD += sweep.costUSD;
   console.log(
-    `[Council] ${upper} sweep done in ${sweep.durationMs}ms, ${sweep.factSheet.facts.length} facts, ${sweep.factSheet.sources.length} sources, ${sweep.webSearchCount} searches, ${sweep.rejectedSources} rejected, cost=$${sweep.costUSD.toFixed(4)}`
+    `[Council] ${upper} sweep done in ${sweep.durationMs}ms, ${sweep.factSheet.facts.length} facts (${sweep.marketDataFacts} from data feed), ${sweep.factSheet.sources.length} sources, ${sweep.webSearchCount} searches, ${sweep.rejectedSources} rejected, cost=$${sweep.costUSD.toFixed(4)}`
   );
 
   if (sweep.rejectedSources > 0) {

@@ -4,45 +4,48 @@ import {
   estimateCallCostUSD,
 } from "../anthropic";
 import { normalizeUrl } from "../url-normalize";
+import { quote as mdQuote, type Quote } from "../marketdata";
 import type { Source } from "../agents/types";
 import type { Holding, HoldingFacts, PortfolioFactSheet } from "./types";
 
 // The portfolio sweep is the single point where the auditor touches the open
-// web. It runs ONE Haiku call with web_search to batch-collect, for the whole
-// basket: each holding's sector + current price (with sources) plus a shared
-// macro-regime read. This is the cost lever — we never run a sweep per
-// holding. Searches are capped hard.
+// web. PRICES NO LONGER COME FROM SEARCH: every holding is priced through
+// src/lib/marketdata (free keyless feeds, 15-min cache, $0) before the model
+// is even called. The single Haiku call now batch-collects only what a price
+// feed can't know — each holding's identity (company name, sector, asset
+// type) and a shared macro-regime read. That cut the search cap from 4 to 2,
+// halving the dominant cost driver of the audit.
 //
 // Provenance is enforced exactly like the Council sweep: the canonical Source
 // list is derived from the web_search_tool_result blocks Anthropic returns,
 // and model-reported sources that don't match a real search URL are dropped.
+// Feed prices carry their own deterministic Source (the feed's public page).
 
-// A portfolio audit may cover more tickers than a single search can cover
-// well, so we allow a few more searches than the single-stock sweep — but
-// still cap hard. 4 searches = $0.04 in tool fees; this is the single
-// biggest cost driver in the audit.
+// 2 searches = $0.02 in tool fees: one batched identity search + one macro
+// search. Prices are injected from the marketdata layer, never searched.
 const PORTFOLIO_WEB_SEARCH_TOOL = {
   type: "web_search_20250305" as const,
   name: "web_search" as const,
-  max_uses: 4,
+  max_uses: 2,
 };
 
 const SYSTEM = `You are the Portfolio Sweep agent for Conviqt's Portfolio Auditor.
 
-Your job: given a list of US-listed tickers and share counts, gather the freshest factual evidence the five risk analysts need. You are NOT giving advice or a verdict. You are producing a structured, cited fact sheet.
+Your job: given a list of US-listed tickers and share counts, gather the qualitative context the five risk analysts need. You are NOT giving advice or a verdict. You are producing a structured, cited fact sheet.
+
+IMPORTANT — do NOT search for prices. Current prices for every holding are supplied automatically by Conviqt's market data feed and merged in after you report. Spend searches only on identity and macro context.
 
 Procedure:
-1. Use the web_search tool (up to 4 searches) efficiently. Batch tickers per query — do not search one ticker at a time.
-   - Search 1-2: current prices + sectors for the holdings (e.g. "AAPL MSFT NVDA stock price today sector").
-   - Search 3: any remaining holdings' prices/sectors.
-   - Search 4: current macro regime — fed funds rate, inflation trend, growth/recession signals, market risk appetite (e.g. "fed funds rate inflation CPI market outlook 2026").
+1. Use the web_search tool (up to 2 searches) efficiently. Batch tickers per query — do not search one ticker at a time.
+   - Search 1: identities for any holdings you are not certain about — company name, sector, asset type (e.g. "AAPL MSFT NVDA company sector industry").
+   - Search 2: current macro regime — fed funds rate, inflation trend, growth/recession signals, market risk appetite (e.g. "fed funds rate inflation CPI market outlook 2026").
 2. After searching, call report_portfolio_facts ONCE with everything you found. Produce no other final output.
 
 Rules:
-- MANDATORY: the sources array must contain the exact URLs from your web_search results. Copy URLs verbatim — do not paraphrase or invent. The post-processor cross-checks every URL against the real search results and drops mismatches; an empty sources array discards every fact.
-- For EVERY holding, return companyName, sector, a current price string with units (e.g. "$187.32"), priceNum (the bare number, e.g. 187.32), priceAsOf, assetType, and the sourceIndexes backing it. If you genuinely cannot find a price for a ticker, set priceNum to null and add it to unresolved.
-- Never invent a price. A wrong number is worse than a null.
+- MANDATORY: the sources array must contain the exact URLs from your web_search results. Copy URLs verbatim — do not paraphrase or invent. The post-processor cross-checks every URL against the real search results and drops mismatches.
+- For EVERY holding, return companyName, sector, assetType, and the sourceIndexes backing them. Identity facts (name, sector, asset type) for well-known tickers MAY be reported from your own knowledge with an empty sourceIndexes array — identities are stable. NEVER do that for any number.
 - Sector should be a clean GICS-style label ("Technology", "Financials", "Health Care", "Energy", "Consumer Discretionary", etc.). For ETFs use the underlying theme.
+- If a ticker does not resolve to a real US-listed instrument, set assetType to "unknown" and add it to unresolved.
 - macroRegime: 2-4 sentences on the CURRENT regime (rates, inflation, growth, risk appetite), with macroSourceIndexes citing where it came from.`;
 
 const REPORT_TOOL = {
@@ -76,13 +79,15 @@ const REPORT_TOOL = {
             companyName: { type: "string" },
             sector: { type: "string" },
             industry: { type: "string" },
-            price: { type: "string", description: "Price string with units, e.g. '$187.32'." },
-            priceNum: { type: ["number", "null"], description: "Bare numeric price, e.g. 187.32, or null if not found." },
-            priceAsOf: { type: "string", description: "Freshness, e.g. 'close 2026-05-30'." },
             assetType: { type: "string", enum: ["equity", "etf", "index", "unknown"] },
-            sourceIndexes: { type: "array", items: { type: "number" } },
+            sourceIndexes: {
+              type: "array",
+              items: { type: "number" },
+              description:
+                "Sources backing this identity. May be empty for well-known tickers reported from model knowledge.",
+            },
           },
-          required: ["ticker", "companyName", "sector", "price", "priceNum", "assetType", "sourceIndexes"],
+          required: ["ticker", "companyName", "sector", "assetType", "sourceIndexes"],
         },
       },
       macroRegime: {
@@ -97,7 +102,7 @@ const REPORT_TOOL = {
       unresolved: {
         type: "array",
         items: { type: "string" },
-        description: "Tickers you could not resolve or price at all.",
+        description: "Tickers that do not resolve to a real US-listed instrument.",
       },
     },
     required: ["sources", "holdings", "macroRegime", "macroSourceIndexes", "unresolved"],
@@ -124,9 +129,6 @@ interface ReportInput {
     companyName: string;
     sector: string;
     industry?: string;
-    price: string;
-    priceNum: number | null;
-    priceAsOf?: string;
     assetType: "equity" | "etf" | "index" | "unknown";
     sourceIndexes: number[];
   }>;
@@ -141,6 +143,9 @@ export interface PortfolioSweepResult {
   durationMs: number;
   webSearchCount: number;
   rejectedSources: number;
+  // Holdings priced by the marketdata layer (vs. left unpriced — feeds down
+  // or unknown symbol). Pricing no longer involves the model at all.
+  marketDataPriced: number;
 }
 
 function extractCanonicalUrls(
@@ -187,6 +192,26 @@ export async function runPortfolioSweep(
   const asOf = opts.asOf ?? new Date().toISOString();
   const anthropic = getAnthropic();
 
+  // Price the whole basket through the marketdata layer FIRST, in parallel
+  // with nothing — it's cached and free, and the model call below no longer
+  // depends on it. A null quote = honestly unpriced, never guessed.
+  const tickers = holdings.map((h) => h.ticker.toUpperCase());
+  const quotes = await Promise.all(
+    tickers.map(async (t) => {
+      try {
+        return await mdQuote(t);
+      } catch (err) {
+        console.warn(`[PortfolioSweep] marketdata quote failed for ${t}:`, err);
+        return null;
+      }
+    })
+  );
+  const quoteByTicker = new Map<string, Quote>();
+  tickers.forEach((t, i) => {
+    const q = quotes[i];
+    if (q) quoteByTicker.set(t, q);
+  });
+
   const tickerList = holdings
     .map((h) => `${h.ticker.toUpperCase()} (${h.shares} sh)`)
     .join(", ");
@@ -201,7 +226,7 @@ export async function runPortfolioSweep(
         role: "user",
         content: `Portfolio holdings (${holdings.length}): ${tickerList}
 
-Run your batched searches now, then call report_portfolio_facts with sectors + current prices for every holding plus the macro regime.`,
+Run your batched searches now, then call report_portfolio_facts with identities (company, sector, asset type) for every holding plus the macro regime. Prices are handled by the data feed — do not search for them.`,
       },
     ],
   });
@@ -278,27 +303,58 @@ Run your batched searches now, then call report_portfolio_facts with sectors + c
         )
       : [];
 
-  const requested = new Set(holdings.map((h) => h.ticker.toUpperCase()));
+  // Append one deterministic feed Source per distinct provider page used to
+  // price the basket. Feed sources sit AFTER the provenance-validated search
+  // sources, so the remap above is untouched.
+  const feedSlotByUrl = new Map<string, number>();
+  function feedSourceIndex(q: Quote): number {
+    const existing = feedSlotByUrl.get(q.sourceUrl);
+    if (existing !== undefined) return existing;
+    const idx = validSources.length;
+    validSources.push({
+      url: q.sourceUrl,
+      title: `${q.ticker} — market data feed (${q.freshnessLabel})`,
+      publisher: q.provider === "stooq" ? "Stooq" : q.provider === "yahoo" ? "Yahoo Finance" : "Finnhub",
+      retrievedAt: asOf,
+    });
+    feedSlotByUrl.set(q.sourceUrl, idx);
+    return idx;
+  }
+
+  const requested = new Set(tickers);
   const reported = Array.isArray(input.holdings) ? input.holdings : [];
   const seen = new Set<string>();
 
+  // Identity from the model (cited or knowledge-based), price from the feed.
   const holdingFacts: HoldingFacts[] = [];
+  function pushHolding(
+    ticker: string,
+    identity: { companyName: string; sector: string; industry?: string; assetType: HoldingFacts["assetType"]; sourceIndexes: number[] }
+  ) {
+    const q = quoteByTicker.get(ticker) ?? null;
+    const sourceIndexes = [...identity.sourceIndexes];
+    if (q) sourceIndexes.push(feedSourceIndex(q));
+    holdingFacts.push({
+      ticker,
+      companyName: identity.companyName,
+      sector: identity.sector,
+      industry: identity.industry,
+      price: q ? `$${q.price.toFixed(2)}` : "—",
+      priceNum: q ? q.price : null,
+      priceAsOf: q ? `${q.freshnessLabel} · ${q.asOf.slice(0, 10)}` : undefined,
+      assetType: identity.assetType,
+      sourceIndexes,
+    });
+  }
+
   for (const h of reported) {
     const ticker = (h.ticker ?? "").toUpperCase();
     if (!ticker || !requested.has(ticker) || seen.has(ticker)) continue;
     seen.add(ticker);
-    const priceNum =
-      typeof h.priceNum === "number" && isFinite(h.priceNum) && h.priceNum > 0
-        ? h.priceNum
-        : null;
-    holdingFacts.push({
-      ticker,
+    pushHolding(ticker, {
       companyName: h.companyName?.trim() || ticker,
       sector: h.sector?.trim() || "Unknown",
       industry: h.industry?.trim() || undefined,
-      price: h.price?.trim() || (priceNum !== null ? `$${priceNum}` : "—"),
-      priceNum,
-      priceAsOf: h.priceAsOf?.trim() || undefined,
       assetType:
         h.assetType && ["equity", "etf", "index", "unknown"].includes(h.assetType)
           ? h.assetType
@@ -307,16 +363,13 @@ Run your batched searches now, then call report_portfolio_facts with sectors + c
     });
   }
 
-  // Any requested ticker the model never reported on = unresolved stub so the
-  // metrics layer can flag it instead of silently dropping it.
+  // Any requested ticker the model never reported on still gets priced by
+  // the feed — identity unknown, price real.
   for (const t of requested) {
     if (!seen.has(t)) {
-      holdingFacts.push({
-        ticker: t,
+      pushHolding(t, {
         companyName: t,
         sector: "Unknown",
-        price: "—",
-        priceNum: null,
         assetType: "unknown",
         sourceIndexes: [],
       });
@@ -335,8 +388,8 @@ Run your batched searches now, then call report_portfolio_facts with sectors + c
   const pricedCount = holdingFacts.filter((h) => h.priceNum !== null).length;
   if (pricedCount === 0) {
     throw new Error(
-      `[PortfolioSweep] could not price any of the ${holdings.length} holdings. ` +
-        `Rejected ${rejectedSources} unverified sources. Unresolved: ${unresolved.join(", ")}.`
+      `[PortfolioSweep] the market data feed could not price any of the ${holdings.length} holdings ` +
+        `(feeds down or unknown symbols). Unresolved: ${unresolved.join(", ")}.`
     );
   }
 
@@ -356,7 +409,7 @@ Run your batched searches now, then call report_portfolio_facts with sectors + c
   const costUSD = estimateCallCostUSD(MODELS.sweep, response.usage, webSearchCount);
 
   console.log(
-    `[PortfolioSweep] done in ${Date.now() - t0}ms: priced ${pricedCount}/${holdings.length}, ` +
+    `[PortfolioSweep] done in ${Date.now() - t0}ms: priced ${pricedCount}/${holdings.length} via marketdata, ` +
       `${validSources.length} sources, ${webSearchCount} searches, ${rejectedSources} rejected, cost=$${costUSD.toFixed(4)}`
   );
 
@@ -366,5 +419,6 @@ Run your batched searches now, then call report_portfolio_facts with sectors + c
     durationMs: Date.now() - t0,
     webSearchCount,
     rejectedSources,
+    marketDataPriced: pricedCount,
   };
 }

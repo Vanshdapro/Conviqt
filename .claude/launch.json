@@ -5,7 +5,8 @@
       "name": "conviqt-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 3002,
+      "cwd": "/Users/vanshagarwal/Desktop/conviqt/conviqt",
+      "port": 3099,
       "autoPort": true
     }
   ]
