@@ -59,14 +59,17 @@ API/developers surface, CDI page, standalone Watchlist page (merged into
 Portfolio), Translate, Newsletter, 3D intro, particle canvas, gradient-serif
 marketing pages.
 
-**Status:** these are RETIRED IN INTENT but most still exist in the codebase
-today — the actual removal + 301 redirects happen in Phase 8 (only `/index → /cdi`
-exists so far, and `TranslationProvider` is still wired into `layout.tsx`).
-Until Phase 8: do NOT extend or build new features on these, but do NOT delete
-them mid-stream either — live API routes and error messages still reference some
-(e.g. `/api/keys` mentions `/developers`), and `layout.tsx` still imports
-`TranslationProvider`, so a premature delete breaks the build. After Phase 8 the
-pre-rebrand versions live on `legacy-v1` only.
+**Status:** the **3D intro + particle canvas are GONE** (deleted in Phase 2:
+`src/components/3d`, `HeroSection`, the `/preview` page; `page.tsx` is now an
+on-brand placeholder until Phase 6). **DashNav is GONE** too — replaced by the
+shell in `src/components/shell/AppShell.tsx`. The remaining retired items
+(API/developers, CDI, standalone Watchlist, Translate, Newsletter, gradient-serif
+marketing) still exist as route pages; their removal + 301s happen in Phase 8.
+Until then: do NOT extend or build new features on those routes, but do NOT
+delete them mid-stream either — live API routes and error messages still
+reference some (e.g. `/api/keys` mentions `/developers`), and `layout.tsx` still
+imports `TranslationProvider`, so a premature delete breaks the build. After
+Phase 8 the pre-rebrand versions live on `legacy-v1` only.
 
 ## Brand — "ALMANAC" (light, warm-editorial)
 
@@ -98,9 +101,9 @@ set may appear anywhere in the UI, ever.
 - **Typography:** Cabinet Grotesk (display — headlines, big numbers, hero) +
   General Sans (UI, body, data tables with tabular figures ON for numbers).
   Both self-hosted via `next/font/local` from downloaded `.woff2` (Fontshare).
-  Never a CDN `<link>`. ⚠️ Not done yet: `layout.tsx` today still loads
-  Inter/Playfair/Noto from the Google Fonts CDN — that is legacy and is
-  replaced in Phase 2. Don't take the current font stack as compliant.
+  Never a CDN `<link>`. ✅ Done in Phase 2: `src/lib/fonts.ts` self-hosts both
+  from `src/fonts/*.woff2`; `layout.tsx` no longer loads Inter/Playfair from the
+  Google CDN (only the Noto script fallbacks remain, for Translate).
 - **Radius:** 14px cards / 9px controls / 999px pills. **Spacing:** 4px base scale.
 - **Elevation:** separate surfaces by TONE + 1px border, not heavy shadows.
   Max shadow: `0 2px 8px rgba(42,28,21,.06)`.
@@ -121,9 +124,11 @@ set may appear anywhere in the UI, ever.
   not in OG images, not in one-off marketing pages. A stray purple gradient or
   a pure-white card is how this brand dies.
 - All colors come from `tokens.css` variables, never hardcoded hex in
-  components. ⚠️ `src/styles/tokens.css` is CREATED in Phase 2 — it does not
-  exist yet, and legacy pages still use hardcoded hex (e.g. `#050d1a`). This
-  rule governs all NEW and rebranded code; legacy hex gets swept in Phase 8.
+  components. ✅ `src/styles/tokens.css` now exists (Phase 2) and is the single
+  home for colour values; component styling lives in `src/styles/app.css` and
+  references only those tokens (tints via `color-mix`). Legacy pages still use
+  hardcoded hex (e.g. `#050d1a`) — that gets swept in Phase 8. The token rule
+  governs all NEW and rebranded code today.
 
 ## Copy rules
 
@@ -240,11 +245,13 @@ claim is traceable, (b) the verdict reads in plain English.
   Sentry breadcrumb if Sentry is wired.
 - No new files without checking if an existing one already does the job.
 - No new dependencies without checking package.json first.
-- Use the components/ patterns that already exist. ⚠️ The
-  `src/components/ui/` primitives (Card, StatTile, TickerChip, Sparkline,
-  SkeletonLoader, EmptyState, ModeToggle, Sheet) are BUILT in Phase 2 — they
-  don't exist yet. Until then, reuse what's actually in `src/components/`;
-  after Phase 2, prefer these primitives over re-rolling.
+- Use the components/ patterns that already exist. ✅ The `src/components/ui/`
+  primitives now EXIST (built in Phase 2): `Card`, `StatTile`, `TickerChip`
+  (+ `ChangePill`/`ChangeText`), `Sparkline`, `AreaChart`, `Skeleton`/
+  `SkeletonText`/`SkeletonLoader`, `EmptyState`, `ModeToggle`, `Sheet` — import
+  from `@/components/ui`. The logged-in chrome is `@/components/shell/AppShell`
+  (mounted once in `layout.tsx`, path-gated). PREFER these over re-rolling new
+  surfaces; only reach for legacy `src/components/` patterns on legacy pages.
 - No `NEXT_PUBLIC_USE_MOCK_DATA` flag. No synthetic data fallbacks. If a
   data source fails, the UI says so honestly ("data unavailable").
 - No demo paths in production. To test without spending API credit, use a
