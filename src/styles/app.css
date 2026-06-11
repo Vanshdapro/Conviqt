@@ -22,7 +22,12 @@
   .app-frame--shell {
     padding-left: 0;
     padding-top: var(--topbar-h);
-    padding-bottom: var(--tabbar-h);
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  }
+  /* Without this, the main column's own 100dvh stacks on top of the frame's
+     top/bottom chrome padding and every page scrolls ~120px past its content. */
+  .app-frame--shell .app-main {
+    min-height: calc(100dvh - var(--topbar-h) - var(--tabbar-h) - env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -215,11 +220,13 @@
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: var(--tabbar-h);
+    /* border-box: the safe-area padding must ADD to the bar, not eat the 64px
+       tab area, or icons+labels get crushed on home-indicator iPhones. */
+    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
     background: var(--bg-sunken);
     border-top: 1px solid var(--border);
     z-index: 40;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .cvq-tab {
     flex: 1;
@@ -258,7 +265,6 @@
   padding: var(--space-5);
 }
 .cvq-card--sunken { background: var(--bg-sunken); }
-.cvq-card--flat { box-shadow: none; }
 .cvq-card--raised { box-shadow: var(--shadow-card); }
 .cvq-card--pad-lg { padding: var(--space-6); }
 .cvq-card--interactive {

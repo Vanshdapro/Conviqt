@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-// The Academy sub-navigation. Sits just under the global DashNav on every
+// The Academy sub-navigation. Sits just under the app shell chrome on every
 // /academy route and lets the learner move between the hub, the Learn
 // curriculum, and the Practice desk without losing the "I'm in the Academy"
 // frame. Palette matches the Learn dashboard.

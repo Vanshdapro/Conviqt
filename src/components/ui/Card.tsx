@@ -32,7 +32,6 @@ export function Card({
     raised && "cvq-card--raised",
     interactive && "cvq-card--interactive",
     padding === "lg" && "cvq-card--pad-lg",
-    padding === "none" && "cvq-card--flat",
     className,
   ]
     .filter(Boolean)

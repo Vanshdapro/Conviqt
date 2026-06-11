@@ -9,6 +9,13 @@ function directionOf(change?: number): Direction {
   return "flat";
 }
 
+/** Round to the 2dp the UI displays, so the arrow/tint and the text can never
+    disagree (a raw −0.004 must not render as a red "−0.00%" pill). */
+function displayChange(change?: number): number | undefined {
+  if (change === undefined || change === null || Number.isNaN(change)) return undefined;
+  return Math.round(change * 100) / 100;
+}
+
 const ARROW: Record<Direction, string> = { up: "▲", down: "▼", flat: "▬" };
 
 function fmtPct(change: number): string {
@@ -37,25 +44,30 @@ export function ChangePill({
   /** override the auto-formatted "+2.57%" text */
   label?: ReactNode;
 }) {
-  const dir = directionOf(change);
+  const shown = displayChange(change);
+  const dir = directionOf(shown);
   return (
     <span className={`cvq-pill cvq-pill--${dir}`}>
       <span className="cvq-pill-arrow" aria-hidden>
         {ARROW[dir]}
       </span>
-      {label ?? (change !== undefined ? fmtPct(change) : "—")}
+      {label ?? (shown !== undefined ? fmtPct(shown) : "—")}
     </span>
   );
 }
 
 /** Inline change text (no pill) — up-ink / down-ink, still arrow-prefixed. */
 export function ChangeText({ change, label }: { change?: number; label?: ReactNode }) {
-  const dir = directionOf(change);
-  if (dir === "flat") return <span className="cvq-delta">{label ?? "—"}</span>;
+  const shown = displayChange(change);
+  const dir = directionOf(shown);
+  if (dir === "flat") {
+    // A real 0.00% still reads as a number — "—" is reserved for no data.
+    return <span className="cvq-delta">{label ?? (shown !== undefined ? fmtPct(shown) : "—")}</span>;
+  }
   return (
     <span className={`cvq-delta cvq-delta--${dir}`}>
       <span aria-hidden>{ARROW[dir]} </span>
-      {label ?? (change !== undefined ? fmtPct(change) : "")}
+      {label ?? fmtPct(shown as number)}
     </span>
   );
 }

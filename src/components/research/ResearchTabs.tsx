@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-// The Research sub-navigation. Sits under the global DashNav on every Research
+// The Research sub-navigation. Sits under the app shell chrome on every Research
 // surface and lets the user move between the hub overview, the Analyst (the
 // on-demand Council chat), and the Portfolio Auditor without losing the "I'm
 // in Research" frame. Mirrors AcademyTabs. Note the Analyst tab keeps the
