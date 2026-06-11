@@ -10,7 +10,16 @@
 // a human can visit. Delayed data is fine; unlabeled data is not. If no
 // provider can answer, callers get null — never synthetic numbers.
 
-export type ProviderName = "stooq" | "yahoo" | "finnhub";
+export type ProviderName = "stooq" | "yahoo" | "finnhub" | "fmp";
+
+// Human-readable publisher names for Source attribution (one source of
+// truth — both sweep agents render these).
+export const PROVIDER_LABELS: Record<ProviderName, string> = {
+  stooq: "Stooq",
+  yahoo: "Yahoo Finance",
+  finnhub: "Finnhub",
+  fmp: "Financial Modeling Prep",
+};
 
 export type Capability = "quote" | "history" | "keyStats";
 
@@ -24,6 +33,17 @@ export const HISTORY_RANGES: HistoryRange[] = [
   "2y",
   "5y",
 ];
+
+// Calendar days each range spans — shared by every provider that builds
+// from/to date windows, so all providers serve identical ranges.
+export const HISTORY_RANGE_DAYS: Record<HistoryRange, number> = {
+  "1mo": 31,
+  "3mo": 92,
+  "6mo": 184,
+  "1y": 366,
+  "2y": 731,
+  "5y": 1827,
+};
 
 export type Freshness = "realtime" | "delayed" | "eod";
 

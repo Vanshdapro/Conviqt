@@ -4,7 +4,7 @@ import {
   estimateCallCostUSD,
 } from "../anthropic";
 import { normalizeUrl } from "../url-normalize";
-import { quote as mdQuote, type Quote } from "../marketdata";
+import { quote as mdQuote, PROVIDER_LABELS, type Quote } from "../marketdata";
 import type { Source } from "../agents/types";
 import type { Holding, HoldingFacts, PortfolioFactSheet } from "./types";
 
@@ -314,7 +314,7 @@ Run your batched searches now, then call report_portfolio_facts with identities 
     validSources.push({
       url: q.sourceUrl,
       title: `${q.ticker} — market data feed (${q.freshnessLabel})`,
-      publisher: q.provider === "stooq" ? "Stooq" : q.provider === "yahoo" ? "Yahoo Finance" : "Finnhub",
+      publisher: PROVIDER_LABELS[q.provider] ?? q.provider,
       retrievedAt: asOf,
     });
     feedSlotByUrl.set(q.sourceUrl, idx);

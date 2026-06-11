@@ -8,6 +8,7 @@ import { normalizeUrl } from "../url-normalize";
 import {
   quote as mdQuote,
   keyStats as mdKeyStats,
+  PROVIDER_LABELS,
   type Quote,
   type KeyStats,
 } from "../marketdata";
@@ -207,11 +208,7 @@ interface MarketFactBundle {
   sources: Source[];
 }
 
-const PROVIDER_PUBLISHER: Record<string, string> = {
-  stooq: "Stooq",
-  yahoo: "Yahoo Finance",
-  finnhub: "Finnhub",
-};
+const PROVIDER_PUBLISHER: Record<string, string> = PROVIDER_LABELS;
 
 function formatCompactUSD(n: number): string {
   const abs = Math.abs(n);
@@ -274,7 +271,11 @@ function buildMarketFactBundle(
   }
   if (ks) {
     const asOfDate = ks.asOf.slice(0, 10);
-    if (ks.marketCap !== null) {
+    // Zero/negative market cap or 52w bounds are feed data errors, not facts
+    // — drop them rather than render "$0" as evidence. (A zero VOLUME is
+    // real data — a halted session — so volume only requires non-null.
+    // Negative P/E is legitimate for loss-makers and passes through.)
+    if (ks.marketCap !== null && ks.marketCap > 0) {
       push(
         { key: "market_cap", value: formatCompactUSD(ks.marketCap), category: "fundamental", asOf: asOfDate },
         ks.provider, ks.sourceUrl, ks.ticker
@@ -286,7 +287,7 @@ function buildMarketFactBundle(
         ks.provider, ks.sourceUrl, ks.ticker
       );
     }
-    if (ks.week52High !== null && ks.week52Low !== null) {
+    if (ks.week52High !== null && ks.week52Low !== null && ks.week52Low > 0 && ks.week52High >= ks.week52Low) {
       push(
         { key: "52w_range", value: `$${ks.week52Low.toFixed(2)} – $${ks.week52High.toFixed(2)}`, category: "technical", asOf: asOfDate },
         ks.provider, ks.sourceUrl, ks.ticker
@@ -304,7 +305,13 @@ function buildMarketFactBundle(
 }
 
 // Append bundled market facts to a validated FactSheet (source indexes are
-// offset past the web-search sources) and drop now-covered gap categories.
+// offset past the web-search sources).
+//
+// Gap rule: only the PRICE gap is considered covered by feed injection — a
+// quote genuinely is the price category. Market cap / P/E / 52w range are
+// thin slices of the fundamental/technical categories, so those gaps stay:
+// specialists use gaps to lower confidence on lanes with insufficient data,
+// and two stats do not make a fundamentals lane sufficient.
 function mergeMarketFacts(sheet: FactSheet, bundle: MarketFactBundle): number {
   if (bundle.entries.length === 0) return 0;
   const base = sheet.sources.length;
@@ -312,8 +319,9 @@ function mergeMarketFacts(sheet: FactSheet, bundle: MarketFactBundle): number {
   for (const { fact, sourceSlot } of bundle.entries) {
     sheet.facts.push({ ...fact, sourceIndex: base + sourceSlot });
   }
-  const covered = new Set(bundle.entries.map((e) => e.fact.category));
-  sheet.gaps = sheet.gaps.filter((g) => !covered.has(g));
+  if (bundle.entries.some((e) => e.fact.category === "price")) {
+    sheet.gaps = sheet.gaps.filter((g) => g !== "price");
+  }
   return bundle.entries.length;
 }
 
@@ -438,7 +446,12 @@ export async function runSweep(
       asOf,
       facts: [],
       sources: [],
-      gaps: ["identity", "sentiment", "macro"],
+      // The web sweep produced nothing, so every qualitative category is a
+      // gap. mergeMarketFacts below removes "price" if the quote landed;
+      // fundamental/technical stay flagged even with market-cap/52w facts —
+      // two stats do not make those lanes sufficient (specialists read gaps
+      // to lower confidence).
+      gaps: ["identity", "fundamental", "technical", "sentiment", "macro"],
       narrative:
         "Web research was unavailable for this run; only market data feed numbers are included. Qualitative context (news, sentiment, macro) is missing.",
     };

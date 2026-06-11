@@ -24,6 +24,15 @@ export const UNAVAILABLE_TTL_MS = 60 * 1000;
 
 const TABLE = "marketdata_cache";
 
+// One client per process, created lazily — getSupabaseAdmin() builds a fresh
+// client (auth context, transport) every call, which is waste at cache-read
+// frequency. Lazy because env vars may legitimately be absent in scripts.
+let adminClient: ReturnType<typeof getSupabaseAdmin> | null = null;
+function client() {
+  if (!adminClient) adminClient = getSupabaseAdmin();
+  return adminClient;
+}
+
 // Warn about a broken Supabase cache once per process, not once per request.
 let supabaseCacheBroken = false;
 
@@ -40,8 +49,7 @@ function warnSupabaseOnce(op: string, err: unknown) {
 
 async function supabaseRead<T>(key: string, ttlMs: number): Promise<T | undefined> {
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const { data, error } = await client()
       .from(TABLE)
       .select("payload, fetched_at")
       .eq("cache_key", key)
@@ -65,8 +73,7 @@ function supabaseWrite(key: string, payload: unknown): void {
   // to the request that produced the data.
   (async () => {
     try {
-      const supabase = getSupabaseAdmin();
-      const { error } = await supabase
+      const { error } = await client()
         .from(TABLE)
         .upsert({ cache_key: key, payload, fetched_at: new Date().toISOString() });
       if (error) warnSupabaseOnce("write", error.message);

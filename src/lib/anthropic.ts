@@ -24,7 +24,9 @@ function resolveApiKey(): string {
         "utf8"
       );
       const match = contents.match(/^ANTHROPIC_API_KEY=(.+)$/m);
-      if (match) return match[1].trim();
+      // Strip surrounding quotes — Next's own loader does, so this fallback
+      // must too (a quoted key otherwise fails SDK validation).
+      if (match) return match[1].trim().replace(/^["']|["']$/g, "");
     } catch {
       // .env.local missing or unreadable — fall through to the error below
     }

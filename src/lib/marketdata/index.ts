@@ -64,7 +64,17 @@ export async function quote(ticker: string): Promise<Quote | null> {
   const t = normalizeTicker(ticker);
   if (!t) return null;
   return cachedFetch<Quote>(`md:quote:${t}`, QUOTE_TTL_MS, () =>
-    firstToAnswer("quote", (p) => p.quote(t))
+    firstToAnswer("quote", async (p) => {
+      const q = await p.quote(t);
+      // Boundary invariant: a Quote that leaves this layer has a real,
+      // positive price. A 0/NaN/negative price from a feed is a data error —
+      // treat it as a provider failure so the chain tries the next source.
+      // (Downstream: portfolio weights divide by price; facts render it.)
+      if (!Number.isFinite(q.price) || q.price <= 0) {
+        throw new ProviderError(p.name, `invalid price ${q.price} for ${t}`);
+      }
+      return q;
+    })
   );
 }
 

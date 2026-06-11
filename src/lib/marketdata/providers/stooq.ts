@@ -19,6 +19,7 @@
 import {
   Candle,
   FRESHNESS_LABELS,
+  HISTORY_RANGE_DAYS,
   HistoryRange,
   KeyStats,
   MarketDataProvider,
@@ -55,15 +56,6 @@ function parseNum(s: string | undefined): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
-
-const RANGE_DAYS: Record<HistoryRange, number> = {
-  "1mo": 31,
-  "3mo": 92,
-  "6mo": 184,
-  "1y": 366,
-  "2y": 731,
-  "5y": 1827,
-};
 
 function yyyymmdd(d: Date): string {
   return d.toISOString().slice(0, 10).replace(/-/g, "");
@@ -155,7 +147,7 @@ async function quote(ticker: string): Promise<Quote> {
 }
 
 async function history(ticker: string, range: HistoryRange): Promise<PriceHistory> {
-  const candles = await fetchHistoryCsv(ticker, RANGE_DAYS[range]);
+  const candles = await fetchHistoryCsv(ticker, HISTORY_RANGE_DAYS[range]);
   return {
     ticker: ticker.toUpperCase(),
     range,
@@ -171,11 +163,9 @@ async function history(ticker: string, range: HistoryRange): Promise<PriceHistor
 // Partial stats: 52w range + latest volume from Stooq's own feed. No market
 // cap, no P/E — those fields stay null and `partial` is true. Last in the
 // keyStats chain (providers.ts); better an honest partial than nothing.
+// One history fetch covers everything (52w bounds + last session volume).
 async function keyStats(ticker: string): Promise<KeyStats> {
-  const [q, hist] = await Promise.all([
-    quote(ticker),
-    fetchHistoryCsv(ticker, RANGE_DAYS["1y"]),
-  ]);
+  const hist = await fetchHistoryCsv(ticker, HISTORY_RANGE_DAYS["1y"]);
   let hi = -Infinity;
   let lo = Infinity;
   for (const c of hist) {

@@ -172,8 +172,15 @@ set may appear anywhere in the UI, ever.
   provider-adapter interface in `src/lib/marketdata/` so a dead endpoint is a
   one-file swap, never a rewrite. Delayed data is fine but must be labeled
   ("delayed ~15 min") — honesty is brand.
-- **Paid data APIs remain BANNED.** No FMP, no FRED, no Alpha Vantage, no
-  NewsAPI, no Marketaux. Claude API is the only paid external API.
+- **Paid data APIs: ONE budgeted exception** (founder decision 2026-06-11,
+  after live-verifying that Stooq 404s and Yahoo 429s non-residential IPs):
+  **FMP Starter (~$19–29/mo)**. Its adapter ships dormant in
+  `src/lib/marketdata/providers/fmp.ts`, first in every provider chain, and
+  activates the moment `FMP_API_KEY` is set in the environment — no code
+  changes. Until the key exists, the free feeds carry the load
+  opportunistically. All OTHER paid data APIs stay banned (no FRED, no
+  Alpha Vantage, no NewsAPI, no Marketaux); Claude API is the only other
+  paid external API.
 - Claude does REASONING only. `web_search` covers news/qualitative facts, not
   price fetching. `web_search` costs ~1¢ per search ($10 / 1000) — budget new
   search-using features against that, not just the per-request cent caps.
