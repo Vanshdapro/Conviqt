@@ -39,10 +39,13 @@ Sidebar on desktop, bottom tabs on mobile (≤768px). Nothing else ships.
    **Council** (deep, ~60–90s, full multi-analyst) / **Flash** (instant take),
    plus a `Skills` button opening the Skill Library sheet.
 2. **Dashboard** — Market Snapshot, Today's Trends, Early Signals, **Picks**
-   (public track record, losses visible), Upcoming Events. Globally cached.
+   (public track record, losses visible), Upcoming Events (earnings/Fed dates).
+   At most TWO new public picks per week — the track record stays curated, not
+   a firehose. (Caching policy: see Data architecture / Cost discipline.)
 3. **Headlines** — region tabs (~10 regions + Crypto); every headline gets a
-   one-line "what it could mean for traders" take. Globally cached. Tapping a
-   headline runs Headline Decoder pre-filled in Research.
+   one-line "what it could mean for traders" take. Tapping a headline in the
+   feed is the PRIMARY way to run Headline Decoder (pre-filled in Research);
+   pasting is only the fallback for news seen outside Conviqt.
 4. **Portfolio** — holdings (manual/CSV) + watchlist ("Watching" tab); live
    values; stats strip: Beta · Volatility · Max Drawdown · Sharpe (computed
    from free price history, costs nothing); **AI Health Check** button.
@@ -54,7 +57,16 @@ Sidebar on desktop, bottom tabs on mobile (≤768px). Nothing else ships.
 
 API/developers surface, CDI page, standalone Watchlist page (merged into
 Portfolio), Translate, Newsletter, 3D intro, particle canvas, gradient-serif
-marketing pages. Old routes 301 → home. The code lives on `legacy-v1` only.
+marketing pages.
+
+**Status:** these are RETIRED IN INTENT but most still exist in the codebase
+today — the actual removal + 301 redirects happen in Phase 8 (only `/index → /cdi`
+exists so far, and `TranslationProvider` is still wired into `layout.tsx`).
+Until Phase 8: do NOT extend or build new features on these, but do NOT delete
+them mid-stream either — live API routes and error messages still reference some
+(e.g. `/api/keys` mentions `/developers`), and `layout.tsx` still imports
+`TranslationProvider`, so a premature delete breaks the build. After Phase 8 the
+pre-rebrand versions live on `legacy-v1` only.
 
 ## Brand — "ALMANAC" (light, warm-editorial)
 
@@ -86,7 +98,9 @@ set may appear anywhere in the UI, ever.
 - **Typography:** Cabinet Grotesk (display — headlines, big numbers, hero) +
   General Sans (UI, body, data tables with tabular figures ON for numbers).
   Both self-hosted via `next/font/local` from downloaded `.woff2` (Fontshare).
-  Never a CDN `<link>`.
+  Never a CDN `<link>`. ⚠️ Not done yet: `layout.tsx` today still loads
+  Inter/Playfair/Noto from the Google Fonts CDN — that is legacy and is
+  replaced in Phase 2. Don't take the current font stack as compliant.
 - **Radius:** 14px cards / 9px controls / 999px pills. **Spacing:** 4px base scale.
 - **Elevation:** separate surfaces by TONE + 1px border, not heavy shadows.
   Max shadow: `0 2px 8px rgba(42,28,21,.06)`.
@@ -106,7 +120,10 @@ set may appear anywhere in the UI, ever.
 - No color outside the token set above — not in charts, not in illustrations,
   not in OG images, not in one-off marketing pages. A stray purple gradient or
   a pure-white card is how this brand dies.
-- All colors come from `tokens.css` variables, never hardcoded hex in components.
+- All colors come from `tokens.css` variables, never hardcoded hex in
+  components. ⚠️ `src/styles/tokens.css` is CREATED in Phase 2 — it does not
+  exist yet, and legacy pages still use hardcoded hex (e.g. `#050d1a`). This
+  rule governs all NEW and rebranded code; legacy hex gets swept in Phase 8.
 
 ## Copy rules
 
@@ -126,7 +143,7 @@ set may appear anywhere in the UI, ever.
 | **Entry & Exit Zones** | "Where the smart levels sit" | Technical-weighted run | Technicals |
 | **Face-Off** | "Two stocks enter. One wins." | Compare pipeline | Comparisons |
 | **Sector Pulse** | "What's moving a whole industry" | Sector pipeline | Discovery |
-| **Headline Decoder** | "Any headline → which stocks it touches and how" | News-impact run | News |
+| **Headline Decoder** | "Any headline → which stocks it touches and how" | News-impact run. Primary entry: tap a headline in the feed; paste is fallback only | News |
 | **Crowd Check** | "What investors are feeling vs the data" | Sentiment-weighted run | Sentiment |
 | **Bull & Bear Map** | "Best case, worst case, base case" | Scenario synthesis | Fundamentals |
 | **Starter Portfolio** | "From budget + goals to an actual plan" | Allocator pipeline | Portfolio |
@@ -158,9 +175,12 @@ set may appear anywhere in the UI, ever.
 - **Paid data APIs remain BANNED.** No FMP, no FRED, no Alpha Vantage, no
   NewsAPI, no Marketaux. Claude API is the only paid external API.
 - Claude does REASONING only. `web_search` covers news/qualitative facts, not
-  price fetching.
+  price fetching. `web_search` costs ~1¢ per search ($10 / 1000) — budget new
+  search-using features against that, not just the per-request cent caps.
 - Headlines/Dashboard content is generated by scheduled Haiku jobs, cached in
-  Supabase, shared by all users.
+  Supabase, shared by all users, refreshed **2×/day** (pre-US-open and
+  post-close). This is the single source of truth for refresh cadence; TTLs for
+  on-demand caches live under Cost discipline.
 - Quantitative claims are traceable: numbers come from the marketdata layer
   or carry a source URL. Never hallucinated, never synthetic.
 
@@ -173,15 +193,21 @@ set may appear anywhere in the UI, ever.
 - Scheduled Dashboard/Headlines refresh: ≤ 35 cents per run all-in; log
   actual cost per run.
 - If a feature blows past its soft cap, kill it or simplify before shipping.
-- Caching: Supabase — analysis by ticker + 4h bucket; marketdata quotes
-  15 min; history 24h; Dashboard/Headlines globally cached, refreshed on
-  schedule, shared by all users.
+- Caching TTLs (Supabase): analysis by ticker + 4h bucket; marketdata quotes
+  15 min; history 24h. Dashboard/Headlines are globally cached and refreshed on
+  the schedule defined in Data architecture (2×/day) — see there, don't restate
+  the cadence here.
 
 ## Stack
 
 - Next.js 16 App Router, React 19, TypeScript, Tailwind 4.
-- Anthropic SDK only for AI: Sonnet for synthesis, Haiku for specialists,
-  intent routing, and scheduled content. Opus reserved for cases we
+- Anthropic SDK only for AI. Use the EXACT pinned model IDs from
+  `src/lib/anthropic.ts` (`MODELS`) — never a bare alias like `claude-sonnet`,
+  which is not a valid API model ID. Current pins: Sonnet =
+  `claude-sonnet-4-6`, Haiku = `claude-haiku-4-5-20251001`. Roles: Haiku for
+  specialists, intent routing, scheduled content, and the base Council judge
+  (a deliberate cost-forced choice — see the comment in `anthropic.ts`); Sonnet
+  for the marquee comparative/sector judges. Opus reserved for cases we
   explicitly justify.
 - Supabase Postgres for caching, picks, portfolios.
 - Vercel for hosting — but see the LOCAL ONLY rule: no deploy commands.
@@ -193,8 +219,10 @@ set may appear anywhere in the UI, ever.
    qualitative facts; price/fundamentals come from the marketdata layer.
 2. Four specialists (Fundamentals, Technicals, Sentiment, Macro) run in
    parallel on the FactSheet.
-3. Judge (Sonnet) synthesizes verdict + conviction + bull/bear lines,
-   carrying sources through for the collapsed Sources accordion.
+3. Judge synthesizes verdict + conviction + bull/bear lines, carrying sources
+   through for the collapsed Sources accordion. The base Council judge runs on
+   **Haiku** (cost-forced — the prompt is tight enough); only the marquee
+   comparative/sector judges use Sonnet. (Match `MODELS` in `anthropic.ts`.)
 
 Agent counts can change per feature. What's sacred: (a) every quantitative
 claim is traceable, (b) the verdict reads in plain English.
@@ -205,9 +233,11 @@ claim is traceable, (b) the verdict reads in plain English.
   Sentry breadcrumb if Sentry is wired.
 - No new files without checking if an existing one already does the job.
 - No new dependencies without checking package.json first.
-- Use the components/ patterns that already exist (post-rebrand: the
-  `src/components/ui/` primitives — Card, StatTile, TickerChip, Sparkline,
-  SkeletonLoader, EmptyState, ModeToggle, Sheet).
+- Use the components/ patterns that already exist. ⚠️ The
+  `src/components/ui/` primitives (Card, StatTile, TickerChip, Sparkline,
+  SkeletonLoader, EmptyState, ModeToggle, Sheet) are BUILT in Phase 2 — they
+  don't exist yet. Until then, reuse what's actually in `src/components/`;
+  after Phase 2, prefer these primitives over re-rolling.
 - No `NEXT_PUBLIC_USE_MOCK_DATA` flag. No synthetic data fallbacks. If a
   data source fails, the UI says so honestly ("data unavailable").
 - No demo paths in production. To test without spending API credit, use a
