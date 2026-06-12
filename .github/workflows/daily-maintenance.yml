@@ -1,0 +1,55 @@
+# Daily research maintenance — stock-page refresh, then watchlist alerts.
+#
+# Why GitHub Actions and not a Vercel cron: the Vercel team is on the HOBBY
+# plan (verified 2026-06-12), which allows at most 2 cron jobs, each firing at
+# most once per day with imprecise timing. vercel.json used to declare 5 crons,
+# so most were silently never firing. The one surviving Vercel cron slot is
+# /api/alpha/maintain (the public track record must stay honest even if this
+# repo goes quiet — GitHub disables scheduled workflows after 60 days of repo
+# inactivity). Everything else scheduled lives in Actions, next to
+# feed-refresh.yml.
+#
+# The two steps run SEQUENTIALLY on purpose: the watchlist sweep's
+# disagreement trigger only fires on reports re-run within the last 24h, so
+# refreshing the stale stock pages first means the sweep reads maximally
+# fresh data. (Under the old Vercel crons they were 4.5h apart at best.)
+#
+# Time is UTC (GitHub cron has no timezone support) and buffered: GitHub
+# schedules can drift 5-30 min at peak.
+#   13:00 UTC ≈ 9:00am ET in summer / 8:00am ET in winter → pages fresh and
+#   alert emails delivered around the US market open.
+#
+# Setup (one-time, shared with feed-refresh.yml): repo secret CRON_SECRET =
+# the same value as the Vercel env var CRON_SECRET.
+
+name: Daily maintenance
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # pre/at US open
+  workflow_dispatch: {} # manual runs from the Actions tab
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Re-runs the Council on the stalest already-published /stock/[ticker]
+      # pages (batch-capped + daily-budget-gated server-side).
+      - name: Refresh stale stock reports
+        run: |
+          curl -fsS -X POST \
+            --retry 3 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.conviqt.com/api/stock/refresh"
+
+      # Earnings-within-48h alerts must go out even if the refresh failed —
+      # they don't depend on report freshness. The sweep dedupes via
+      # watchlist_alert_log, so a retry can never double-email.
+      - name: Sweep watchlists for alerts
+        if: ${{ always() }}
+        run: |
+          curl -fsS -X POST \
+            --retry 3 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.conviqt.com/api/watchlist/sweep"

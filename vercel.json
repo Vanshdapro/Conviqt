@@ -3,22 +3,6 @@
     {
       "path": "/api/alpha/maintain",
       "schedule": "0 21 * * 1-5"
-    },
-    {
-      "path": "/api/stock/refresh",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/watchlist/sweep",
-      "schedule": "30 13 * * *"
-    },
-    {
-      "path": "/api/cdi/publish",
-      "schedule": "0 13 * * 1"
-    },
-    {
-      "path": "/api/newsletter/send",
-      "schedule": "0 14 * * 1"
     }
   ],
   "redirects": [
