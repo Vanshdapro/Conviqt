@@ -15,8 +15,8 @@ export interface WatchlistAlertCard {
   companyName: string | null;
   kind: WatchlistAlertKind;
   verdict: string | null; // BUY/HOLD/SELL
-  conviction: number | null; // 0-10 scale shown to user
-  disagreement: number | null; // 0-100
+  conviction: number | null; // 0-100; rendered qualitatively, never as a raw number
+  disagreement: number | null; // 0-100 (internal trigger only — never rendered to the reader)
   earningsDate: string | null; // ISO date for earnings alerts
   hoursToEarnings: number | null;
 }
@@ -48,9 +48,15 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-function convictionLabel(c: number | null): string {
+// Conviction renders as plain "How sure" — High/Medium/Low, never a raw
+// number (CLAUDE.md: "Conviction is shown as 'How sure: High/Medium/Low' —
+// never a raw score"). Thresholds mirror howSure() in
+// components/research/answers.tsx; both read the same 0-100 scale.
+function sureLabel(c: number | null): string {
   if (c === null) return "—";
-  return `${Math.round(c / 10)}/10`;
+  if (c >= 70) return "High";
+  if (c >= 45) return "Medium";
+  return "Low";
 }
 
 function headline(card: WatchlistAlertCard): string {
@@ -62,19 +68,19 @@ function headline(card: WatchlistAlertCard): string {
         : "reports earnings in the next 48 hours";
     return `${card.ticker} ${when}.`;
   }
-  return `The Council just fractured on ${name}.`;
+  return `Your analysts just split on ${name}.`;
 }
 
 function subline(card: WatchlistAlertCard): string {
   const v = card.verdict ?? "HOLD";
   if (card.kind === "earnings") {
-    return `Current verdict: <strong style="color:${verdictColor(card.verdict)}">${v}</strong> (${convictionLabel(
+    return `Current verdict: <strong style="color:${verdictColor(card.verdict)}">${v}</strong> (how sure: ${sureLabel(
       card.conviction
-    )} conviction). Read the bear case before they report.`;
+    )}). Read the bear case before they report.`;
   }
-  return `Verdict <strong style="color:${verdictColor(card.verdict)}">${v}</strong> with ${
-    card.disagreement ?? 0
-  }% disagreement across the panel — the agents don't agree. See where they split.`;
+  return `Verdict <strong style="color:${verdictColor(
+    card.verdict
+  )}">${v}</strong>, but your analysts don't line up on this one — see where they split.`;
 }
 
 function cardHtml(card: WatchlistAlertCard): string {
@@ -82,7 +88,7 @@ function cardHtml(card: WatchlistAlertCard): string {
   const tag =
     card.kind === "earnings"
       ? `EARNINGS · ${fmtDate(card.earningsDate)}`
-      : `HIGH DISAGREEMENT · ${card.disagreement}%`;
+      : `ANALYSTS SPLIT`;
   return `
   <tr><td style="padding:0 0 14px;">
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -92,7 +98,7 @@ function cardHtml(card: WatchlistAlertCard): string {
         <div style="font-family:Georgia,serif;font-size:20px;line-height:1.3;color:${INK};margin-bottom:8px;">${headline(card)}</div>
         <div style="font-family:Georgia,serif;font-size:15px;line-height:1.55;color:${MUTED};margin-bottom:18px;">${subline(card)}</div>
         <a href="${url}" style="display:inline-block;background:${ACCENT};color:#06101f;font-family:system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:0.02em;text-decoration:none;padding:11px 22px;border-radius:100px;">
-          ${card.kind === "earnings" ? "See the Council brief →" : "See where they split →"}
+          ${card.kind === "earnings" ? "See the full read →" : "See where they split →"}
         </a>
       </td></tr>
     </table>
@@ -116,12 +122,12 @@ export function buildWatchlistEmail(
     const c = cards[0];
     subject =
       c.kind === "earnings"
-        ? `${c.ticker} reports earnings soon — the Council's verdict before the call`
-        : `${c.ticker}: the Council is split — see the bear case`;
+        ? `${c.ticker} reports earnings soon — your analysts' verdict before the call`
+        : `${c.ticker}: your analysts are split — see the bear case`;
   } else if (earningsCount > 0) {
     subject = `${cards.length} watchlist alerts — ${earningsCount} earnings this week`;
   } else {
-    subject = `${cards.length} of your watched tickers just moved the Council`;
+    subject = `${cards.length} of your watched tickers just split the analysts`;
   }
 
   const cardsHtml = cards.map(cardHtml).join("");
