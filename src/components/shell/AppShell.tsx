@@ -51,7 +51,7 @@ const ICON = {
 } as const;
 
 const NAV: NavItem[] = [
-  { key: "research", label: "Research", href: "/research", icon: ICON.research, match: ["/research", "/chat", "/stock", "/alpha", "/cdi", "/watchlist"] },
+  { key: "research", label: "Research", href: "/research", icon: ICON.research, match: ["/research", "/chat", "/stock", "/alpha", "/cdi"] },
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: ICON.dashboard, match: ["/dashboard"] },
   { key: "headlines", label: "Headlines", href: "/headlines", icon: ICON.headlines, match: ["/headlines"] },
   { key: "portfolio", label: "Portfolio", href: "/portfolio", icon: ICON.portfolio, match: ["/portfolio"] },
@@ -63,7 +63,7 @@ const NAV: NavItem[] = [
 // /methodology, /admin, /auth) render with NO shell. /dev hosts the kitchen sink.
 const SHELL_PREFIXES = [
   "/research", "/dashboard", "/headlines", "/portfolio", "/academy",
-  "/chat", "/stock", "/alpha", "/cdi", "/watchlist", "/dev",
+  "/chat", "/stock", "/alpha", "/cdi", "/dev",
 ];
 
 function activeKey(pathname: string): NavKey | null {

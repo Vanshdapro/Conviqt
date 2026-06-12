@@ -18,6 +18,7 @@ import {
 import { getEarningsStore } from "@/lib/earnings";
 import { getStockReportStore, type ReportSummary } from "@/lib/stockReports";
 import { isUniverseTicker, universeName } from "@/lib/tickers";
+import { quote } from "@/lib/marketdata";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,11 @@ interface EnrichedItem {
   reportUpdatedAt: string | null;
   nextEarningsDate: string | null;
   earningsConfidence: string | null;
+  // Live price for the Portfolio "Watching" tab (Phase 5). null = the feeds
+  // couldn't answer — the UI says so, never a stale or invented number.
+  price: number | null;
+  changePct: number | null;
+  freshnessLabel: string | null;
 }
 
 async function enrich(
@@ -47,22 +53,25 @@ async function enrich(
 ): Promise<EnrichedItem[]> {
   const tickers = entries.map((e) => e.ticker);
 
-  // Pull the latest verdicts + earnings in bulk. Both reads fail soft — a
-  // missing enrichment must never break the list.
-  const [summaries, earnings] = await Promise.all([
+  // Pull the latest verdicts + earnings + quotes in bulk. All reads fail
+  // soft — a missing enrichment must never break the list. Quotes hit the
+  // shared 15-min marketdata cache (max 10 tickers), so this stays cheap.
+  const [summaries, earnings, quotes] = await Promise.all([
     getStockReportStore()
       .listSummaries(1000)
       .catch(() => [] as ReportSummary[]),
     getEarningsStore()
       .getMany(tickers)
       .catch(() => new Map()),
+    Promise.all(tickers.map((t) => quote(t).catch(() => null))),
   ]);
 
   const byTicker = new Map(summaries.map((s) => [s.ticker.toUpperCase(), s]));
 
-  return entries.map((e) => {
+  return entries.map((e, i) => {
     const s = byTicker.get(e.ticker);
     const earn = earnings.get(e.ticker);
+    const q = quotes[i];
     return {
       ticker: e.ticker,
       companyName: s?.companyName ?? earn?.companyName ?? universeName(e.ticker) ?? null,
@@ -73,6 +82,9 @@ async function enrich(
       reportUpdatedAt: s?.updatedAt ?? null,
       nextEarningsDate: earn?.nextEarningsDate ?? null,
       earningsConfidence: earn?.confidence ?? null,
+      price: q?.price ?? null,
+      changePct: q?.changePct ?? null,
+      freshnessLabel: q?.freshnessLabel ?? null,
     };
   });
 }

@@ -8,14 +8,14 @@ import Link from "next/link";
 // in Research" frame. Mirrors AcademyTabs. Note the Analyst tab keeps the
 // existing /chat URL so none of the deep-links across the app break.
 
-export type ResearchTab = "overview" | "analyst" | "stocks" | "index" | "watchlist" | "allocator" | "portfolio";
+export type ResearchTab = "overview" | "analyst" | "stocks" | "index" | "allocator" | "portfolio";
 
+// Watchlist left this rail in Phase 5 — it lives at /portfolio?tab=watching now.
 const TABS: { key: ResearchTab; label: string; href: string }[] = [
   { key: "overview", label: "Overview", href: "/research" },
   { key: "analyst", label: "Analyst", href: "/chat" },
   { key: "stocks", label: "Stocks", href: "/stock" },
   { key: "index", label: "CDI", href: "/cdi" },
-  { key: "watchlist", label: "Watchlist", href: "/watchlist" },
   { key: "allocator", label: "Allocator", href: "/research/allocator" },
   { key: "portfolio", label: "Portfolio", href: "/research/portfolio" },
 ];

@@ -131,7 +131,8 @@ export function buildWatchlistEmail(
   }
 
   const cardsHtml = cards.map(cardHtml).join("");
-  const unsubUrl = `${BASE}/watchlist?utm_source=alert&utm_medium=email`;
+  // Watching lives inside Portfolio since Phase 5 (the old /watchlist 301s here).
+  const unsubUrl = `${BASE}/portfolio?tab=watching&utm_source=alert&utm_medium=email`;
 
   const html = `<!doctype html>
 <html><body style="margin:0;padding:0;background:${PAGE_BG};">

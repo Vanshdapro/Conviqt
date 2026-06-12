@@ -72,7 +72,9 @@ export async function POST(req: Request) {
   }
 
   const holdings = sanitizeHoldings(body.holdings);
-  if (holdings.length === 0) {
+  // Updating an existing portfolio to empty is allowed (removing your last
+  // holding is a legitimate edit); only creating an empty one is rejected.
+  if (holdings.length === 0 && !body.id) {
     return json({ error: "No valid holdings. Each needs a ticker and a positive share count." }, 400);
   }
 

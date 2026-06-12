@@ -23,6 +23,10 @@ import type { Candle } from "./types";
 
 export const RISK_FREE_ANNUAL = 0.045;
 export const TRADING_DAYS_PER_YEAR = 252;
+// Below this many paired daily returns the Portfolio stats strip refuses to
+// render statistics (noise dressed as numbers). Lives here — not in the
+// server-only live.ts — because the client-side stat explainers quote it.
+export const MIN_STAT_OBSERVATIONS = 30;
 
 // Simple daily returns from a close series. n closes → n-1 returns.
 export function dailyReturns(closes: number[]): number[] {
