@@ -186,6 +186,14 @@ set may appear anywhere in the UI, ever.
   opportunistically. All OTHER paid data APIs stay banned (no FRED, no
   Alpha Vantage, no NewsAPI, no Marketaux); Claude API is the only other
   paid external API.
+- **Currents News API (free tier): ONE approved news source** (founder
+  decision 2026-06-12) — raw headlines for the Headlines FEED only, via the
+  adapter in `src/lib/news/currents.ts` (`CURRENTS_API_KEY`). It replaces
+  web_search for headline GATHERING only; Council/Sweep and Headline Decoder
+  keep web_search for provenance-validated citations. License conditions are
+  binding: render its `ATTRIBUTION` link beside the feed, and the Supabase
+  headline cache stays ROLLING (refresh overwrites — never an archive of
+  their data). Free tier = 1000 req/day; the 2×/day refresh uses ~25.
 - Claude does REASONING only. `web_search` covers news/qualitative facts, not
   price fetching. `web_search` costs ~1¢ per search ($10 / 1000) — budget new
   search-using features against that, not just the per-request cent caps.
