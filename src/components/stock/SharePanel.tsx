@@ -28,7 +28,7 @@ export default function SharePanel({
   const [copied, setCopied] = useState(false);
 
   const url = `${BASE}/stock/${ticker.toLowerCase()}`;
-  const text = `$${ticker}: ${verdict} · ${conviction}/100 conviction · ${disagreement}/100 agent disagreement. See the full Conviqt Council debate →`;
+  const text = `$${ticker}: ${verdict} · ${conviction}/100 conviction. See the full Conviqt research →`;
   const xHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
   const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
 
@@ -81,13 +81,13 @@ export default function SharePanel({
           className="border border-rule overflow-hidden mb-5"
           style={{
             background: "var(--surface-2)",
-            boxShadow: `0 0 0 1px rgba(79,135,247,0.06), 0 8px 32px rgba(0,0,0,0.5)`,
+            boxShadow: "var(--shadow-card)",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/og/${ticker.toLowerCase()}?v=${ogTimestamp}`}
-            alt={`${ticker} — Conviqt Council verdict card: ${verdict}, ${conviction}/100 conviction`}
+            alt={`${ticker} — Conviqt verdict card: ${verdict}, ${conviction}/100 conviction`}
             width={1200}
             height={630}
             loading="lazy"
@@ -104,7 +104,7 @@ export default function SharePanel({
             rel="noopener noreferrer"
             style={btnBase}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.2)";
+              (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)";
               (e.currentTarget as HTMLElement).style.color = "var(--foreground)";
             }}
             onMouseLeave={(e) => {
@@ -125,7 +125,7 @@ export default function SharePanel({
             rel="noopener noreferrer"
             style={btnBase}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = "rgba(10,102,194,0.5)";
+              (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)";
               (e.currentTarget as HTMLElement).style.color = "var(--foreground)";
             }}
             onMouseLeave={(e) => {
@@ -144,7 +144,9 @@ export default function SharePanel({
             type="button"
             style={btnBase}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = copied ? `${verdictColor}66` : "rgba(255,255,255,0.2)";
+              (e.currentTarget as HTMLElement).style.borderColor = copied
+                ? `color-mix(in srgb, ${verdictColor} 40%, transparent)`
+                : "var(--border-strong)";
               (e.currentTarget as HTMLElement).style.color = "var(--foreground)";
             }}
             onMouseLeave={(e) => {

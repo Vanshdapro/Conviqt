@@ -109,7 +109,7 @@ export default function StockReportGate({ ticker }: { ticker: string }) {
         <div className="px-5 py-7 border-t border-rule text-center">
           <div className="caps text-[9px] text-accent mb-2">Full research note</div>
           <h3 className="serif text-[20px] text-foreground mb-2">
-            Key metrics, catalysts & the four-agent breakdown
+            Key metrics, catalysts & the full analyst breakdown
           </h3>
           <p className="text-[13px] text-muted max-w-md mx-auto mb-5 leading-relaxed">
             See every specialist&rsquo;s verdict, the near-term catalysts, and the
@@ -118,8 +118,8 @@ export default function StockReportGate({ ticker }: { ticker: string }) {
           <div className="flex items-center justify-center gap-3">
             <Link
               href={`/signup?next=${encodeURIComponent(`/stock/${ticker.toLowerCase()}`)}`}
-              className="mono text-[11px] uppercase tracking-[0.16em] px-5 py-3 rounded-sm text-white"
-              style={{ background: "var(--accent)" }}
+              className="mono text-[11px] uppercase tracking-[0.16em] px-5 py-3 rounded-sm"
+              style={{ background: "var(--accent)", color: "var(--on-accent)" }}
             >
               Create free account
             </Link>
@@ -190,7 +190,7 @@ export default function StockReportGate({ ticker }: { ticker: string }) {
 
       {/* Agent breakdown */}
       <section className="border border-rule px-5 py-5" style={{ background: "var(--surface)" }}>
-        <div className="caps text-[9px] text-accent mb-1">The Council · {agents.length} agents</div>
+        <div className="caps text-[9px] text-accent mb-1">The desk · {agents.length} analysts</div>
         <div className="mt-2">
           {agents.map((a) => {
             const color = agentColor(a);

@@ -11,6 +11,7 @@ import {
 } from "@/lib/tickers";
 import { COMPARE_UNIVERSE } from "@/lib/tickers";
 import CompareReport from "@/components/CompareReport";
+import { PseoShell, ResearchCta } from "@/components/pseo/PseoShell";
 
 // ── Static generation + ISR ────────────────────────────────────────────────
 // Pre-build the curated COMPARE_UNIVERSE so those matchups are warm in the CDN.
@@ -63,7 +64,7 @@ export async function generateMetadata({
   if (!stored) {
     return {
       title: `${a} vs ${b}: Stock Comparison`,
-      description: `${a} vs ${b} head-to-head — Conviqt's AI Council weighs both on valuation, positioning, catalysts, and risk/reward, every number source-linked.`,
+      description: `${a} vs ${b} head-to-head — Conviqt's analysts weigh both on valuation, positioning, catalysts, and risk/reward, every number source-linked.`,
       alternates: { canonical },
       robots: { index: false, follow: true },
     };
@@ -72,10 +73,10 @@ export async function generateMetadata({
   const { tickerA, tickerB, winner, headline } = stored;
   const winnerTicker = winner === "A" ? tickerA : winner === "B" ? tickerB : null;
   const verdictBit = winnerTicker
-    ? `Conviqt's AI Council picks ${winnerTicker}.`
-    : `Conviqt's AI Council calls it too close to split.`;
+    ? `Conviqt's analysts pick ${winnerTicker}.`
+    : `Conviqt's analysts call it too close to split.`;
   const title = `${tickerA} vs ${tickerB} (${year}): Which Is the Better Buy?`;
-  const description = `${verdictBit} ${headline} Five agents debate each side on valuation, positioning, catalysts, and risk/reward — every figure source-linked.`;
+  const description = `${verdictBit} ${headline} Each side weighed on valuation, positioning, catalysts, and risk/reward — every figure source-linked.`;
 
   const ogImage = {
     url: `${BASE}/api/og/compare/${comparePairToSlug(a, b)}?v=${Date.parse(stored.updatedAt)}`,
@@ -106,41 +107,6 @@ export async function generateMetadata({
   };
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col min-h-screen" style={{ background: "var(--background)" }}>
-      <header className="border-b border-rule">
-        <div className="mx-auto max-w-[1100px] px-6 lg:px-10 py-4 flex items-center justify-between">
-          <Link href="/" className="serif text-[22px] text-foreground tracking-tight">
-            Conviqt
-          </Link>
-          <nav className="flex items-center gap-5 mono text-[11px] uppercase tracking-[0.16em] text-muted">
-            <Link href="/compare" className="hover:text-foreground transition-colors">Compare</Link>
-            <Link href="/alpha" className="hover:text-foreground transition-colors">Alpha</Link>
-            <Link href="/methodology" className="hover:text-foreground transition-colors">Method</Link>
-            <Link
-              href="/"
-              className="px-3 py-2 rounded-sm text-white"
-              style={{ background: "var(--accent)" }}
-            >
-              Open chat
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="flex-1">
-        <div className="mx-auto max-w-[1100px] px-6 lg:px-10 py-10">{children}</div>
-      </main>
-      <footer className="border-t border-rule">
-        <div className="mx-auto max-w-[1100px] px-6 lg:px-10 py-6 flex items-center justify-between text-[11px] mono text-muted">
-          <span>Conviqt · AI equity research</span>
-          <span>Not investment advice.</span>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
 export default async function ComparePage({
   params,
 }: {
@@ -164,7 +130,7 @@ export default async function ComparePage({
   // ── Comparison pending: no cached Compare run yet ─────────────────────────
   if (!stored) {
     return (
-      <Shell>
+      <PseoShell>
         <div className="mb-5 mono text-[11px] text-dim">
           <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
           <span className="mx-2">/</span>
@@ -172,32 +138,23 @@ export default async function ComparePage({
           <span className="mx-2">/</span>
           <span className="text-foreground">{a} vs {b}</span>
         </div>
-        <div className="caps text-[9px] text-dim mb-3">Head-to-head</div>
+        <div className="caps mb-3">Head-to-head</div>
         <h1 className="display text-[44px] sm:text-[56px] text-foreground leading-none tracking-tight">
           {a} <span className="text-dim">vs</span> {b}
         </h1>
         <p className="serif text-[16px] text-muted mt-3">
           {nameA} versus {nameB}
         </p>
-        <div className="border border-rule mt-8 px-5 py-6" style={{ background: "var(--surface)" }}>
-          <div className="caps text-[9px] text-accent mb-2">Comparison pending</div>
+        <div className="border border-rule mt-8 px-5 py-6 rounded-[14px]" style={{ background: "var(--surface)" }}>
+          <div className="caps mb-2" style={{ color: "var(--accent-hover)" }}>Comparison pending</div>
           <p className="serif text-[17px] text-foreground/90 leading-snug max-w-xl">
             No head-to-head verdict has been published for {a} vs {b} yet.
           </p>
           <p className="text-[14px] text-muted mt-3 max-w-xl leading-relaxed">
-            Conviqt runs the full five-agent Council on both names, then a comparative
-            judge weighs them on valuation, positioning, catalysts, and risk/reward —
-            every number cited to a source URL. Run it now and it&rsquo;ll publish here.
+            Conviqt&rsquo;s analysts research both names in full, then weigh them against each
+            other on valuation, positioning, catalysts, and risk/reward — every number cited to
+            a source URL. Run it and it&rsquo;ll publish here.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={`/chat?q=${encodeURIComponent(`compare ${a} vs ${b}`)}`}
-              className="mono text-[11px] uppercase tracking-[0.16em] px-5 py-3 rounded-sm text-white inline-block"
-              style={{ background: "var(--accent)" }}
-            >
-              Run {a} vs {b} →
-            </Link>
-          </div>
         </div>
         <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 mono text-[11px] text-dim">
           <span className="text-muted">See each on its own:</span>
@@ -208,7 +165,8 @@ export default async function ComparePage({
             {b} analysis →
           </Link>
         </div>
-      </Shell>
+        <ResearchCta query={`compare ${a} vs ${b}`} label={`Run ${a} vs ${b} on Conviqt`} />
+      </PseoShell>
     );
   }
 
@@ -218,8 +176,8 @@ export default async function ComparePage({
   const winnerTicker = winner === "A" ? tickerA : winner === "B" ? tickerB : null;
 
   const faqAnswer = winnerTicker
-    ? `${headline} Conviqt's AI Council gives the head-to-head edge to ${winnerTicker}. ${stored.report.verdict.bottomLine}`
-    : `${headline} Conviqt's AI Council calls it too close to split decisively. ${stored.report.verdict.bottomLine}`;
+    ? `${headline} Conviqt's analysts give the head-to-head edge to ${winnerTicker}. ${stored.report.verdict.bottomLine}`
+    : `${headline} Conviqt's analysts call it too close to split decisively. ${stored.report.verdict.bottomLine}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -254,7 +212,7 @@ export default async function ComparePage({
   };
 
   return (
-    <Shell>
+    <PseoShell>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -268,7 +226,7 @@ export default async function ComparePage({
       </div>
 
       <h1 className="sr-only">
-        {tickerA} vs {tickerB}: which is the better buy? Conviqt AI Council head-to-head.
+        {tickerA} vs {tickerB}: which is the better buy? Conviqt head-to-head.
       </h1>
 
       <CompareReport result={stored.report} />
@@ -287,6 +245,10 @@ export default async function ComparePage({
           More head-to-heads →
         </Link>
       </div>
-    </Shell>
+      <ResearchCta
+        query={`compare ${tickerA} vs ${tickerB}`}
+        label={`Run ${tickerA} vs ${tickerB} on Conviqt`}
+      />
+    </PseoShell>
   );
 }

@@ -20,9 +20,9 @@ interface Hue {
 }
 
 function verdictHue(v: Verdict): Hue {
-  if (v === "BUY") return { color: "var(--bull)", glow: "rgba(34,197,94,0.16)" };
-  if (v === "SELL") return { color: "var(--bear)", glow: "rgba(239,68,68,0.16)" };
-  return { color: "var(--hold)", glow: "rgba(245,158,11,0.16)" };
+  if (v === "BUY") return { color: "var(--bull)", glow: "color-mix(in srgb, var(--bull) 16%, transparent)" };
+  if (v === "SELL") return { color: "var(--bear)", glow: "color-mix(in srgb, var(--bear) 16%, transparent)" };
+  return { color: "var(--hold)", glow: "color-mix(in srgb, var(--hold) 16%, transparent)" };
 }
 
 const NEUTRAL: Hue = { color: "var(--dim)", glow: "transparent" };
@@ -223,7 +223,7 @@ export function AgentConsensus({
     >
       {/* Header: label + live tally + disagreement read */}
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <span className="caps text-[9px] text-accent">Agent consensus</span>
+        <span className="caps text-[9px] text-accent">Analyst consensus</span>
         <div className="flex items-center gap-3 mono text-[10px]">
           {(["BUY", "HOLD", "SELL"] as Verdict[]).map((v) =>
             tally[v] > 0 ? (
@@ -236,7 +236,7 @@ export function AgentConsensus({
           {abstained > 0 && <span className="text-dim">{abstained} abstain</span>}
           {typeof disagreement === "number" && (
             <span className="text-dim border-l border-rule pl-3">
-              disagree {disagreement}
+              split {disagreement}
               {disagreementMax ? `/${disagreementMax}` : ""}
             </span>
           )}
@@ -283,7 +283,7 @@ export function AgentConsensus({
                   </span>
                   {isDissent && (
                     <span
-                      title="Dissents from the Council verdict"
+                      title="Dissents from the final verdict"
                       className="mono text-[7px] leading-none px-1 py-px rounded-sm flex-shrink-0"
                       style={{ color: hue.color, border: `1px solid ${hue.color}`, opacity: 0.85 }}
                     >
@@ -358,10 +358,10 @@ export function AgentConsensus({
               <>
                 <span style={{ color: "var(--hold)" }}>{dissenters.join(", ")}</span>
                 {dissenters.length === 1 ? " dissents" : " dissent"} from the {judgeVerdict} call —
-                hover any agent to read its reasoning.
+                hover any analyst to read their reasoning.
               </>
             ) : (
-              <>Unanimous {judgeVerdict ? `${judgeVerdict} ` : ""}read — hover any agent to see why.</>
+              <>Unanimous {judgeVerdict ? `${judgeVerdict} ` : ""}read — hover any analyst to see why.</>
             )}
           </p>
         )}

@@ -13,6 +13,7 @@ import {
   comparePairToSlug,
 } from "@/lib/tickers";
 import PublicStockReport from "@/components/stock/PublicStockReport";
+import { PseoShell, ResearchCta } from "@/components/pseo/PseoShell";
 
 // ── Static generation + ISR ────────────────────────────────────────────────
 // Pre-build the S&P 500 + top Nasdaq universe so those pages are warm in the
@@ -60,7 +61,7 @@ export async function generateMetadata({
   if (!stored) {
     return {
       title: `${TICK} Stock Analysis — ${name}`,
-      description: `AI equity research on ${TICK} (${name}). Five agents debate fundamentals, technicals, sentiment, and macro — every number cited.`,
+      description: `AI stock research on ${TICK} (${name}): fundamentals, technicals, sentiment, and macro weighed in plain English — every number cited.`,
       alternates: { canonical },
       robots: { index: false, follow: true },
     };
@@ -68,7 +69,7 @@ export async function generateMetadata({
 
   const verdict = verdictPhrase(stored.verdict);
   const title = `${TICK} Stock Analysis ${year}: ${verdict} — ${name}`;
-  const description = `Conviqt's AI Council rates ${TICK} a ${stored.verdict} with ${stored.conviction}/100 conviction. ${stored.report.judge.bottomLine} Every figure is source-linked.`;
+  const description = `Conviqt's analysts rate ${TICK} a ${stored.verdict} with ${stored.conviction}/100 conviction. ${stored.report.judge.bottomLine} Every figure is source-linked.`;
 
   // The shareable verdict card — its mtime busts crawler/CDN caches so the
   // image tracks the latest Council run rather than a stale snapshot.
@@ -84,7 +85,7 @@ export async function generateMetadata({
     description,
     alternates: { canonical },
     openGraph: {
-      title: `${TICK} — ${verdict} | Conviqt AI Equity Research`,
+      title: `${TICK} — ${verdict} | Conviqt AI Stock Research`,
       description,
       url: canonical,
       type: "article",
@@ -94,45 +95,11 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `${TICK} — AI Council verdict: ${stored.verdict}`,
+      title: `${TICK} — the analysts' verdict: ${stored.verdict}`,
       description,
       images: [ogImage],
     },
   };
-}
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col min-h-screen" style={{ background: "var(--background)" }}>
-      <header className="border-b border-rule">
-        <div className="mx-auto max-w-[1100px] px-6 lg:px-10 py-4 flex items-center justify-between">
-          <Link href="/" className="serif text-[22px] text-foreground tracking-tight">
-            Conviqt
-          </Link>
-          <nav className="flex items-center gap-5 mono text-[11px] uppercase tracking-[0.16em] text-muted">
-            <Link href="/alpha" className="hover:text-foreground transition-colors">Alpha</Link>
-            <Link href="/methodology" className="hover:text-foreground transition-colors">Method</Link>
-            <Link
-              href="/"
-              className="px-3 py-2 rounded-sm text-white"
-              style={{ background: "var(--accent)" }}
-            >
-              Open chat
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="flex-1">
-        <div className="mx-auto max-w-[1100px] px-6 lg:px-10 py-10">{children}</div>
-      </main>
-      <footer className="border-t border-rule">
-        <div className="mx-auto max-w-[1100px] px-6 lg:px-10 py-6 flex items-center justify-between text-[11px] mono text-muted">
-          <span>Conviqt · AI equity research</span>
-          <span>Not investment advice.</span>
-        </div>
-      </footer>
-    </div>
-  );
 }
 
 // Cross-link this ticker into the head-to-head graph: curated matchups that
@@ -186,36 +153,28 @@ export default async function StockPage({
   ]);
   const name = stored?.companyName ?? universeName(TICK) ?? TICK;
 
-  // ── Report pending: no cached Council run yet ─────────────────────────────
+  // ── Report pending: no cached research run yet ────────────────────────────
   if (!stored) {
     const known = isUniverseTicker(TICK);
     return (
-      <Shell>
-        <div className="caps text-[9px] text-dim mb-3">Ticker</div>
+      <PseoShell>
+        <div className="caps mb-3">Ticker</div>
         <h1 className="display text-[56px] text-foreground leading-none tracking-tight">{TICK}</h1>
         {known && <p className="serif text-[16px] text-muted mt-3">{name}</p>}
-        <div className="border border-rule mt-8 px-5 py-6" style={{ background: "var(--surface)" }}>
-          <div className="caps text-[9px] text-accent mb-2">Report pending</div>
+        <div className="border border-rule mt-8 px-5 py-6 rounded-[14px]" style={{ background: "var(--surface)" }}>
+          <div className="caps mb-2" style={{ color: "var(--accent-hover)" }}>Report pending</div>
           <p className="serif text-[17px] text-foreground/90 leading-snug max-w-xl">
-            No Council verdict has been published for {TICK} yet.
+            No verdict has been published for {TICK} yet.
           </p>
           <p className="text-[14px] text-muted mt-3 max-w-xl leading-relaxed">
-            Conviqt runs five AI agents over live web data to debate {name}&rsquo;s
-            fundamentals, technicals, sentiment, and macro — every number cited to a
-            source URL. Run one now and it&rsquo;ll publish here.
+            Conviqt&rsquo;s analysts weigh {name}&rsquo;s fundamentals, technicals, sentiment, and
+            macro over live web data — every number cited to a source URL. Run the research and
+            it&rsquo;ll publish here.
           </p>
-          <div className="mt-6">
-            <Link
-              href={`/chat?q=${encodeURIComponent(`analyze ${TICK}`)}`}
-              className="mono text-[11px] uppercase tracking-[0.16em] px-5 py-3 rounded-sm text-white inline-block"
-              style={{ background: "var(--accent)" }}
-            >
-              Run the Council on {TICK} →
-            </Link>
-          </div>
         </div>
         <RelatedCompares ticker={TICK} />
-      </Shell>
+        <ResearchCta query={`analyze ${TICK}`} label={`Research ${TICK} on Conviqt`} />
+      </PseoShell>
     );
   }
 
@@ -242,12 +201,12 @@ export default async function StockPage({
       worstRating: 0,
       alternateName: `${stored.verdict} (conviction ${stored.conviction}/100)`,
     },
-    name: `${TICK} Stock Analysis — Conviqt AI Council verdict: ${stored.verdict}`,
+    name: `${TICK} Stock Analysis — Conviqt analysts' verdict: ${stored.verdict}`,
     reviewBody: stored.report.judge.investmentCase,
   };
 
   return (
-    <Shell>
+    <PseoShell>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -261,6 +220,7 @@ export default async function StockPage({
       </div>
       <PublicStockReport data={stored} history={history} />
       <RelatedCompares ticker={TICK} />
-    </Shell>
+      <ResearchCta query={`analyze ${TICK}`} label={`Research ${TICK} on Conviqt`} />
+    </PseoShell>
   );
 }

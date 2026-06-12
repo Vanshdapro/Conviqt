@@ -61,9 +61,11 @@ const NAV: NavItem[] = [
 // Path prefixes where the logged-in shell appears. Public + marketing + auth
 // pages (/, /login, /signup, /pricing, /about, /developers, /newsletter,
 // /methodology, /admin, /auth) render with NO shell. /dev hosts the kitchen sink.
+// /stock and /compare are public pSEO pages with their own shell (PseoShell,
+// Phase 6) — wrapping them here again would double-chrome the page.
 const SHELL_PREFIXES = [
   "/research", "/dashboard", "/headlines", "/portfolio", "/academy",
-  "/chat", "/stock", "/alpha", "/cdi", "/dev",
+  "/chat", "/alpha", "/cdi", "/dev",
 ];
 
 function activeKey(pathname: string): NavKey | null {

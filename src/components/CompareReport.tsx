@@ -69,7 +69,7 @@ function SideChip({
           </div>
           <div className="mono text-[10px] text-dim mt-1 truncate">{factSheet.companyName}</div>
           <div className="mono text-[9px] text-dim mt-2.5">
-            disagree {judge.disagreement}/{disMax}
+            split {judge.disagreement}/{disMax}
           </div>
         </div>
         <ConvictionRing
@@ -211,10 +211,10 @@ export default function CompareReport({
         </section>
       )}
 
-      {/* ── Per-side full Council reports (collapsible) ─────────────── */}
+      {/* ── Per-side full reports (collapsible) ───────────────────────── */}
       <section className="px-5 py-3 border-b border-rule flex flex-wrap gap-x-6 gap-y-2">
-        <ExpandToggle label={`${tickerA} full Council`} open={showA} onClick={() => setShowA((v) => !v)} />
-        <ExpandToggle label={`${tickerB} full Council`} open={showB} onClick={() => setShowB((v) => !v)} />
+        <ExpandToggle label={`${tickerA} full report`} open={showA} onClick={() => setShowA((v) => !v)} />
+        <ExpandToggle label={`${tickerB} full report`} open={showB} onClick={() => setShowB((v) => !v)} />
       </section>
       {showA && (
         <div className="px-5 py-4 border-b border-rule">
@@ -261,7 +261,7 @@ function EdgeMeter({ edge }: { edge: CompareEdge }) {
           className="absolute top-0 bottom-0 rounded-full slide-up"
           style={{
             background: "var(--accent)",
-            boxShadow: "0 0 6px rgba(79,135,247,0.4)",
+            boxShadow: "0 0 6px color-mix(in srgb, var(--accent) 40%, transparent)",
             left: a ? "14%" : "50%",
             right: a ? "50%" : "14%",
           }}

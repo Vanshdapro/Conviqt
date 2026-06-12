@@ -42,7 +42,7 @@ export default function ConvictionTimeline({
       <section className="border border-rule px-5 py-5" style={{ background: "var(--surface)" }}>
         <h2 className="caps text-[9px] text-accent mb-2">Conviction timeline</h2>
         <p className="text-[13px] text-muted leading-relaxed max-w-xl">
-          No history yet. Conviqt records the Council&rsquo;s conviction and disagreement
+          No history yet. Conviqt records how sure — and how split — the analysts were
           on every run — once this ticker has been analyzed a few times, a
           {" "}{windowDays}-day time-series of how the verdict evolved will appear here.
         </p>
@@ -92,13 +92,13 @@ export default function ConvictionTimeline({
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-[2px] border-t border-dashed" style={{ borderColor: "var(--muted)" }} />
-            disagreement
+            split
           </span>
         </div>
       </div>
       <p className="text-[11px] text-dim mb-3">
         History from {shortDate(history[0].asOf)} · {history.length} run
-        {history.length === 1 ? "" : "s"} · each dot is a Council analysis
+        {history.length === 1 ? "" : "s"} · each dot is a research run
       </p>
 
       <div className="relative">
@@ -216,7 +216,7 @@ export default function ConvictionTimeline({
               <span className="text-foreground">{activePt.p.conviction}/100</span>
             </div>
             <div className="flex items-center justify-between mono text-[10px] text-muted mb-1.5">
-              <span>disagreement</span>
+              <span>split</span>
               <span className="text-foreground">{activePt.p.disagreement}/100</span>
             </div>
             {activePt.p.dissents.length > 0 && (

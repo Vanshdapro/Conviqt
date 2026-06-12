@@ -51,7 +51,7 @@ export default function PublicStockReport({
       >
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <div className="caps text-[9px] text-dim mb-2">Council verdict</div>
+            <div className="caps text-[9px] text-dim mb-2">The analysts&rsquo; verdict</div>
             <h1 className="flex items-baseline gap-3 flex-wrap">
               <span className="display text-[44px] text-foreground leading-none tracking-tight">{ticker}</span>
               <span className="serif text-[16px] text-muted font-normal">{companyName} stock analysis</span>
@@ -66,7 +66,7 @@ export default function PublicStockReport({
               </div>
               {report.agents.length > 0 && (
                 <div className="mono text-[10px] text-dim mt-1.5">
-                  {report.agents.length}-agent council
+                  {report.agents.length} analysts weighed in
                 </div>
               )}
             </div>
@@ -154,7 +154,7 @@ export default function PublicStockReport({
 
       {/* ── Footer / freshness ─────────────────────────────────────────── */}
       <footer className="border border-rule px-5 py-3 flex flex-wrap items-center justify-between gap-3 mono text-[10px] text-dim">
-        <span>Latest Council run · {freshness(data.asOf)}</span>
+        <span>Last researched · {freshness(data.asOf)}</span>
         <span>Refreshed every 24h · educational research only</span>
       </footer>
     </article>

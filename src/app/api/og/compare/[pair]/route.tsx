@@ -3,6 +3,7 @@ import { VALID_TICKER_RE } from "@/lib/agents/router";
 import { getCompareReport } from "@/lib/compareReports";
 import { slugToComparePair, universeName } from "@/lib/tickers";
 import type { Verdict } from "@/lib/agents/types";
+import { OG, ogVerdictColor, loadOgFonts } from "@/lib/og/brand";
 
 // Shareable head-to-head card — the compare viral loop. Rendered on demand from
 // the cached CompareResult (never re-runs the Compare, so crawlers/shares can't
@@ -14,25 +15,20 @@ import type { Verdict } from "@/lib/agents/types";
 export const runtime = "nodejs";
 export const revalidate = 86400; // match the page's 24h ISR window
 
-// ── Palette (mirrors globals.css; satori needs literal hex, not CSS vars) ───
+// ── Palette: the Almanac tokens, mirrored for satori in src/lib/og/brand.ts ──
 const C = {
-  bg: "#050d1a",
-  surface: "#0a1323",
-  surface3: "#0f1d35",
-  rule: "#1a2944",
-  fg: "#e8edf8",
-  muted: "#7a92b8",
-  dim: "#3d5278",
-  accent: "#4f87f7",
-  bull: "#22c55e",
-  bear: "#ef4444",
-  hold: "#f59e0b",
+  bg: OG.page,
+  surface: OG.surface,
+  surface3: OG.sunken,
+  rule: OG.border,
+  fg: OG.text,
+  muted: OG.text2,
+  dim: OG.muted,
+  accent: OG.accent,
 } as const;
 
 function verdictColor(v: Verdict): string {
-  if (v === "BUY") return C.bull;
-  if (v === "SELL") return C.bear;
-  return C.hold;
+  return ogVerdictColor(v);
 }
 
 // Headline is one punchy line already; hard-cap so it never overflows.
@@ -40,17 +36,6 @@ function oneLine(text: string, max = 130): string {
   const s = text.trim().replace(/\s+/g, " ");
   if (s.length <= max) return s;
   return s.slice(0, max - 1).replace(/[\s,;:]+\S*$/, "") + "…";
-}
-
-// Fetch a Google font as TTF (satori can't parse woff2).
-async function loadFont(family: string, weight: number): Promise<ArrayBuffer> {
-  const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
-    family,
-  )}:wght@${weight}&display=swap`;
-  const css = await (await fetch(url)).text();
-  const src = css.match(/src: url\((https:\/\/[^)]+\.ttf)\)/)?.[1];
-  if (!src) throw new Error(`font url not found for ${family}`);
-  return (await fetch(src)).arrayBuffer();
 }
 
 const SIZE = { width: 1200, height: 630 };
@@ -68,16 +53,8 @@ export async function GET(
 
     const stored = await getCompareReport(pair.a, pair.b);
 
-    const [display, mono, serif] = await Promise.all([
-      loadFont("Playfair Display", 600),
-      loadFont("JetBrains Mono", 500),
-      loadFont("Source Serif 4", 400),
-    ]);
-    const fonts = [
-      { name: "Display", data: display, weight: 600 as const, style: "normal" as const },
-      { name: "Mono", data: mono, weight: 500 as const, style: "normal" as const },
-      { name: "Serif", data: serif, weight: 400 as const, style: "normal" as const },
-    ];
+    // Self-hosted Cabinet Grotesk + General Sans (no CDN fetch at render time).
+    const fonts = await loadOgFonts();
 
     // ── Pending state: no Compare verdict yet ───────────────────────────────
     if (!stored) {
@@ -93,24 +70,24 @@ export async function GET(
               flexDirection: "column",
               background: C.bg,
               padding: "64px 72px",
-              fontFamily: "Mono",
+              fontFamily: "General",
               borderLeft: `12px solid ${C.accent}`,
             }}
           >
             <div style={{ display: "flex", color: C.accent, fontSize: 20, letterSpacing: 4 }}>
-              CONVIQT COUNCIL · HEAD-TO-HEAD
+              CONVIQT · HEAD-TO-HEAD
             </div>
             <div style={{ display: "flex", flexDirection: "column", marginTop: "auto" }}>
-              <div style={{ display: "flex", alignItems: "baseline", fontFamily: "Display", fontSize: 120, color: C.fg, lineHeight: 1 }}>
+              <div style={{ display: "flex", alignItems: "baseline", fontFamily: "Cabinet", fontSize: 120, color: C.fg, lineHeight: 1 }}>
                 {pair.a}
                 <span style={{ color: C.dim, fontSize: 64, margin: "0 24px" }}>vs</span>
                 {pair.b}
               </div>
-              <div style={{ display: "flex", fontFamily: "Serif", fontSize: 28, color: C.muted, marginTop: 18 }}>
+              <div style={{ display: "flex", fontFamily: "General", fontSize: 28, color: C.muted, marginTop: 18 }}>
                 {nameA} versus {nameB}
               </div>
               <div style={{ display: "flex", fontSize: 24, color: C.dim, marginTop: 24 }}>
-                Awaiting head-to-head verdict — run the comparison at conviqt.com
+                Head-to-head verdict pending — run it at conviqt.com
               </div>
             </div>
           </div>
@@ -142,13 +119,13 @@ export async function GET(
             display: "flex",
             flexDirection: "column",
             flex: 1,
-            background: isWinner ? C.surface3 : C.surface,
+            background: isWinner ? OG.accentWeak : C.surface,
             border: `1px solid ${isWinner ? C.accent : C.rule}`,
             padding: "28px 30px",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", fontFamily: "Display", fontSize: 72, color: C.fg, lineHeight: 1 }}>
+            <div style={{ display: "flex", fontFamily: "Cabinet", fontSize: 72, color: C.fg, lineHeight: 1 }}>
               {ticker}
             </div>
             {isWinner && (
@@ -157,7 +134,7 @@ export async function GET(
               </div>
             )}
           </div>
-          <div style={{ display: "flex", fontFamily: "Display", fontSize: 46, color: vc, marginTop: 14 }}>
+          <div style={{ display: "flex", fontFamily: "Cabinet", fontSize: 46, color: vc, marginTop: 14 }}>
             {verdict}
           </div>
           <div style={{ display: "flex", color: C.dim, fontSize: 15, letterSpacing: 2, marginTop: 18 }}>
@@ -179,7 +156,7 @@ export async function GET(
             display: "flex",
             flexDirection: "column",
             background: C.bg,
-            fontFamily: "Mono",
+            fontFamily: "General",
             borderLeft: `12px solid ${C.accent}`,
           }}
         >
@@ -195,7 +172,7 @@ export async function GET(
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ display: "flex", width: 10, height: 10, background: C.accent }} />
               <div style={{ display: "flex", color: C.accent, fontSize: 19, letterSpacing: 4 }}>
-                CONVIQT COUNCIL
+                CONVIQT
               </div>
             </div>
             <div style={{ display: "flex", color: C.dim, fontSize: 16, letterSpacing: 3 }}>
@@ -211,7 +188,7 @@ export async function GET(
               conviction={a.conviction}
               isWinner={winner === "A"}
             />
-            <div style={{ display: "flex", alignItems: "center", fontFamily: "Display", fontSize: 40, color: C.dim }}>
+            <div style={{ display: "flex", alignItems: "center", fontFamily: "Cabinet", fontSize: 40, color: C.dim }}>
               vs
             </div>
             <SidePanel
@@ -224,7 +201,7 @@ export async function GET(
 
           {/* Headline — the shareable line */}
           <div style={{ display: "flex", padding: "30px 56px 0 56px" }}>
-            <div style={{ display: "flex", fontFamily: "Serif", fontSize: 27, color: C.fg, lineHeight: 1.4 }}>
+            <div style={{ display: "flex", fontFamily: "General", fontSize: 27, color: C.fg, lineHeight: 1.4 }}>
               “{oneLine(headline)}”
             </div>
           </div>
@@ -241,7 +218,7 @@ export async function GET(
               fontSize: 17,
             }}
           >
-            <div style={{ display: "flex" }}>Compared by Conviqt Council · conviqt.com</div>
+            <div style={{ display: "flex" }}>Compared on Conviqt · conviqt.com</div>
             <div style={{ display: "flex" }}>Not investment advice</div>
           </div>
         </div>

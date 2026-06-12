@@ -1749,3 +1749,645 @@
   .cvq-folio-watchmeta { grid-column: 1 / -1; }
   .cvq-folio-watchactions { grid-row: 1; grid-column: 2; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LANDING (playbook Phase 6) — public marketing page, Almanac tokens only.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Landing intro — the 1.0s wordmark reveal ──────────────────────────────
+   Pure CSS: the word fades in while letter-spacing tightens (0–0.7s), then
+   the overlay lifts (0.75–1.0s) and the hero is already there. Session gating
+   lives in WordmarkIntro's inline script; reduced-motion is also honored here
+   so the intro never plays even when JS is off. pointer-events:none always —
+   the overlay can never trap a click. */
+.cvq-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-page);
+  pointer-events: none;
+  animation: cvq-intro-lift 250ms var(--ease-out) 750ms forwards;
+}
+.cvq-intro-word {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(38px, 8vw, 68px);
+  color: var(--text);
+  text-transform: uppercase;
+  animation: cvq-intro-word 700ms var(--ease-out) forwards;
+}
+.cvq-intro-q { color: var(--accent); }
+@keyframes cvq-intro-word {
+  from { opacity: 0; letter-spacing: 0.42em; }
+  to   { opacity: 1; letter-spacing: 0.12em; }
+}
+@keyframes cvq-intro-lift {
+  to { opacity: 0; visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvq-intro { display: none; }
+}
+
+/* ── Landing frame ─────────────────────────────────────────────────────────── */
+.cvq-land {
+  min-height: 100dvh;
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+.cvq-land main { display: block; }
+
+.cvq-land-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) clamp(20px, 5vw, 56px);
+  background: color-mix(in srgb, var(--bg-page) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.cvq-land-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  text-decoration: none;
+}
+.cvq-land-wordmark-q { color: var(--accent); }
+.cvq-land-nav { display: flex; align-items: center; gap: var(--space-5); }
+.cvq-land-nav a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-decoration: none;
+}
+.cvq-land-nav a:hover { color: var(--text); }
+.cvq-land-nav-login { color: var(--link); }
+.cvq-land-nav a.cvq-land-nav-cta { color: var(--on-accent); }
+@media (max-width: 768px) {
+  .cvq-land-nav a:not(.cvq-land-nav-cta):not(.cvq-land-nav-login) { display: none; }
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────── */
+.cvq-land-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 64px);
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(48px, 8vw, 96px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 72px);
+}
+.cvq-land-h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(38px, 6vw, 64px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-5);
+}
+.cvq-land-sub {
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.55;
+  color: var(--text-2);
+  max-width: 46ch;
+  margin: 0 0 var(--space-8);
+}
+.cvq-land-cta-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.cvq-land-cta { padding: 13px var(--space-8); font-size: 15px; }
+.cvq-land-fineprint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: var(--space-4) 0 0;
+}
+.cvq-land-hero-shot { display: flex; justify-content: center; }
+@media (max-width: 860px) {
+  .cvq-land-hero { grid-template-columns: 1fr; }
+  .cvq-land-hero-shot { order: 2; }
+}
+
+/* ── Device frames ─────────────────────────────────────────────────────────── */
+.cvq-phone {
+  position: relative;
+  width: min(320px, 78vw);
+  border: 10px solid var(--text); /* espresso ink bezel — never #000 */
+  border-radius: 44px;
+  background: var(--text);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.cvq-phone-notch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  z-index: 2;
+}
+.cvq-phone-screen {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 34px;
+}
+.cvq-browser {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.cvq-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border);
+}
+.cvq-browser-dots { display: flex; gap: 5px; }
+.cvq-browser-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.cvq-browser-url {
+  flex: 1;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.cvq-browser-screen { display: block; width: 100%; height: auto; }
+
+/* ── Sections ──────────────────────────────────────────────────────────────── */
+.cvq-land-section {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(44px, 7vw, 88px) clamp(20px, 5vw, 56px);
+}
+.cvq-land-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+  margin: 0 0 var(--space-3);
+}
+.cvq-land-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(26px, 4vw, 38px);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-4);
+}
+.cvq-land-lede {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-2);
+  max-width: 56ch;
+  margin: 0 0 var(--space-8);
+}
+
+/* ── Credibility strip ─────────────────────────────────────────────────────── */
+.cvq-land-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) clamp(20px, 5vw, 56px);
+  background: var(--bg-sunken);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(14px, 2vw, 17px);
+  color: var(--text-2);
+  text-align: center;
+}
+
+/* ── Skill grid ────────────────────────────────────────────────────────────── */
+.cvq-land-skillgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 900px) { .cvq-land-skillgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cvq-land-skillgrid { grid-template-columns: 1fr; } }
+.cvq-land-skill {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: var(--text);
+}
+.cvq-land-skill-cat {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cvq-land-skill-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+}
+.cvq-land-skill-line { font-size: 14px; line-height: 1.5; color: var(--text-2); }
+
+/* ── Feature rows ──────────────────────────────────────────────────────────── */
+.cvq-land-row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 56px);
+}
+.cvq-land-row + .cvq-land-row { margin-top: clamp(48px, 7vw, 88px); }
+.cvq-land-row--flip .cvq-land-row-copy { order: 2; }
+.cvq-land-row-copy p:not(.cvq-land-eyebrow) {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-2);
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .cvq-land-row { grid-template-columns: 1fr; }
+  .cvq-land-row--flip .cvq-land-row-copy { order: 0; }
+}
+
+/* ── Track record ──────────────────────────────────────────────────────────── */
+.cvq-land-track-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin: 0 0 var(--space-5);
+}
+.cvq-land-picks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 900px) { .cvq-land-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cvq-land-picks { grid-template-columns: 1fr; } }
+.cvq-land-pick { display: flex; flex-direction: column; gap: var(--space-3); }
+.cvq-land-pick-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.cvq-land-pick-company {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.cvq-land-pick-nums {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.cvq-land-pick-na { font-size: 12px; color: var(--text-muted); }
+.cvq-land-pick-thesis { font-size: 13px; line-height: 1.55; color: var(--text-2); margin: 0; }
+.cvq-land-pick-asof { font-size: 11px; color: var(--text-muted); margin: 0; }
+.cvq-land-track-note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: var(--space-5) 0 0;
+}
+.cvq-land-track-note a,
+.cvq-land-track-error a { color: var(--link); }
+.cvq-land-track-error p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-2); }
+
+/* ── Academy ───────────────────────────────────────────────────────────────── */
+.cvq-land-academy { border-top: 1px solid var(--border); }
+.cvq-land-trackchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+.cvq-land-academy-cta { align-self: flex-start; }
+
+/* ── Founder note ──────────────────────────────────────────────────────────── */
+.cvq-founder {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+}
+@media (max-width: 720px) { .cvq-founder { grid-template-columns: 1fr; } }
+.cvq-founder-img {
+  display: block;
+  width: min(280px, 64vw);
+  aspect-ratio: 1;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-strong);
+}
+.cvq-founder-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-sunken);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 96px;
+  color: var(--accent);
+}
+.cvq-founder-text p {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--text-2);
+  margin: 0 0 var(--space-4);
+  max-width: 58ch;
+}
+.cvq-founder-promise { font-weight: 600; color: var(--text); }
+.cvq-founder-name { font-family: var(--font-display); font-weight: 600; color: var(--text); }
+
+/* ── Pricing ───────────────────────────────────────────────────────────────── */
+.cvq-land-pricing {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  max-width: 880px;
+}
+@media (max-width: 720px) { .cvq-land-pricing { grid-template-columns: 1fr; } }
+.cvq-land-plan { display: flex; flex-direction: column; gap: var(--space-4); }
+.cvq-land-plan--pro { border-color: var(--accent); border-width: 2px; }
+.cvq-land-plan h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  margin: 0;
+}
+.cvq-land-plan-price {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cvq-land-plan-per {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-left: var(--space-2);
+}
+.cvq-land-plan-alt { font-size: 13px; color: var(--text-2); margin: calc(-1 * var(--space-2)) 0 0; }
+.cvq-land-plan ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+.cvq-land-plan li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-2);
+  padding-left: var(--space-5);
+  position: relative;
+}
+.cvq-land-plan li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── FAQ ───────────────────────────────────────────────────────────────────── */
+.cvq-land-faqlist { max-width: 760px; }
+.cvq-land-faqitem {
+  border-bottom: 1px solid var(--border);
+}
+.cvq-land-faqitem summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text);
+}
+.cvq-land-faqitem summary::-webkit-details-marker { display: none; }
+.cvq-land-faqitem summary::after {
+  content: "+";
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--accent-hover);
+  transition: transform var(--motion) var(--ease-out);
+}
+.cvq-land-faqitem[open] summary::after { transform: rotate(45deg); }
+.cvq-land-faqitem p {
+  margin: 0;
+  padding: 0 0 var(--space-5);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-2);
+  max-width: 64ch;
+}
+
+/* ── Footer — the one dark moment (espresso, cream text) ───────────────────── */
+.cvq-land-footer {
+  background: var(--espresso);
+  color: var(--on-accent);
+  padding: clamp(40px, 6vw, 64px) clamp(20px, 5vw, 56px) var(--space-8);
+}
+.cvq-land-footer-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(28px, 5vw, 64px);
+}
+@media (max-width: 720px) { .cvq-land-footer-inner { grid-template-columns: 1fr; } }
+.cvq-land-wordmark--footer { font-size: 22px; color: var(--on-accent); }
+.cvq-land-footer-brand p {
+  margin: var(--space-3) 0 0;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--on-accent) 75%, transparent);
+}
+.cvq-land-footer-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(28px, 4vw, 56px);
+}
+.cvq-land-footer-cols h3 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--on-accent) 60%, transparent);
+  margin: 0 0 var(--space-3);
+}
+.cvq-land-footer-cols div { display: flex; flex-direction: column; gap: var(--space-2); }
+.cvq-land-footer-cols a {
+  font-size: 14px;
+  color: var(--on-accent);
+  text-decoration: none;
+}
+.cvq-land-footer-cols a:hover { text-decoration: underline; }
+.cvq-land-footer-disclaimer {
+  max-width: 1160px;
+  margin: clamp(32px, 5vw, 48px) auto 0;
+  padding-top: var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--on-accent) 25%, transparent);
+  font-size: 12px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--on-accent) 70%, transparent);
+}
+.cvq-land-footer-copy {
+  max-width: 1160px;
+  margin: var(--space-3) auto 0;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--on-accent) 55%, transparent);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   pSEO PAGES (/stock, /compare) — Almanac restyle by variable remap.
+   The report components (PublicStockReport, CompareReport, StockBrowser, the
+   viz) were built on the legacy dark-theme variables. Remapping those vars
+   inside .cvq-pseo flips the whole tree onto the Almanac tokens without
+   touching their markup. Phase 8's sweep can then retire the legacy names.
+   ══════════════════════════════════════════════════════════════════════════ */
+.cvq-pseo {
+  /* legacy var → Almanac token */
+  --background: var(--bg-page);
+  --foreground: var(--text);
+  --muted: var(--text-2);
+  --dim: var(--text-muted);
+  --rule: var(--border);
+  --surface: var(--bg-surface);
+  --surface-2: var(--bg-surface);
+  --surface-3: var(--bg-sunken);
+  --accent-dim: color-mix(in srgb, var(--accent) 8%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 25%, transparent);
+  --navy: var(--border-strong);
+  --navy-light: var(--border-strong);
+  /* market colors: ink variants — these sit on warm paper, not dark navy */
+  --bull: var(--up-ink);
+  --bear: var(--down-ink);
+  --hold: var(--text-2); /* HOLD is neither gain nor loss — espresso, in-palette */
+
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+/* Legacy type utilities, rebound to the Almanac pairing inside pSEO pages. */
+.cvq-pseo .mono {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.cvq-pseo .serif { font-family: var(--font-ui); }
+.cvq-pseo .display { font-family: var(--font-display); font-weight: 700; }
+.cvq-pseo .caps {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cvq-pseo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) clamp(20px, 4vw, 40px);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.cvq-pseo-nav { display: flex; align-items: center; gap: var(--space-5); }
+.cvq-pseo-nav a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-decoration: none;
+}
+.cvq-pseo-nav a:hover { color: var(--text); }
+.cvq-pseo-nav a.cvq-pseo-nav-cta { color: var(--on-accent); padding: 8px var(--space-4); }
+@media (max-width: 640px) {
+  .cvq-pseo-nav a:not(.cvq-pseo-nav-cta) { display: none; }
+}
+
+.cvq-pseo-cta {
+  margin-top: var(--space-12);
+  padding: var(--space-8);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.cvq-pseo-cta h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  margin: 0 0 var(--space-2);
+  color: var(--text);
+}
+.cvq-pseo-cta p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-2);
+  max-width: 56ch;
+  margin: 0 0 var(--space-5);
+}
+.cvq-pseo-cta-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+.cvq-pseo-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: var(--space-5) clamp(20px, 4vw, 40px) var(--space-6);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.cvq-pseo-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.cvq-pseo-footer-row a { color: var(--link); text-decoration: none; }
+.cvq-pseo-footer p { margin: 0; line-height: 1.6; max-width: 80ch; }

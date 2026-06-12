@@ -5,8 +5,7 @@ import { quote } from "@/lib/marketdata";
 import type { Quote } from "@/lib/marketdata";
 import { readDashboard } from "@/lib/feed/store";
 import { SNAPSHOT_TICKERS, timeAgo, type DashboardContent } from "@/lib/feed/types";
-import { getAlphaStore } from "@/lib/alphaStore";
-import type { AlphaPick } from "@/lib/alphaTypes";
+import { loadPicks, pickStats, thesisLine, type PickView } from "@/lib/picksView";
 
 export const dynamic = "force-dynamic";
 
@@ -22,93 +21,9 @@ export const metadata: Metadata = {
 // shared 15-minute cache at view time. Server component: nothing here is
 // interactive, so we render once with honest timestamps.
 
-// ── Picks: P/L + track-record stats ─────────────────────────────────────────
-
-interface PickView {
-  pick: AlphaPick;
-  open: boolean;
-  /** % return — live for open picks, realized for closed. null = unavailable. */
-  returnPct: number | null;
-  /** Current/exit price backing returnPct. */
-  price: number | null;
-  /** When the price is a stored snapshot, the date it was taken. */
-  priceAsOfNote: string | null;
-}
-
-async function loadPicks(): Promise<PickView[]> {
-  const store = getAlphaStore();
-  const [active, sold] = await Promise.all([
-    store.fetchActive(),
-    store.fetchRecentlySold(3650), // full history — losses included
-  ]);
-
-  const openViews = await Promise.all(
-    active.map(async (pick): Promise<PickView> => {
-      const q = await quote(pick.ticker);
-      if (q) {
-        return {
-          pick,
-          open: true,
-          returnPct: ((q.price - pick.entry_price) / pick.entry_price) * 100,
-          price: q.price,
-          priceAsOfNote: null,
-        };
-      }
-      // Live quote unavailable — fall back to the pipeline's last snapshot,
-      // honestly dated. Never a guessed number.
-      if (pick.current_price && pick.price_change_pct !== null && pick.price_change_pct !== undefined) {
-        return {
-          pick,
-          open: true,
-          returnPct: pick.price_change_pct,
-          price: pick.current_price,
-          priceAsOfNote: pick.price_last_updated
-            ? `as of ${pick.price_last_updated.slice(0, 10)}`
-            : "last check",
-        };
-      }
-      return { pick, open: true, returnPct: null, price: null, priceAsOfNote: null };
-    })
-  );
-
-  const soldViews = sold.map((pick): PickView => {
-    const realized =
-      pick.realized_return_pct ??
-      (pick.exit_price ? ((pick.exit_price - pick.entry_price) / pick.entry_price) * 100 : null);
-    return {
-      pick,
-      open: false,
-      returnPct: realized,
-      price: pick.exit_price ?? null,
-      priceAsOfNote: null,
-    };
-  });
-
-  openViews.sort((a, b) => (b.pick.entry_date || "").localeCompare(a.pick.entry_date || ""));
-  soldViews.sort((a, b) => (b.pick.exit_date || "").localeCompare(a.pick.exit_date || ""));
-  return [...openViews, ...soldViews];
-}
-
-function pickStats(views: PickView[]) {
-  const scored = views.filter((v) => v.returnPct !== null);
-  if (scored.length === 0) return null;
-  const wins = scored.filter((v) => (v.returnPct as number) > 0).length;
-  const avg = scored.reduce((s, v) => s + (v.returnPct as number), 0) / scored.length;
-  const open = views.filter((v) => v.open).length;
-  return {
-    winRate: Math.round((wins / scored.length) * 100),
-    avgReturn: avg,
-    total: views.length,
-    open,
-  };
-}
-
-function thesisLine(pick: AlphaPick): string {
-  const line = (pick.bull_thesis || pick.catalyst || "").trim().replace(/\s+/g, " ");
-  return line.length > 150 ? `${line.slice(0, 149)}…` : line;
-}
-
 // ── Sections ─────────────────────────────────────────────────────────────────
+// (Picks loading/stats live in src/lib/picksView.ts — shared with the landing
+// page's TRACK RECORD section.)
 
 function Snapshot({ quotes }: { quotes: Array<{ label: string; q: Quote | null }> }) {
   const anyData = quotes.some((s) => s.q);

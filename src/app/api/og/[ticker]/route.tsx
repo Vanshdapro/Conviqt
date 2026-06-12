@@ -3,6 +3,7 @@ import { VALID_TICKER_RE } from "@/lib/agents/router";
 import { getStockReport } from "@/lib/stockReports";
 import { slugToTicker, universeName } from "@/lib/tickers";
 import type { Verdict } from "@/lib/agents/types";
+import { OG, ogVerdictColor, loadOgFonts } from "@/lib/og/brand";
 
 // Shareable verdict card — the viral loop. Rendered on demand from the cached
 // Council report (never re-runs the Council, so crawlers/shares can't burn the
@@ -14,25 +15,22 @@ import type { Verdict } from "@/lib/agents/types";
 export const runtime = "nodejs";
 export const revalidate = 86400; // match the page's 24h ISR window
 
-// ── Palette (mirrors globals.css; satori needs literal hex, not CSS vars) ───
+// ── Palette: the Almanac tokens, mirrored for satori in src/lib/og/brand.ts ──
 const C = {
-  bg: "#050d1a",
-  surface: "#0a1323",
-  surface3: "#0f1d35",
-  rule: "#1a2944",
-  fg: "#e8edf8",
-  muted: "#7a92b8",
-  dim: "#3d5278",
-  accent: "#4f87f7",
-  bull: "#22c55e",
-  bear: "#ef4444",
-  hold: "#f59e0b",
+  bg: OG.page,
+  surface: OG.surface,
+  surface3: OG.sunken,
+  rule: OG.border,
+  fg: OG.text,
+  muted: OG.text2,
+  dim: OG.muted,
+  accent: OG.accent,
+  bull: OG.upInk,
+  bear: OG.downInk,
 } as const;
 
 function verdictColor(v: Verdict): string {
-  if (v === "BUY") return C.bull;
-  if (v === "SELL") return C.bear;
-  return C.hold;
+  return ogVerdictColor(v);
 }
 
 function disagreementLabel(d: number): string {
@@ -50,18 +48,6 @@ function oneLine(text: string, max = 110): string {
   return s.slice(0, max - 1).replace(/[\s,;:]+\S*$/, "") + "…";
 }
 
-// Fetch a Google font as TTF (satori can't parse woff2). A plain fetch UA gets
-// truetype back from the css2 endpoint.
-async function loadFont(family: string, weight: number): Promise<ArrayBuffer> {
-  const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
-    family,
-  )}:wght@${weight}&display=swap`;
-  const css = await (await fetch(url)).text();
-  const src = css.match(/src: url\((https:\/\/[^)]+\.ttf)\)/)?.[1];
-  if (!src) throw new Error(`font url not found for ${family}`);
-  return (await fetch(src)).arrayBuffer();
-}
-
 const SIZE = { width: 1200, height: 630 };
 
 export async function GET(
@@ -77,16 +63,8 @@ export async function GET(
 
     const stored = await getStockReport(TICK);
 
-    const [display, mono, serif] = await Promise.all([
-      loadFont("Playfair Display", 600),
-      loadFont("JetBrains Mono", 500),
-      loadFont("Source Serif 4", 400),
-    ]);
-    const fonts = [
-      { name: "Display", data: display, weight: 600 as const, style: "normal" as const },
-      { name: "Mono", data: mono, weight: 500 as const, style: "normal" as const },
-      { name: "Serif", data: serif, weight: 400 as const, style: "normal" as const },
-    ];
+    // Self-hosted Cabinet Grotesk + General Sans (no CDN fetch at render time).
+    const fonts = await loadOgFonts();
 
     // ── Pending state: no Council report yet ────────────────────────────────
     if (!stored) {
@@ -101,22 +79,22 @@ export async function GET(
               flexDirection: "column",
               background: C.bg,
               padding: "64px 72px",
-              fontFamily: "Mono",
+              fontFamily: "General",
               borderLeft: `12px solid ${C.accent}`,
             }}
           >
             <div style={{ display: "flex", color: C.accent, fontSize: 20, letterSpacing: 4 }}>
-              CONVIQT COUNCIL
+              CONVIQT
             </div>
             <div style={{ display: "flex", flexDirection: "column", marginTop: "auto" }}>
-              <div style={{ display: "flex", fontFamily: "Display", fontSize: 150, color: C.fg, lineHeight: 1 }}>
+              <div style={{ display: "flex", fontFamily: "Cabinet", fontSize: 150, color: C.fg, lineHeight: 1 }}>
                 {TICK}
               </div>
-              <div style={{ display: "flex", fontFamily: "Serif", fontSize: 32, color: C.muted, marginTop: 12 }}>
+              <div style={{ display: "flex", fontFamily: "General", fontSize: 32, color: C.muted, marginTop: 12 }}>
                 {name}
               </div>
               <div style={{ display: "flex", fontSize: 24, color: C.dim, marginTop: 28 }}>
-                Awaiting Council verdict — run the analysis at conviqt.com
+                Verdict pending — research it at conviqt.com
               </div>
             </div>
           </div>
@@ -140,7 +118,7 @@ export async function GET(
             display: "flex",
             flexDirection: "column",
             background: C.bg,
-            fontFamily: "Mono",
+            fontFamily: "General",
             borderLeft: `12px solid ${vc}`,
           }}
         >
@@ -156,11 +134,11 @@ export async function GET(
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ display: "flex", width: 10, height: 10, background: C.accent }} />
               <div style={{ display: "flex", color: C.accent, fontSize: 19, letterSpacing: 4 }}>
-                CONVIQT COUNCIL
+                CONVIQT
               </div>
             </div>
             <div style={{ display: "flex", color: C.dim, fontSize: 16, letterSpacing: 3 }}>
-              AI EQUITY RESEARCH
+              AI STOCK RESEARCH
             </div>
           </div>
 
@@ -177,7 +155,7 @@ export async function GET(
               <div
                 style={{
                   display: "flex",
-                  fontFamily: "Display",
+                  fontFamily: "Cabinet",
                   fontSize: 122,
                   color: C.fg,
                   lineHeight: 1,
@@ -188,7 +166,7 @@ export async function GET(
               <div
                 style={{
                   display: "flex",
-                  fontFamily: "Serif",
+                  fontFamily: "General",
                   fontSize: 28,
                   color: C.muted,
                   marginTop: 14,
@@ -204,7 +182,7 @@ export async function GET(
               <div
                 style={{
                   display: "flex",
-                  fontFamily: "Display",
+                  fontFamily: "Cabinet",
                   fontSize: 96,
                   color: vc,
                   lineHeight: 1,
@@ -232,7 +210,7 @@ export async function GET(
                 CONVICTION
               </div>
               <div style={{ display: "flex", alignItems: "baseline", marginTop: 8 }}>
-                <div style={{ display: "flex", fontFamily: "Display", fontSize: 52, color: C.fg }}>
+                <div style={{ display: "flex", fontFamily: "Cabinet", fontSize: 52, color: C.fg }}>
                   {conviction}
                 </div>
                 <div style={{ display: "flex", fontSize: 22, color: C.muted, marginLeft: 4 }}>
@@ -255,10 +233,10 @@ export async function GET(
               }}
             >
               <div style={{ display: "flex", color: C.dim, fontSize: 14, letterSpacing: 2 }}>
-                AGENT DISAGREEMENT
+                ANALYST SPLIT
               </div>
               <div style={{ display: "flex", alignItems: "baseline", marginTop: 8 }}>
-                <div style={{ display: "flex", fontFamily: "Display", fontSize: 52, color: C.fg }}>
+                <div style={{ display: "flex", fontFamily: "Cabinet", fontSize: 52, color: C.fg }}>
                   {dLabel}
                 </div>
                 <div style={{ display: "flex", fontSize: 22, color: C.muted, marginLeft: 10 }}>
@@ -287,7 +265,7 @@ export async function GET(
               >
                 BULL
               </div>
-              <div style={{ display: "flex", fontFamily: "Serif", fontSize: 23, color: C.fg, lineHeight: 1.35 }}>
+              <div style={{ display: "flex", fontFamily: "General", fontSize: 23, color: C.fg, lineHeight: 1.35 }}>
                 {bull}
               </div>
             </div>
@@ -305,7 +283,7 @@ export async function GET(
               >
                 BEAR
               </div>
-              <div style={{ display: "flex", fontFamily: "Serif", fontSize: 23, color: C.fg, lineHeight: 1.35 }}>
+              <div style={{ display: "flex", fontFamily: "General", fontSize: 23, color: C.fg, lineHeight: 1.35 }}>
                 {bear}
               </div>
             </div>
@@ -323,7 +301,7 @@ export async function GET(
               fontSize: 17,
             }}
           >
-            <div style={{ display: "flex" }}>Analyzed by Conviqt Council · conviqt.com</div>
+            <div style={{ display: "flex" }}>Researched on Conviqt · conviqt.com</div>
             <div style={{ display: "flex" }}>Not investment advice</div>
           </div>
         </div>

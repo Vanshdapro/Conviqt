@@ -1,115 +1,120 @@
 import { ImageResponse } from "next/og";
+import { OG, loadOgFonts } from "@/lib/og/brand";
 
-export const runtime = "edge";
-export const alt = "Conviqt — AI Equity Research";
+// The sitewide share card — Almanac brand (playbook Phase 6): warm paper,
+// espresso ink, one teal accent, the real type pairing. nodejs runtime so the
+// self-hosted TTFs load from disk (no CDN fetch at render time).
+
+export const runtime = "nodejs";
+export const alt = "Conviqt — Your personal team of AI analysts";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OgImage() {
+export default async function OgImage() {
+  const fonts = await loadOgFonts();
+
   return new ImageResponse(
     (
       <div
         style={{
-          background: "#050508",
           width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "Georgia, serif",
-          position: "relative",
+          background: OG.page,
+          padding: "56px 72px",
+          fontFamily: "General",
+          borderTop: `10px solid ${OG.accent}`,
         }}
       >
-        {/* Subtle grid background */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-
-        {/* Blue accent line top */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 4,
-            background: "linear-gradient(90deg, #1a6bff 0%, #4fa3ff 50%, #1a6bff 100%)",
-          }}
-        />
-
-        {/* Main content */}
+        {/* Brand row */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: 24,
-            padding: "0 80px",
-            textAlign: "center",
+            justifyContent: "space-between",
           }}
         >
           <div
             style={{
-              fontSize: 96,
-              fontWeight: 400,
-              color: "#f5f0e8",
-              letterSpacing: "0.18em",
-              lineHeight: 1,
+              display: "flex",
+              fontFamily: "Cabinet",
+              fontWeight: 800,
+              fontSize: 34,
+              letterSpacing: "0.12em",
+              color: OG.text,
             }}
           >
-            CONVIQT
+            CONVI<span style={{ color: OG.accent }}>Q</span>T
+          </div>
+          <div style={{ display: "flex", fontSize: 20, color: OG.muted }}>conviqt.com</div>
+        </div>
+
+        {/* Headline */}
+        <div style={{ display: "flex", flexDirection: "column", marginTop: "auto" }}>
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "Cabinet",
+              fontWeight: 800,
+              fontSize: 84,
+              lineHeight: 1.05,
+              letterSpacing: "-0.015em",
+              color: OG.text,
+              maxWidth: 980,
+            }}
+          >
+            Your personal team of AI analysts.
           </div>
           <div
             style={{
+              display: "flex",
               fontSize: 28,
-              color: "#4fa3ff",
-              letterSpacing: "0.08em",
-              fontFamily: "monospace",
+              lineHeight: 1.45,
+              color: OG.text2,
+              marginTop: 22,
+              maxWidth: 860,
             }}
           >
-            AI Equity Research
-          </div>
-          <div
-            style={{
-              fontSize: 20,
-              color: "rgba(255,255,255,0.45)",
-              maxWidth: 700,
-              lineHeight: 1.5,
-              marginTop: 8,
-            }}
-          >
-            Five AI agents debate every stock with live web data.
-            Every number has a source URL.
+            Ask anything about any stock. Plain-English answers, and a public track record we
+            can&rsquo;t hide from.
           </div>
         </div>
 
-        {/* Bottom label */}
+        {/* Credibility strip */}
         <div
           style={{
-            position: "absolute",
-            bottom: 40,
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            color: "rgba(255,255,255,0.3)",
-            fontSize: 16,
-            letterSpacing: "0.12em",
-            fontFamily: "monospace",
+            justifyContent: "space-between",
+            marginTop: 48,
+            paddingTop: 26,
+            borderTop: `1px solid ${OG.border}`,
           }}
         >
-          <span>conviqt.com</span>
-          <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
-          <span>Cited. Accountable.</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              fontFamily: "Cabinet",
+              fontWeight: 700,
+              fontSize: 22,
+              color: OG.accentHover,
+            }}
+          >
+            <span>Every pick public</span>
+            <span style={{ color: OG.borderStrong }}>·</span>
+            <span>89 lessons</span>
+            <span style={{ color: OG.borderStrong }}>·</span>
+            <span>No download needed</span>
+          </div>
+          <div style={{ display: "flex", fontSize: 18, color: OG.muted }}>
+            Research &amp; education — not financial advice
+          </div>
         </div>
       </div>
     ),
-    { ...size }
+    { ...size, fonts }
   );
 }

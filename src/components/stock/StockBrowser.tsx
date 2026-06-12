@@ -12,20 +12,21 @@ import type { UniverseEntry } from "@/lib/tickers";
 // props, so the full list still server-renders into the initial HTML (the
 // internal links crawlers need) — search only filters what's already there.
 
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const BORDER = "rgba(232,237,248,0.09)";
-const SURFACE = "#07121f";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SERIF = "var(--font-serif), Georgia, serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
+// Almanac tokens (playbook Phase 6) — everything resolves through tokens.css.
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const BORDER = "var(--border)";
+const SURFACE = "var(--bg-surface)";
+const MONO = "var(--font-ui)";
+const SERIF = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
 
 function verdictColor(v: "BUY" | "HOLD" | "SELL"): string {
-  if (v === "BUY") return "#22c55e";
-  if (v === "SELL") return "#f87171";
-  return "#f59e0b";
+  if (v === "BUY") return "var(--up-ink)";
+  if (v === "SELL") return "var(--down-ink)";
+  return "var(--text-2)"; // HOLD — neither gain nor loss, espresso ink
 }
 
 export function StockBrowser({
@@ -61,12 +62,12 @@ export function StockBrowser({
     <div>
       <style>{`
         .si-card { transition: border-color .18s ease, transform .18s ease; }
-        .si-card:hover { transform: translateY(-2px); border-color: rgba(79,135,247,.32) !important; }
+        .si-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important; }
         .si-pill { transition: color .14s ease, border-color .14s ease; }
-        .si-pill:hover { color: ${INK} !important; border-color: rgba(79,135,247,.4) !important; }
+        .si-pill:hover { color: ${INK} !important; border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important; }
         .si-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         .si-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .si-search:focus-within { border-color: rgba(79,135,247,.5) !important; background: rgba(79,135,247,.05) !important; }
+        .si-search:focus-within { border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface)) !important; }
         .si-search input::placeholder { color: ${FAINT}; }
         @media (max-width: 1000px) { .si-grid { grid-template-columns: 1fr 1fr !important; } .si-pills { grid-template-columns: 1fr 1fr 1fr !important; } }
         @media (max-width: 680px) { .si-grid { grid-template-columns: 1fr !important; } .si-pills { grid-template-columns: 1fr 1fr !important; } }
@@ -80,7 +81,7 @@ export function StockBrowser({
           display: "flex",
           alignItems: "center",
           gap: 12,
-          background: "rgba(232,237,248,0.018)",
+          background: "var(--bg-surface)",
           border: `1px solid ${BORDER}`,
           borderRadius: 12,
           padding: "14px 18px",
@@ -154,19 +155,19 @@ export function StockBrowser({
         <section style={{ marginBottom: 48 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 18 }}>
             <h2 style={{ color: INK, fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", margin: 0 }}>
-              Latest Council verdicts
+              Latest verdicts
             </h2>
             <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11 }}>
               {filteredPublished.length}{q ? " match" + (filteredPublished.length === 1 ? "" : "es") : " published"}
             </span>
           </div>
-          {/* Board-level read: how the Council's standing verdicts split across these names */}
+          {/* Board-level read: how the standing verdicts split across these names */}
           {(() => {
             const c = { BUY: 0, HOLD: 0, SELL: 0 } as Record<"BUY" | "HOLD" | "SELL", number>;
             filteredPublished.forEach((p) => { c[p.verdict] += 1; });
             return (
               <div style={{ marginBottom: 22 }}>
-                <VerdictDistribution buy={c.BUY} hold={c.HOLD} sell={c.SELL} label="Council consensus across these names" />
+                <VerdictDistribution buy={c.BUY} hold={c.HOLD} sell={c.SELL} label="Where the verdicts stand across these names" />
               </div>
             );
           })()}
@@ -204,7 +205,7 @@ export function StockBrowser({
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ flex: 1, height: 3, background: "rgba(232,237,248,0.1)", borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ flex: 1, height: 3, background: "var(--bg-sunken)", borderRadius: 999, overflow: "hidden" }}>
                       <div style={{ width: `${p.conviction}%`, height: "100%", background: vc }} />
                     </div>
                     <span style={{ color: MUTED, fontFamily: MONO, fontSize: 10, flexShrink: 0 }}>
@@ -231,7 +232,7 @@ export function StockBrowser({
           </div>
           {!q && (
             <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 14, lineHeight: 1.6, margin: "0 0 18px", maxWidth: 640 }}>
-              Open any name to see its latest report — or trigger a fresh Council run if none has been published yet.
+              Open any name to see its latest report — or run fresh research if none has been published yet.
             </p>
           )}
           <div className="si-pills">
@@ -251,7 +252,7 @@ export function StockBrowser({
                   padding: "11px 14px",
                   textDecoration: "none",
                   color: MUTED,
-                  background: "rgba(232,237,248,0.018)",
+                  background: "var(--bg-surface)",
                 }}
               >
                 <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, color: INK }}>{e.ticker}</span>
