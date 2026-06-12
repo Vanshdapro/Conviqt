@@ -84,6 +84,8 @@ export const MODELS = {
   // Sector Snapshot pipeline:
   sectorTicker: "claude-haiku-4-5-20251001", // abbreviated per-name scorecard — one tight structured call
   sectorJudge: "claude-sonnet-4-6", // thematic synthesis across 5-8 names — the marquee output
+  // Scheduled Dashboard/Headlines content (Phase 4) — Haiku, ≤ $0.35/run all-in
+  feed: "claude-haiku-4-5-20251001",
 } as const;
 
 // Per-model unit costs in USD per token.

@@ -67,7 +67,13 @@ shell in `src/components/shell/AppShell.tsx`. **The legacy chat is GONE**
 (`src/components/research/ResearchSurface.tsx` + `answers.tsx` +
 `SkillLibrarySheet.tsx`; skill registry = `src/lib/skills.ts`); `/chat`
 redirects to `/research?q=…`; `Chat.tsx`, `ChatWithQuery.tsx`, and
-`ResearchHub.tsx` are deleted (`legacy-v1` has them). The remaining retired items
+`ResearchHub.tsx` are deleted (`legacy-v1` has them). **Phase 4 is DONE**:
+`/dashboard` + `/headlines` are real (feed lib = `src/lib/feed/`, refresh =
+`POST /api/feed/refresh` behind CRON_SECRET). The 2×/day trigger is the
+GitHub Actions workflow `.github/workflows/feed-refresh.yml` — NOT a Vercel
+cron; the Vercel team is on Hobby (verified 2026-06-12), whose crons fire at
+most once daily. Go-live needs: migration 021 run in Supabase, repo Actions
+secret `CRON_SECRET`, and `CURRENTS_API_KEY` added to Vercel prod env. The remaining retired items
 (API/developers, CDI, standalone Watchlist, Translate, Newsletter, gradient-serif
 marketing) still exist as route pages; their removal + 301s happen in Phase 8.
 Until then: do NOT extend or build new features on those routes, but do NOT
