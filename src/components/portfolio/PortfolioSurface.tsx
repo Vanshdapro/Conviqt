@@ -232,6 +232,10 @@ export function PortfolioSurface({
       <div hidden={tab !== "watching"}>
         <WatchingTab active={tab === "watching"} />
       </div>
+      <p className="cvq-disclaimer">
+        Conviqt is a research and education tool, not a licensed financial
+        adviser. Nothing here is financial advice. Markets involve risk.
+      </p>
     </div>
   );
 }
@@ -743,37 +747,45 @@ function SummaryStrip({ totals }: { totals: LiveTotals }) {
     <Card raised padding="lg" className="cvq-folio-summary">
       <div className="cvq-folio-summary-main">
         <span className="cvq-folio-summary-label">Total value</span>
-        <span className="cvq-folio-summary-value" data-no-translate>
-          {fmtMoney(totals.value)}
-        </span>
+        {/* $0.00 would read as "your portfolio is worth nothing"; when no
+            holding could be priced, say so honestly instead of a fake zero. */}
+        {totals.pricedCount > 0 ? (
+          <span className="cvq-folio-summary-value" data-no-translate>
+            {fmtMoney(totals.value)}
+          </span>
+        ) : (
+          <span className="cvq-quote-unavailable">Live values unavailable right now</span>
+        )}
         {totals.freshnessLabel && (
           <span className="cvq-quote-fresh">{totals.freshnessLabel}</span>
         )}
       </div>
-      <div className="cvq-folio-summary-pls">
-        <div className="cvq-folio-summary-pl">
-          <span className="cvq-folio-summary-label">Today</span>
-          {totals.dayPL !== null ? (
-            <span className="cvq-folio-summary-plrow">
-              <ChangePill change={totals.dayPLPct ?? 0} />
-              <ChangeText change={totals.dayPL} label={fmtMoneyAbs(totals.dayPL)} />
-            </span>
-          ) : (
-            <span className="cvq-quote-unavailable">unavailable right now</span>
-          )}
+      {totals.pricedCount > 0 && (
+        <div className="cvq-folio-summary-pls">
+          <div className="cvq-folio-summary-pl">
+            <span className="cvq-folio-summary-label">Today</span>
+            {totals.dayPL !== null ? (
+              <span className="cvq-folio-summary-plrow">
+                <ChangePill change={totals.dayPLPct ?? 0} />
+                <ChangeText change={totals.dayPL} label={fmtMoneyAbs(totals.dayPL)} />
+              </span>
+            ) : (
+              <span className="cvq-quote-unavailable">unavailable right now</span>
+            )}
+          </div>
+          <div className="cvq-folio-summary-pl">
+            <span className="cvq-folio-summary-label">All time</span>
+            {totals.totalPL !== null ? (
+              <span className="cvq-folio-summary-plrow">
+                <ChangePill change={totals.totalPLPct ?? 0} />
+                <ChangeText change={totals.totalPL} label={fmtMoneyAbs(totals.totalPL)} />
+              </span>
+            ) : (
+              <span className="cvq-folio-summary-note">Add cost basis to see it</span>
+            )}
+          </div>
         </div>
-        <div className="cvq-folio-summary-pl">
-          <span className="cvq-folio-summary-label">All time</span>
-          {totals.totalPL !== null ? (
-            <span className="cvq-folio-summary-plrow">
-              <ChangePill change={totals.totalPLPct ?? 0} />
-              <ChangeText change={totals.totalPL} label={fmtMoneyAbs(totals.totalPL)} />
-            </span>
-          ) : (
-            <span className="cvq-folio-summary-note">Add cost basis to see it</span>
-          )}
-        </div>
-      </div>
+      )}
       {totals.unpricedCount > 0 && (
         <p className="cvq-folio-summary-note">
           {totals.unpricedCount} holding{totals.unpricedCount === 1 ? "" : "s"} couldn&rsquo;t be priced right now and {totals.unpricedCount === 1 ? "isn’t" : "aren’t"} in these totals.
@@ -1223,7 +1235,7 @@ function WatchingTab({ active }: { active: boolean }) {
           </div>
         </div>
         <p className="cvq-folio-csvhint">
-          {`${items.length} of ${max} — we’ll email you when one of these is about to report earnings.`}
+          {`${items.length} of ${max} — we’ll email you when one of these is about to report earnings. Dates can shift; confirm with the company before trading.`}
         </p>
         {msg && <p className="cvq-folio-msg" role="alert">{msg}</p>}
       </form>
