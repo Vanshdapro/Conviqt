@@ -1,4 +1,5 @@
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { audienceDirective, type ExperienceLevel } from "./audience";
 import {
   AgentName,
   AgentOutput,
@@ -136,7 +137,7 @@ function renderJudgeFacts(facts: Fact[], factSheet: FactSheet): string {
 export async function runJudge(
   factSheet: FactSheet,
   agents: AgentOutput[],
-  options: { focus?: string } = {}
+  options: { focus?: string; audience?: ExperienceLevel | null } = {}
 ): Promise<JudgeRunResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
@@ -163,10 +164,17 @@ export async function runJudge(
     ? `\nUser focus: ${options.focus.slice(0, 240)}\nAddress this directly in your investmentCase.\n`
     : "";
 
+  // Audience block sits AFTER the cache_control block so the cached system
+  // prefix stays byte-identical across reader levels.
+  const aud = audienceDirective(options.audience);
+
   const response = await anthropic.messages.create({
     model: MODELS.judge,
     max_tokens: 1500,
-    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [
+      { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [JUDGMENT_TOOL],
     tool_choice: { type: "tool", name: JUDGMENT_TOOL.name },
     messages: [

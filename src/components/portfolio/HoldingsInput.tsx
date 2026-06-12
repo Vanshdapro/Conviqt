@@ -74,10 +74,11 @@ interface Props {
   onRowsChange: (rows: DraftRow[]) => void;
   onSubmit: () => void;
   disabled?: boolean;
-  cost: number;
+  /** Legacy prop — metering is internal now; kept so callers don't break. */
+  cost?: number;
 }
 
-export function HoldingsInput({ name, onNameChange, rows, onRowsChange, onSubmit, disabled, cost }: Props) {
+export function HoldingsInput({ name, onNameChange, rows, onRowsChange, onSubmit, disabled }: Props) {
   const [csvOpen, setCsvOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -208,7 +209,7 @@ export function HoldingsInput({ name, onNameChange, rows, onRowsChange, onSubmit
           {disabled ? "Auditing…" : "Run portfolio audit"}
         </button>
         <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12 }}>
-          {cost} credits · 5 risk agents + synthesis
+          A deep stress-test of what you own · ~60–90s
         </span>
         {validCount < 2 && (
           <span style={{ color: MUTED, fontFamily: SERIF, fontSize: 13 }}>Add at least 2 holdings to run an audit.</span>

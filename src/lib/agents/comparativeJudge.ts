@@ -1,4 +1,5 @@
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { audienceDirective, type ExperienceLevel } from "./audience";
 import {
   CompareDimension,
   CompareEdge,
@@ -139,15 +140,20 @@ function normalizeWinner(w: unknown): CompareWinner {
 
 export async function runComparativeJudge(
   a: CouncilResult,
-  b: CouncilResult
+  b: CouncilResult,
+  audience?: ExperienceLevel | null
 ): Promise<ComparativeJudgeResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
+  const aud = audienceDirective(audience);
 
   const response = await anthropic.messages.create({
     model: MODELS.comparativeJudge,
     max_tokens: 1600,
-    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [
+      { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [COMPARISON_TOOL],
     tool_choice: { type: "tool", name: COMPARISON_TOOL.name },
     messages: [

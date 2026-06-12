@@ -5,6 +5,7 @@ import {
   estimateCallCostUSD,
 } from "../anthropic";
 import { normalizeUrl, hostOf } from "../url-normalize";
+import { audienceDirective, type ExperienceLevel } from "./audience";
 import { extractCanonicalUrls, type ContentBlockLike } from "./provenance";
 import { VALID_TICKER_RE } from "./router";
 import type { Source } from "./types";
@@ -150,6 +151,7 @@ interface DecodeInput {
 
 export interface RunHeadlineOptions {
   onEvent?: (event: HeadlineEvent) => void;
+  audience?: ExperienceLevel | null;
 }
 
 export async function runHeadlineDecoder(
@@ -157,6 +159,7 @@ export async function runHeadlineDecoder(
   options: RunHeadlineOptions = {}
 ): Promise<HeadlineResult> {
   const { onEvent } = options;
+  const aud = audienceDirective(options.audience);
   const t0 = Date.now();
   const headline = headlineInput.trim().slice(0, 300);
   const runId = `hd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -179,7 +182,10 @@ export async function runHeadlineDecoder(
   const first = await anthropic.messages.create({
     model: MODELS.sweep,
     max_tokens: 2048,
-    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [
+      { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [HEADLINE_WEB_SEARCH, DECODE_TOOL],
     messages: [userMsg],
   });
@@ -206,7 +212,10 @@ export async function runHeadlineDecoder(
     const second = await anthropic.messages.create({
       model: MODELS.sweep,
       max_tokens: 1536,
-      system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+      system: [
+        { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+        ...(aud ? [{ type: "text" as const, text: aud }] : []),
+      ],
       tools: [DECODE_TOOL],
       tool_choice: { type: "tool", name: DECODE_TOOL.name },
       messages: [

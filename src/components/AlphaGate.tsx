@@ -95,9 +95,7 @@ export function AlphaGate() {
         return;
       }
       if (res.status === 402) {
-        setError(
-          `You need ${data.cost} credits to unlock this publication but have ${data.credits}. Top up on the Pricing page.`,
-        );
+        setError("You've used your included unlocks for now. Pro removes the limit — see the Pricing page.");
         return;
       }
       if (!res.ok || !data.ok) {
@@ -396,20 +394,11 @@ function LockScreen({
           padding: "14px 22px",
         }}>
           <div style={{ textAlign: "left" }}>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: "#e8edf8" }}>
-              {cost} <span style={{ fontSize: 13, fontWeight: 400, color: "rgba(232,237,248,0.5)" }}>credits</span>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: "#e8edf8" }}>
+              One-time unlock
             </div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.4)", marginTop: 2 }}>
-              will be deducted
-            </div>
-          </div>
-          <div style={{ width: 1, height: 36, background: "rgba(232,237,248,0.1)" }} />
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: canAfford ? "#34d399" : "#f87171" }}>
-              {credits.toLocaleString()}
-            </div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(232,237,248,0.4)", marginTop: 2 }}>
-              your balance
+              free re-views until the next run
             </div>
           </div>
         </div>
@@ -433,7 +422,7 @@ function LockScreen({
               transition: "background 0.2s",
             }}
           >
-            {unlocking ? "Unlocking…" : `Unlock for ${cost} credits`}
+            {unlocking ? "Unlocking…" : "Unlock this publication"}
           </button>
         ) : (
           <a
@@ -452,12 +441,12 @@ function LockScreen({
               textDecoration: "none",
             }}
           >
-            Top up credits →
+            See what Pro unlocks →
           </a>
         )}
 
         <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "rgba(232,237,248,0.3)", margin: 0, letterSpacing: "0.04em" }}>
-          One-time charge per publication · free re-views until the next run
+          One unlock per publication · free re-views until the next run
         </p>
       </div>
     </section>

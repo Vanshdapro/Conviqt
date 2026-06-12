@@ -1,14 +1,16 @@
 // POST /api/stripe/checkout
 //
-// Creates a Stripe Checkout Session for:
-//   - One-time credit packs  (credits_500 | credits_1000 | credits_2000 | credits_3000)
-//   - Recurring subscriptions (max_monthly | max_pro_monthly)
+// Creates a Stripe Checkout Session. Since Phase 7 the consumer offer is the
+// Pro subscription only (pro_monthly | pro_annual, both with a 7-day trial).
+// Credit packs and the Max plans are retired — not purchasable here anymore.
+// Developer plans remain purchasable until the /developers surface retires
+// in Phase 8.
 //
 // Body:   { plan: PlanId }
 // Returns: { url: string }  — Stripe-hosted checkout URL to redirect to.
 //
 // The email is ALWAYS the verified session email — never client-supplied —
-// so the webhook credits the account that actually paid.
+// so the webhook upgrades the account that actually paid.
 
 import { NextResponse } from "next/server";
 import {
@@ -16,7 +18,9 @@ import {
   getPriceId,
   getSiteUrl,
   SUBSCRIPTION_PLANS,
-  ALL_PLANS,
+  PURCHASABLE_PLANS,
+  PRO_PLANS,
+  TRIAL_DAYS,
   type PlanId,
 } from "@/lib/stripe";
 import { getVerifiedUser } from "@/lib/auth";
@@ -39,9 +43,9 @@ export async function POST(req: Request) {
 
   const { plan } = body;
 
-  if (!plan || !ALL_PLANS.has(plan)) {
+  if (!plan || !PURCHASABLE_PLANS.has(plan as PlanId)) {
     return NextResponse.json(
-      { error: `Invalid plan "${plan}". Valid plans: ${[...ALL_PLANS].join(", ")}` },
+      { error: `Invalid plan "${plan}". Valid plans: ${[...PURCHASABLE_PLANS].join(", ")}` },
       { status: 400 }
     );
   }
@@ -61,6 +65,7 @@ export async function POST(req: Request) {
   const stripe   = getStripe();
   const siteUrl  = getSiteUrl();
   const isSub    = SUBSCRIPTION_PLANS.has(plan as PlanId);
+  const isPro    = PRO_PLANS.has(plan as PlanId);
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -73,7 +78,14 @@ export async function POST(req: Request) {
       billing_address_collection: "auto",
       metadata: { plan },
       ...(isSub
-        ? { subscription_data: { metadata: { plan } } }
+        ? {
+            subscription_data: {
+              metadata: { plan },
+              // Pro starts with a free week (playbook 2.4). Card up front,
+              // first charge after the trial — Stripe emails the reminder.
+              ...(isPro ? { trial_period_days: TRIAL_DAYS } : {}),
+            },
+          }
         : { payment_intent_data: { metadata: { plan } } }),
     });
 

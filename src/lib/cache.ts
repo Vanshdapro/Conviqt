@@ -8,6 +8,8 @@
 // lambda gets its own cache. Worth migrating to Supabase for global
 // consistency, but per-instance still cuts cost on warm function reuse.
 
+import { audienceCacheSuffix, type ExperienceLevel } from "./agents/audience";
+
 interface Entry<T> {
   value: T;
   expiresAt: number;
@@ -67,7 +69,15 @@ export function pickerRecordTickers(tickers: string[]) {
 }
 
 // Convenience builders for council / pick cache keys.
-export function councilCacheKey(ticker: string, focus?: string) {
+//
+// Audience (Phase 7): runs personalized for a non-default reader level carry
+// an `:aud_*` suffix so they never collide with the shared default result.
+// "new"/unknown → empty suffix → existing entries stay valid.
+export function councilCacheKey(
+  ticker: string,
+  focus?: string,
+  audience?: ExperienceLevel | null
+) {
   // 4-hour buckets. The bucket determines the key — requests for the same
   // ticker within a 4h window share a key and hit cache after the first run.
   // Combined with the 4h TTL this effectively gives a per-ticker result for
@@ -76,7 +86,7 @@ export function councilCacheKey(ticker: string, focus?: string) {
   const focusSig = focus
     ? `:f=${focus.slice(0, 40).toLowerCase().replace(/\s+/g, "_")}`
     : "";
-  return `council:${ticker.toUpperCase()}:${bucket}${focusSig}`;
+  return `council:${ticker.toUpperCase()}:${bucket}${focusSig}${audienceCacheSuffix(audience)}`;
 }
 
 export const COUNCIL_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
@@ -85,18 +95,22 @@ export const COUNCIL_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 // "AMD vs NVDA" share a key and a 4h bucket so a re-run is a 1-credit replay.
 // (The comparative verdict's A/B labelling is restored from the cached
 // CompareResult, which preserves the original user ordering.)
-export function compareCacheKey(tickerA: string, tickerB: string) {
+export function compareCacheKey(
+  tickerA: string,
+  tickerB: string,
+  audience?: ExperienceLevel | null
+) {
   const bucket = Math.floor(now() / (4 * 60 * 60 * 1000));
   const [x, y] = [tickerA.toUpperCase(), tickerB.toUpperCase()].sort();
-  return `compare:${x}:${y}:${bucket}`;
+  return `compare:${x}:${y}:${bucket}${audienceCacheSuffix(audience)}`;
 }
 
 // Sector Snapshot cache key. Keyed by the canonical basket key + 4h bucket so
 // a re-run of the same theme within the window is a 1-credit replay. The basket
 // is fixed, so there's no per-name ordering to normalize.
-export function sectorCacheKey(sectorKey: string) {
+export function sectorCacheKey(sectorKey: string, audience?: ExperienceLevel | null) {
   const bucket = Math.floor(now() / (4 * 60 * 60 * 1000));
-  return `sector:${sectorKey.toLowerCase()}:${bucket}`;
+  return `sector:${sectorKey.toLowerCase()}:${bucket}${audienceCacheSuffix(audience)}`;
 }
 
 export const PICKER_CACHE_TTL_MS = 5 * 60 * 1000;

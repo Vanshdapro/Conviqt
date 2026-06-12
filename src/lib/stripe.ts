@@ -3,19 +3,18 @@
 // Price IDs live in env vars. Create the products in Stripe Dashboard first,
 // then paste the price IDs into .env.local / Vercel environment variables.
 //
-// Products to create (Products → Add product):
-//   Pro Starter   500 credits  $5     one-time   → STRIPE_PRICE_CREDITS_500
-//   Pro Standard  1000 credits $9     one-time   → STRIPE_PRICE_CREDITS_1000
-//   Pro Plus      2000 credits $16    one-time   → STRIPE_PRICE_CREDITS_2000
-//   Pro Power     3000 credits $24    one-time   → STRIPE_PRICE_CREDITS_3000
-//   Max           4000 cr/mo   $28/mo recurring  → STRIPE_PRICE_MAX_MONTHLY
-//   Max Pro       7500 cr/mo   $52/mo recurring  → STRIPE_PRICE_MAX_PRO_MONTHLY
-//   Developer     500 API/mo   $99/mo recurring  → STRIPE_PRICE_DEV_500
-//   Developer Pro 2000 API/mo  $299/mo recurring → STRIPE_PRICE_DEV_2000
+// THE PLANS WE SELL (Phase 7 — playbook 2.4, subscription only):
+//   Pro (monthly)  $25/mo  recurring, 7-day trial → STRIPE_PRICE_PRO_MONTHLY
+//   Pro (annual)   $192/yr recurring, 7-day trial → STRIPE_PRICE_PRO_ANNUAL
+//                  ($16/mo billed annually)
+//   Dashboard setup: one "Conviqt Pro" product with two prices (monthly +
+//   yearly). Both checkouts run with subscription_data.trial_period_days = 7.
 //
-// NOTE: the two Developer plans don't grant consumer credits — they grant a
-// monthly API CALL quota on developer_accounts (see migration 016). The webhook
-// routes them to set_developer_tier, not the credit ledger.
+// LEGACY (no longer sold, webhook still honors live subscriptions/sessions):
+//   Credit packs (credits_500…3000) — one-time; retired with the credit brand.
+//   Max / Max Pro — old credit subscriptions; renewals still reset credits.
+//   Developer / Developer Pro — API call quota (migration 016); the /developers
+//   surface is retired in Phase 8, existing subscriptions keep working.
 
 import Stripe from "stripe";
 
@@ -70,13 +69,32 @@ export function getSiteUrl(): string {
 // ── Plan definitions ─────────────────────────────────────────────────────────
 
 export type CreditPack      = "credits_500" | "credits_1000" | "credits_2000" | "credits_3000";
-export type SubscriptionPlan = "max_monthly" | "max_pro_monthly";
+export type ProPlan          = "pro_monthly" | "pro_annual";
+export type SubscriptionPlan = ProPlan | "max_monthly" | "max_pro_monthly";
 export type DeveloperPlan    = "dev_500" | "dev_2000";
 export type PlanId           = CreditPack | SubscriptionPlan | DeveloperPlan;
 
+/** Days of free trial on every Pro checkout (playbook 2.4). */
+export const TRIAL_DAYS = 7;
+
 export const SUBSCRIPTION_PLANS = new Set<PlanId>([
+  "pro_monthly",
+  "pro_annual",
   "max_monthly",
   "max_pro_monthly",
+  "dev_500",
+  "dev_2000",
+]);
+
+// The Pro subscription — the only consumer plan sold since Phase 7. Pro is a
+// plan-state entitlement (subscribers table), NOT a credit grant.
+export const PRO_PLANS = new Set<PlanId>(["pro_monthly", "pro_annual"]);
+
+// What checkout will still sell. Credit packs and the Max plans are retired —
+// existing ones keep working through the webhook, but no new sales.
+export const PURCHASABLE_PLANS = new Set<PlanId>([
+  "pro_monthly",
+  "pro_annual",
   "dev_500",
   "dev_2000",
 ]);
@@ -97,8 +115,10 @@ export const CREDITS_BY_PLAN: Record<PlanId, number> = {
   credits_1000:   1000,
   credits_2000:   2000,
   credits_3000:   3000,
-  max_monthly:    4000,   // 3 500 base + 500 loyalty bonus
-  max_pro_monthly: 7500,  // 6 000 base + 1 500 loyalty bonus
+  pro_monthly:       0,   // Pro is plan-state, not a credit grant (Phase 7)
+  pro_annual:        0,
+  max_monthly:    4000,   // legacy: 3 500 base + 500 loyalty bonus
+  max_pro_monthly: 7500,  // legacy: 6 000 base + 1 500 loyalty bonus
   dev_500:           0,   // grants API quota, not credits
   dev_2000:          0,
 };
@@ -108,6 +128,8 @@ const PLAN_ENV_MAP: Record<PlanId, string> = {
   credits_1000:    "STRIPE_PRICE_CREDITS_1000",
   credits_2000:    "STRIPE_PRICE_CREDITS_2000",
   credits_3000:    "STRIPE_PRICE_CREDITS_3000",
+  pro_monthly:     "STRIPE_PRICE_PRO_MONTHLY",
+  pro_annual:      "STRIPE_PRICE_PRO_ANNUAL",
   max_monthly:     "STRIPE_PRICE_MAX_MONTHLY",
   max_pro_monthly: "STRIPE_PRICE_MAX_PRO_MONTHLY",
   dev_500:         "STRIPE_PRICE_DEV_500",

@@ -1,3 +1,4 @@
+import type { ExperienceLevel } from "../agents/audience";
 import { computeBaseline } from "./engine";
 import { runAllocatorSweep } from "./sweep";
 import { runSpecialist, SPECIALIST_LANES } from "./specialists";
@@ -26,6 +27,7 @@ import type {
 
 export interface RunAllocatorOptions {
   onEvent?: (event: AllocatorEvent) => void;
+  audience?: ExperienceLevel | null;
 }
 
 function makeRunId(): string {
@@ -36,7 +38,7 @@ export async function runAllocator(
   profile: InvestorProfile,
   options: RunAllocatorOptions = {}
 ): Promise<AllocatorResult> {
-  const { onEvent } = options;
+  const { onEvent, audience } = options;
   const t0 = Date.now();
   const runId = makeRunId();
   const asOf = new Date().toISOString();
@@ -105,7 +107,7 @@ export async function runAllocator(
   const disagreement = computeAllocatorDisagreement(specialists);
 
   // Step 5: synthesis judge.
-  const judge = await runAllocatorJudge(profile, baseline, factSheet, specialists);
+  const judge = await runAllocatorJudge(profile, baseline, factSheet, specialists, audience);
   totalCostUSD += judge.costUSD;
 
   const result: AllocatorResult = {

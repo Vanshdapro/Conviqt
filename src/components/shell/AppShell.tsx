@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { FirstRun } from "@/components/onboarding/FirstRun";
 
 // ── Navigation model: the five surfaces, in order (playbook 2.2) ────────────
 type NavKey = "research" | "dashboard" | "headlines" | "portfolio" | "academy";
@@ -100,13 +101,13 @@ function AccountMenu() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/credits")
+    // Identity + plan only — no credit numbers anywhere (subscription brand).
+    fetch("/api/profile")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!alive) return;
-        // We read identity/plan only — credit numbers are never shown (subscription brand).
-        if (d && (typeof d.credits === "number" || typeof d.email === "string")) {
-          setEmail(typeof d.email === "string" ? d.email : null);
+        if (d && typeof d.email === "string") {
+          setEmail(d.email);
           setPlan(typeof d.plan === "string" ? d.plan : "free");
         }
       })
@@ -116,6 +117,17 @@ function AccountMenu() {
       alive = false;
     };
   }, []);
+
+  // Pro members manage billing in the Stripe customer portal.
+  const openPortal = async () => {
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const d = await res.json().catch(() => null);
+      if (d?.url) window.location.href = d.url as string;
+    } catch {
+      /* menu stays open; nothing to break */
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -184,13 +196,21 @@ function AccountMenu() {
             <div className="cvq-menu-label">Signed in as</div>
             <div className="cvq-account-name">{email ?? "Your account"}</div>
           </div>
-          {plan === "free" && (
+          {plan === "free" ? (
             <Link href="/pricing" role="menuitem" className="cvq-menu-item cvq-menu-item--accent" onClick={() => setOpen(false)}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
               </svg>
-              Upgrade to Pro
+              Try Pro free for 7 days
             </Link>
+          ) : (
+            <button type="button" role="menuitem" className="cvq-menu-item" onClick={openPortal}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M3 10h18" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              Manage subscription
+            </button>
           )}
           <form action="/auth/signout" method="post" style={{ margin: 0 }}>
             <button type="submit" role="menuitem" className="cvq-menu-item">
@@ -217,7 +237,12 @@ function Sidebar({ active }: { active: NavKey | null }) {
         <ul className="cvq-nav">
           {NAV.map((item) => (
             <li key={item.key}>
-              <Link href={item.href} className="cvq-nav-link" aria-current={active === item.key ? "page" : undefined}>
+              <Link
+                href={item.href}
+                className="cvq-nav-link"
+                aria-current={active === item.key ? "page" : undefined}
+                data-tour={item.key}
+              >
                 <span className="cvq-nav-ico">{item.icon}</span>
                 {item.label}
               </Link>
@@ -241,7 +266,13 @@ function MobileChrome({ active }: { active: NavKey | null }) {
       </header>
       <nav className="cvq-tabbar" aria-label="Primary">
         {NAV.map((item) => (
-          <Link key={item.key} href={item.href} className="cvq-tab" aria-current={active === item.key ? "page" : undefined}>
+          <Link
+            key={item.key}
+            href={item.href}
+            className="cvq-tab"
+            aria-current={active === item.key ? "page" : undefined}
+            data-tour={item.key}
+          >
             {item.icon}
             {item.label}
           </Link>
@@ -268,6 +299,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
       <Sidebar active={active} />
       <MobileChrome active={active} />
       <main className="app-main">{children}</main>
+      {/* Onboarding sheet + first-run tour — render nothing once done. */}
+      <FirstRun />
     </div>
   );
 }

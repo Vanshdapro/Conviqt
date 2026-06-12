@@ -111,15 +111,8 @@ export function ThesisRunner({
         return;
       }
       if (res.status === 402) {
-        const d = (await res.json().catch(() => null)) as { needed?: number; credits?: number } | null;
-        const needed = d?.needed;
-        const have = d?.credits;
-        setError(
-          needed != null && have != null
-            ? `Grading costs ${needed} credits and you have ${have}. Top up to submit.`
-            : "You don't have enough credits to grade this thesis.",
-        );
-        setErrorCta({ href: "/pricing", label: "View pricing" });
+        setError("You've hit this month's included usage. Pro removes the limit.");
+        setErrorCta({ href: "/pricing", label: "See what Pro unlocks" });
         return;
       }
       if (res.status === 403) {
@@ -127,7 +120,7 @@ export function ThesisRunner({
         return;
       }
       if (res.status === 502) {
-        setError("The grader hit an error — your credits were refunded. Try again in a moment.");
+        setError("The grader hit an error — this attempt doesn't count. Try again in a moment.");
         return;
       }
       if (res.status === 400) {
@@ -182,7 +175,7 @@ export function ThesisRunner({
             </span>
             <div>
               {result.cached ? (
-                <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12.5 }}>Unchanged from your last submission — no credits charged.</span>
+                <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12.5 }}>Unchanged from your last submission — same grade returned.</span>
               ) : (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                   {result.awardedXp != null && result.awardedXp > 0 && (
@@ -191,7 +184,7 @@ export function ThesisRunner({
                     </span>
                   )}
                   <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12.5 }}>
-                    {result.creditsCharged} cr used{result.creditsRemaining != null ? ` · ${result.creditsRemaining} left` : ""}
+                    Graded section by section
                   </span>
                 </span>
               )}
@@ -291,7 +284,7 @@ export function ThesisRunner({
         </div>
 
         <p style={{ color: FAINT, fontFamily: MONO, fontSize: 11.5, lineHeight: 1.6, marginBottom: 22, display: "inline-flex", alignItems: "flex-start", gap: 8 }}>
-          <ShieldIcon size={14} /> The desk runs a full AI committee review and grades section by section. It costs credits — an identical resubmission is free.
+          <ShieldIcon size={14} /> The desk runs a full AI review and grades section by section. An identical resubmission returns the same grade instantly.
         </p>
 
         <div>
@@ -371,7 +364,7 @@ export function ThesisRunner({
           <PenIcon size={16} /> {submitting ? "Grading…" : "Submit for grading"}
         </button>
         <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11.5 }}>
-          {filledCount} / {sections.length} sections ready · costs credits to grade
+          {filledCount} / {sections.length} sections ready
         </span>
       </div>
     </div>

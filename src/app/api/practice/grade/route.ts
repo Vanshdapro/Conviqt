@@ -24,7 +24,6 @@ import {
   CREDITS_PER_INTENT,
   deductCredits,
   addCredits,
-  getCredits,
   grantFreeCreditsIfDue,
 } from "@/lib/credits";
 import { starsForScore } from "@/lib/practice/types";
@@ -93,21 +92,12 @@ export async function POST(req: Request) {
       });
     }
 
-    // ── Meter: deduct up front, refund if the grader fails. ──
+    // ── Internal metering only (Phase 7): log the spend, never block. ──
+    // The dedup above + per-IP rate limits bound the cost of a free grade.
     await grantFreeCreditsIfDue(user.email);
-    const balance = (await getCredits(user.email))?.credits ?? 0;
-    if (balance < COST) {
-      return NextResponse.json(
-        { error: "insufficient_credits", needed: COST, credits: balance },
-        { status: 402 },
-      );
-    }
     const deducted = await deductCredits(user.email, COST, "thesis", 0);
     if (!deducted.ok) {
-      return NextResponse.json(
-        { error: "insufficient_credits", needed: COST, credits: deducted.remaining },
-        { status: 402 },
-      );
+      console.log(`[practice] internal meter dry for ${user.email} (thesis) — continuing`);
     }
 
     let grade;

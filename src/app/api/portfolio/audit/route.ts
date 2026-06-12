@@ -10,10 +10,10 @@ import {
   deductCredits,
   addCredits,
   grantFreeCreditsIfDue,
-  getCredits,
   CREDITS_PER_INTENT,
-  PLAN_LIMIT_MSG,
 } from "@/lib/credits";
+import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
+import { getExperienceLevel, useDeepAnalysis, refundDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG } from "@/lib/profile";
 import { runAudit, type AuditEvent } from "@/lib/portfolio/orchestrator";
 import { savePortfolio, recordAudit, sanitizeHoldings } from "@/lib/portfolio/store";
 import type { Holding } from "@/lib/portfolio/types";
@@ -21,13 +21,14 @@ import type { Holding } from "@/lib/portfolio/types";
 // POST /api/portfolio/audit
 // Body: { portfolioId?, name?, holdings: [{ ticker, shares, costBasis? }] }
 //
-// Runs a full portfolio audit and streams progress as NDJSON. Deducts the
-// portfolio_audit credit cost up front (45). On success, the portfolio is
-// upserted and the audit is appended to its history so the user can re-view it
-// for free and chart health over time.
+// Runs a full portfolio audit and streams progress as NDJSON. Phase 7 gating:
+// an AI Health Check is a deep analysis — Free users spend one of their 5
+// monthly slots (refunded if the run fails), Pro is unlimited fair-use.
+// Credits keep metering internally but never block. On success, the portfolio
+// is upserted and the audit appended to its history so re-viewing is free.
 //
 // Mirrors the chat route's gating: verified session, IP rate limit, daily
-// budget kill switch, credit balance check before any model call.
+// budget kill switch, plan gate before any model call.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,23 +80,23 @@ export async function POST(req: Request) {
     return json({ type: "error", error: err instanceof Error ? err.message : String(err) }, 503);
   }
 
-  // Credit gating — charge the full audit cost before any model call.
+  // Plan gate (Phase 7): one of the Free tier's 5 monthly deep analyses.
   await grantFreeCreditsIfDue(email);
-  const current = await getCredits(email);
-  const balance = current?.credits ?? 0;
-  if (balance < COST) {
-    return json(
-      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
-      402
-    );
+  const subscriber = await getSubscriberByEmail(email);
+  const isPro = isPremium(subscriber);
+  if (!isPro) {
+    const gate = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
+    if (!gate.allowed) {
+      return json({ type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" }, 402);
+    }
   }
-  const deduction = await deductCredits(email, COST, "portfolio_audit", 0);
-  if (!deduction.ok) {
-    return json(
-      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
-      402
-    );
-  }
+
+  // Internal metering — log-only, never a wall.
+  void deductCredits(email, COST, "portfolio_audit", 0).catch((err) =>
+    console.error("[portfolio/audit] internal meter error:", err instanceof Error ? err.message : err)
+  );
+
+  const audience = await getExperienceLevel(email);
 
   // Stream the audit.
   const stream = new ReadableStream<Uint8Array>({
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
       try {
         const result = await runAudit(holdings, {
           name,
+          audience,
           onEvent: (event: AuditEvent) => emit({ type: "audit", event }),
         });
         recordSpend(result.estCostUSD);
@@ -136,8 +138,10 @@ export async function POST(req: Request) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[portfolio/audit] failed:", msg);
-        // Refund the credits — the user got no usable audit.
+        // Refund — the user got no usable audit. Free users get their monthly
+        // deep-analysis slot back; the internal ledger gets its mirror entry.
         try {
+          if (!isPro) await refundDeepAnalysis(email);
           await addCredits(email, COST, "portfolio_audit_refund");
           creditsRefunded = true;
         } catch (refundErr) {
@@ -147,7 +151,7 @@ export async function POST(req: Request) {
           type: "error",
           error: msg.includes("price any")
             ? "Could not fetch live prices for these tickers right now. Double-check the symbols and try again."
-            : "The health check could not be completed. You weren't charged for this run.",
+            : "The health check could not be completed. This run doesn't count against your month.",
           creditsRefunded,
         });
       } finally {

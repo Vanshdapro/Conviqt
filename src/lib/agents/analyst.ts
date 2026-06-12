@@ -1,4 +1,5 @@
 import { getAnthropic, MODELS, ANALYST_WEB_SEARCH_TOOL, estimateCallCostUSD } from "../anthropic";
+import { audienceDirective, type ExperienceLevel } from "./audience";
 
 // The Conviqt Analyst — Sonnet 4.6 powering the "general" chat path.
 //
@@ -446,6 +447,7 @@ Your output is rendered as markdown. Structure every response as a tight, instit
 
 export interface AnalystOptions {
   onDelta?: (delta: string) => void;
+  audience?: ExperienceLevel | null;
 }
 
 export interface AnalystResult {
@@ -461,6 +463,7 @@ export async function runAnalyst(
   const { onDelta } = options;
   const t0 = Date.now();
   const anthropic = getAnthropic();
+  const aud = audienceDirective(options.audience);
 
   let fullText = "";
 
@@ -479,7 +482,10 @@ export async function runAnalyst(
   const messageStream = anthropic.messages.stream({
     model: MODELS.analyst,
     max_tokens: 1500, // capped to keep worst-case cost under $0.10 (see credit plan)
-    system: [{ type: "text", text: ANALYST_SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [
+      { type: "text", text: ANALYST_SYSTEM, cache_control: { type: "ephemeral" } },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [ANALYST_WEB_SEARCH_TOOL],
     messages: apiMessages,
   });

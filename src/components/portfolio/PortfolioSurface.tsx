@@ -33,6 +33,7 @@ import {
   StatTile,
 } from "@/components/ui";
 import { AuditAnswer } from "@/components/research/answers";
+import { PaywallSheet } from "@/components/PaywallSheet";
 import { lessonHref } from "@/components/research/learnLinks";
 import { STOCK_UNIVERSE } from "@/lib/tickers";
 import type { Holding, PortfolioAuditResult } from "@/lib/portfolio/types";
@@ -333,6 +334,8 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
 
   // Health check
   const [audit, setAudit] = useState<AuditPhase>({ name: "idle" });
+  // Soft paywall (Phase 7): opens when the month's included deep analyses run out.
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const auditAbort = useRef<AbortController | null>(null);
 
   const holdings: Holding[] = useMemo(
@@ -516,8 +519,10 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
         const body = await res.json().catch(() => null);
         if (res.status === 401)
           return setAudit({ name: "error", message: "Sign in to run a health check.", code: "auth" });
-        if (res.status === 402)
+        if (res.status === 402) {
+          setPaywallOpen(true);
           return setAudit({ name: "error", message: body?.error ?? "You've hit this month's limit.", code: "limit" });
+        }
         return setAudit({
           name: "error",
           message: body?.error ?? "The health check could not start. Try again in a moment.",
@@ -720,6 +725,8 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
         }}
         onDismiss={() => setAudit({ name: "idle" })}
       />
+
+      <PaywallSheet open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
       <StatInfoSheet
         statKey={infoStat}

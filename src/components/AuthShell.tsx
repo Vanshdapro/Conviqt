@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-// Shared dark-themed shell for the /login and /signup screens.
+// Shared shell for the /login and /signup screens — Almanac brand (Phase 7):
+// warm paper, espresso ink, one teal accent. All colors come from tokens.css.
 export function AuthShell({
   title,
   subtitle,
@@ -16,8 +17,7 @@ export function AuthShell({
     <div
       style={{
         minHeight: "100vh",
-        background: "#050d1a",
-        backgroundImage: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79,135,247,0.07) 0%, transparent 70%)",
+        background: "var(--bg-page)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -25,33 +25,26 @@ export function AuthShell({
         padding: "40px 20px",
       }}
     >
-      {/* Logo + tagline */}
+      {/* Wordmark + tagline */}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         <Link
           href="/"
+          className="cvq-wordmark"
+          data-no-translate
+          style={{ display: "block", marginBottom: 8, fontSize: 18 }}
+        >
+          CONVI<span className="cvq-wordmark-tick">Q</span>T
+        </Link>
+        <p
           style={{
-            fontFamily: "var(--font-display), Georgia, serif",
-            fontWeight: 400,
-            fontSize: 18,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: "#e8edf8",
-            textDecoration: "none",
-            display: "block",
-            marginBottom: 8,
+            fontFamily: "var(--font-ui), system-ui, sans-serif",
+            fontSize: 12,
+            letterSpacing: "0.06em",
+            color: "var(--text-muted)",
+            margin: 0,
           }}
         >
-          Conviqt
-        </Link>
-        <p style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10,
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
-          color: "rgba(232,237,248,0.3)",
-          margin: 0,
-        }}>
-          Institutional AI Research Platform
+          Your personal team of AI analysts
         </p>
       </div>
 
@@ -59,11 +52,11 @@ export function AuthShell({
         style={{
           width: "100%",
           maxWidth: 400,
-          background: "rgba(10,19,35,0.85)",
-          border: "1px solid rgba(232,237,248,0.1)",
-          borderRadius: 16,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-card)",
           padding: "32px 28px",
-          boxShadow: "0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,135,247,0.04)",
+          boxShadow: "0 2px 8px rgba(42,28,21,.06)",
         }}
       >
         <h1
@@ -72,7 +65,7 @@ export function AuthShell({
             fontWeight: 600,
             fontSize: 26,
             letterSpacing: "-0.01em",
-            color: "#e8edf8",
+            color: "var(--text)",
             margin: "0 0 6px",
           }}
         >
@@ -80,9 +73,9 @@ export function AuthShell({
         </h1>
         <p
           style={{
-            fontFamily: "var(--font-serif), Georgia, serif",
+            fontFamily: "var(--font-ui), system-ui, sans-serif",
             fontSize: 14,
-            color: "rgba(232,237,248,0.55)",
+            color: "var(--text-muted)",
             margin: "0 0 24px",
             lineHeight: 1.6,
           }}
@@ -96,9 +89,9 @@ export function AuthShell({
       <div
         style={{
           marginTop: 20,
-          fontFamily: "var(--font-serif), Georgia, serif",
+          fontFamily: "var(--font-ui), system-ui, sans-serif",
           fontSize: 13,
-          color: "rgba(232,237,248,0.5)",
+          color: "var(--text-muted)",
         }}
       >
         {footer}
@@ -116,24 +109,31 @@ export function AuthShell({
         }}
       >
         {[
-          "TLS 256-bit encrypted",
-          "Session-verified access",
-          "No financial advice",
+          "Every pick public — losses included",
+          "Plain-English answers",
+          "Not financial advice",
         ].map((label) => (
           <span
             key={label}
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "rgba(232,237,248,0.2)",
+              fontFamily: "var(--font-ui), system-ui, sans-serif",
+              fontSize: 11,
+              letterSpacing: "0.03em",
+              color: "var(--text-muted)",
               display: "flex",
               alignItems: "center",
-              gap: 5,
+              gap: 6,
             }}
           >
-            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(232,237,248,0.15)", flexShrink: 0 }} />
+            <span
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: "50%",
+                background: "var(--border-strong)",
+                flexShrink: 0,
+              }}
+            />
             {label}
           </span>
         ))}
@@ -145,36 +145,36 @@ export function AuthShell({
 export const authInputStyle: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
-  background: "rgba(5,13,26,0.6)",
-  border: "1px solid rgba(232,237,248,0.12)",
-  borderRadius: 10,
+  background: "var(--bg-sunken)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius-control)",
   padding: "11px 14px",
-  fontFamily: "var(--font-sans), system-ui, sans-serif",
+  fontFamily: "var(--font-ui), system-ui, sans-serif",
   fontSize: 14,
-  color: "#e8edf8",
+  color: "var(--text)",
   outline: "none",
 };
 
 export const authLabelStyle: React.CSSProperties = {
   display: "block",
-  fontFamily: "'JetBrains Mono', monospace",
-  fontSize: 10,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "rgba(232,237,248,0.45)",
+  fontFamily: "var(--font-ui), system-ui, sans-serif",
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+  color: "var(--text-2)",
   marginBottom: 7,
 };
 
 export const authButtonStyle: React.CSSProperties = {
   width: "100%",
-  borderRadius: 10,
+  borderRadius: "var(--radius-control)",
   padding: "12px 20px",
-  fontFamily: "var(--font-sans), system-ui, sans-serif",
+  fontFamily: "var(--font-ui), system-ui, sans-serif",
   fontWeight: 600,
   fontSize: 14,
-  background: "#4f87f7",
-  color: "#050d1a",
+  background: "var(--accent)",
+  color: "var(--on-accent)",
   border: "none",
   cursor: "pointer",
-  transition: "opacity 0.2s",
+  transition: "background 0.2s",
 };

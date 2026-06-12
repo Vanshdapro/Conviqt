@@ -20,6 +20,7 @@ import {
   SectorResult,
 } from "./types";
 import { cacheGet, cacheSet, COUNCIL_CACHE_TTL_MS, councilCacheKey } from "../cache";
+import type { ExperienceLevel } from "./audience";
 import type { SpecialistRunResult } from "./_runner";
 
 // runCouncil is the single entrypoint for an on-demand stock analysis.
@@ -79,6 +80,8 @@ export type FocusedEvent =
 export interface RunCouncilOptions {
   focus?: string;
   onEvent?: (event: CouncilEvent) => void;
+  /** Reader experience level — the one prompt switch (audience.ts). */
+  audience?: ExperienceLevel | null;
 }
 
 function makeRunId(): string {
@@ -89,7 +92,7 @@ export async function runCouncil(
   ticker: string,
   options: RunCouncilOptions = {}
 ): Promise<CouncilResult> {
-  const { focus, onEvent } = options;
+  const { focus, onEvent, audience } = options;
   const t0 = Date.now();
   const upper = ticker.toUpperCase();
   const runId = makeRunId();
@@ -184,7 +187,7 @@ export async function runCouncil(
   }
 
   // Step 3: synthesize (only with surviving agents).
-  const judgeResult = await runJudge(sweep.factSheet, survivors, { focus });
+  const judgeResult = await runJudge(sweep.factSheet, survivors, { focus, audience });
   totalCostUSD += judgeResult.costUSD;
 
   // Step 4: stamp deterministic disagreement on top of the Judge's output.
@@ -222,6 +225,7 @@ export async function runCouncil(
 
 export interface RunFocusedOptions {
   onEvent?: (event: FocusedEvent) => void;
+  audience?: ExperienceLevel | null;
 }
 
 export async function runFocusedQuery(
@@ -229,7 +233,7 @@ export async function runFocusedQuery(
   question: string,
   options: RunFocusedOptions = {}
 ): Promise<FocusedResult> {
-  const { onEvent } = options;
+  const { onEvent, audience } = options;
   const t0 = Date.now();
   const upper = ticker.toUpperCase();
   const runId = `fq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -254,7 +258,7 @@ export async function runFocusedQuery(
   onEvent?.({ kind: "sweep_done", factSheet: sweep.factSheet, costUSD: sweep.costUSD });
 
   // Focused judge — answers the specific question in prose.
-  const judgeResult = await runFocusedJudge(sweep.factSheet, question);
+  const judgeResult = await runFocusedJudge(sweep.factSheet, question, audience);
   totalCostUSD += judgeResult.costUSD;
 
   const result: FocusedResult = {
@@ -306,6 +310,7 @@ export type CompareEvent =
 
 export interface RunCompareOptions {
   onEvent?: (event: CompareEvent) => void;
+  audience?: ExperienceLevel | null;
 }
 
 function compareStageFromCouncil(ev: CouncilEvent): CompareSideStage | null {
@@ -322,9 +327,12 @@ function compareStageFromCouncil(ev: CouncilEvent): CompareSideStage | null {
 async function resolveSide(
   side: "a" | "b",
   ticker: string,
+  audience?: ExperienceLevel | null,
   onEvent?: (event: CompareEvent) => void
 ): Promise<{ result: CouncilResult; fresh: boolean }> {
-  const key = councilCacheKey(ticker);
+  // Audience-suffixed key: a personalized side never collides with (or
+  // poisons) the shared default council cache.
+  const key = councilCacheKey(ticker, undefined, audience);
   const cached = cacheGet<CouncilResult>(key);
   if (cached) {
     onEvent?.({ kind: "side_update", side, ticker, stage: "done", cached: true });
@@ -334,6 +342,7 @@ async function resolveSide(
 
   onEvent?.({ kind: "side_update", side, ticker, stage: "queued", cached: false });
   const result = await runCouncil(ticker, {
+    audience,
     onEvent: (ev) => {
       const stage = compareStageFromCouncil(ev);
       if (stage) onEvent?.({ kind: "side_update", side, ticker, stage, cached: false });
@@ -350,7 +359,7 @@ export async function runCompare(
   tickerBInput: string,
   options: RunCompareOptions = {}
 ): Promise<CompareResult & { freshSides: Array<"a" | "b"> }> {
-  const { onEvent } = options;
+  const { onEvent, audience } = options;
   const t0 = Date.now();
   const tickerA = tickerAInput.toUpperCase();
   const tickerB = tickerBInput.toUpperCase();
@@ -365,8 +374,8 @@ export async function runCompare(
   let sideB: { result: CouncilResult; fresh: boolean };
   try {
     [sideA, sideB] = await Promise.all([
-      resolveSide("a", tickerA, onEvent),
-      resolveSide("b", tickerB, onEvent),
+      resolveSide("a", tickerA, audience, onEvent),
+      resolveSide("b", tickerB, audience, onEvent),
     ]);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -375,7 +384,7 @@ export async function runCompare(
 
   // Third pass: the relative verdict.
   onEvent?.({ kind: "comparing" });
-  const judge = await runComparativeJudge(sideA.result, sideB.result);
+  const judge = await runComparativeJudge(sideA.result, sideB.result, audience);
 
   const totalCostUSD =
     (sideA.fresh ? sideA.result.estCostUSD : 0) +
@@ -442,6 +451,7 @@ export type SectorEvent =
 
 export interface RunSectorOptions {
   onEvent?: (event: SectorEvent) => void;
+  audience?: ExperienceLevel | null;
 }
 
 // Derive a constituent from a warm full Council run — no API cost. We compress
@@ -541,7 +551,7 @@ export async function runSector(
   basket: SectorBasket,
   options: RunSectorOptions = {}
 ): Promise<SectorResult> {
-  const { onEvent } = options;
+  const { onEvent, audience } = options;
   const t0 = Date.now();
   const runId = makeRunId().replace("run_", "sec_");
   const asOf = new Date().toISOString();
@@ -583,7 +593,7 @@ export async function runSector(
 
   // Thematic synthesis over the survivors only.
   onEvent?.({ kind: "synthesizing" });
-  const judge = await runSectorJudge(basket, survivors);
+  const judge = await runSectorJudge(basket, survivors, audience);
 
   // Deterministic basket dispersion — the sector analogue of disagreement.
   const dispersion = computeDispersion(

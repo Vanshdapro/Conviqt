@@ -1,25 +1,27 @@
 // POST /api/stripe/webhook
 //
-// Handles Stripe events and keeps the credit ledger in sync.
+// Handles Stripe events and keeps PLAN STATE (subscribers table) in sync.
+// Since Phase 7 the consumer offer is the Pro subscription (pro_monthly /
+// pro_annual, 7-day trial): webhook → upsertSubscriber → isPremium() gates.
+// Credits stay as INTERNAL metering; Pro grants no credits.
 //
 // Events handled:
-//   checkout.session.completed      — one-time pack or new subscription
-//   invoice.payment_succeeded       — monthly subscription renewal
-//   customer.subscription.updated   — status change, cancellation
+//   checkout.session.completed      — new Pro subscription (or legacy pack/dev)
+//   invoice.payment_succeeded       — subscription renewal
+//   customer.subscription.updated   — status change, cancellation, trial → active
 //   customer.subscription.deleted   — hard cancellation
 //   invoice.payment_failed          — mark subscription past_due
 //
-// Credit actions:
-//   One-time pack purchase          → addCredits(email, CREDITS_BY_PLAN[plan])
-//   First subscription payment      → addCredits(email, CREDITS_BY_PLAN[plan])
-//   Subscription renewal (cycle)    → resetSubscriptionCredits(email, credits, plan)
-//   Subscription canceled           → upsertSubscriber status only; credits remain
+// Legacy actions still honored (plans no longer sold, but live ones work):
+//   One-time pack purchase          → addCreditsOnce(email, CREDITS_BY_PLAN[plan])
+//   Max renewal (cycle)             → resetSubscriptionCredits(email, credits, plan)
+//   Developer plans                 → setDeveloperTier / setDeveloperStatus
 //
 // NOTE: This uses Stripe API version 2026-05-27.dahlia.
 
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, DEVELOPER_PLANS, API_QUOTA_BY_PLAN, type PlanId, type DeveloperPlan } from "@/lib/stripe";
+import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, DEVELOPER_PLANS, PRO_PLANS, API_QUOTA_BY_PLAN, type PlanId, type DeveloperPlan } from "@/lib/stripe";
 import { upsertSubscriber, type Plan } from "@/lib/subscription";
 import { addCreditsOnce, resetSubscriptionCredits, MAX_PLAN_MONTHLY_CREDITS } from "@/lib/credits";
 import { setDeveloperTier, setDeveloperStatus } from "@/lib/apiKeys";
@@ -33,13 +35,19 @@ export const dynamic  = "force-dynamic";
 function planFromMetadata(meta: Stripe.Metadata | null): PlanId | null {
   const p = meta?.plan as string | undefined;
   if (!p) return null;
-  // Map old plan names that might exist on legacy sessions
-  if (p === "pro_monthly" || p === "pro_annual") return null;
   return p as PlanId;
 }
 
-function subscriptionPlanToLegacy(plan: PlanId): Plan {
-  if (plan === "max_monthly" || plan === "max_pro_monthly") return plan as unknown as Plan;
+// Plan id → the plan value stored on the subscribers row.
+function subscriberPlan(plan: PlanId): Plan {
+  if (
+    plan === "pro_monthly" ||
+    plan === "pro_annual" ||
+    plan === "max_monthly" ||
+    plan === "max_pro_monthly"
+  ) {
+    return plan;
+  }
   return "free";
 }
 
@@ -110,18 +118,8 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  const credits = CREDITS_BY_PLAN[plan] ?? 0;
-  if (credits === 0) {
-    console.warn("[webhook] checkout.completed: 0 credits for plan", plan);
-    return;
-  }
-
-  // Add credits (works for both one-time packs and initial subscription payment).
-  // Keyed on the checkout session id so the success-page /verify fallback and
-  // this webhook can both run without ever double-crediting.
-  await addCreditsOnce(email, credits, `stripe_session_${session.id}`, plan);
-
-  // For subscription plans, also track in the subscribers table
+  // Subscription plans → plan state FIRST. This is the whole entitlement for
+  // Pro (no credit grant), so it must never sit behind a credits early-return.
   if (SUBSCRIPTION_PLANS.has(plan) && session.subscription) {
     const subId =
       typeof session.subscription === "string"
@@ -134,12 +132,20 @@ async function handleCheckoutCompleted(
       stripe_customer_id: customerId,
       subscription_id:    subId,
       subscription_status: sub.status,
-      plan: subscriptionPlanToLegacy(plan),
+      plan: subscriberPlan(plan),
       current_period_end: periodEndFromSub(sub),
     });
+    console.log(`[webhook] checkout.completed: plan state ${plan}/${sub.status} for ${email}`);
   }
 
-  console.log(`[webhook] checkout.completed: +${credits} credits for ${email} (${plan})`);
+  // Credit grant — legacy packs and Max plans only; Pro grants none.
+  // Keyed on the checkout session id so the success-page /verify fallback and
+  // this webhook can both run without ever double-crediting.
+  const credits = CREDITS_BY_PLAN[plan] ?? 0;
+  if (credits > 0) {
+    await addCreditsOnce(email, credits, `stripe_session_${session.id}`, plan);
+    console.log(`[webhook] checkout.completed: +${credits} credits for ${email} (${plan})`);
+  }
 }
 
 async function handleInvoicePaymentSucceeded(
@@ -178,10 +184,25 @@ async function handleInvoicePaymentSucceeded(
     return;
   }
 
+  // Pro renewal: refresh plan state (status + period end). No credits — Pro
+  // is unlimited fair-use, gated by isPremium(), not a balance.
+  if (plan && PRO_PLANS.has(plan)) {
+    await upsertSubscriber({
+      email,
+      stripe_customer_id: custId,
+      subscription_id:    sub.id,
+      subscription_status: sub.status,
+      plan: subscriberPlan(plan),
+      current_period_end: periodEndFromSub(sub),
+    });
+    console.log(`[webhook] invoice.succeeded: renewed ${plan} for ${email}`);
+    return;
+  }
+
   const monthly = plan ? MAX_PLAN_MONTHLY_CREDITS[plan] : 0;
 
   if (!plan || !monthly) {
-    console.warn("[webhook] invoice.succeeded: not a Max plan", plan);
+    console.warn("[webhook] invoice.succeeded: not a Pro/Max plan", plan);
     return;
   }
 
@@ -225,7 +246,7 @@ async function handleSubscriptionChange(
     subscription_status: sub.status,
     plan: sub.status === "canceled"
       ? "free"
-      : subscriptionPlanToLegacy(plan ?? "max_monthly" as PlanId),
+      : subscriberPlan(plan ?? ("pro_monthly" as PlanId)),
     current_period_end: periodEndFromSub(sub),
   });
 

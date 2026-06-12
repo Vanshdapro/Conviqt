@@ -5,7 +5,7 @@
 //   stripe_customer_id     text (unique)
 //   subscription_id        text | null
 //   subscription_status    text  -- 'active' | 'trialing' | 'past_due' | 'canceled' | 'inactive'
-//   plan                   text  -- 'free' | 'pro' | 'pro_annual' | 'deep_dive'
+//   plan                   text  -- 'free' | 'pro_monthly' | 'pro_annual' (+ legacy max plans)
 //   current_period_end     timestamptz | null
 //   created_at / updated_at
 //
@@ -23,13 +23,21 @@ export interface Subscriber {
   current_period_end: string | null;
 }
 
-export type Plan = "free" | "pro" | "max_monthly" | "max_pro_monthly";
+export type Plan = "free" | "pro_monthly" | "pro_annual" | "max_monthly" | "max_pro_monthly";
 
+// Pro = any non-free plan with a live (active or trialing) subscription.
+// Covers the Phase-7 Pro plans AND legacy Max subscribers, who keep their
+// entitlement — we never downgrade a paying customer by renaming plans.
 export function isPremium(subscriber: Subscriber | null): boolean {
   if (!subscriber) return false;
   const active = ["active", "trialing"].includes(subscriber.subscription_status);
-  const paid = ["pro_monthly", "pro_annual", "deep_dive"].includes(subscriber.plan);
+  const paid = !!subscriber.plan && subscriber.plan !== "free";
   return active && paid;
+}
+
+/** True while the subscription is in its 7-day trial window. */
+export function isTrialing(subscriber: Subscriber | null): boolean {
+  return !!subscriber && subscriber.subscription_status === "trialing";
 }
 
 export async function getSubscriberByEmail(

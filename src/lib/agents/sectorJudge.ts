@@ -1,4 +1,5 @@
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { audienceDirective, type ExperienceLevel } from "./audience";
 import {
   FactSheet,
   KeyMetric,
@@ -303,10 +304,12 @@ function constituentBrief(c: SectorConstituent): string {
 
 export async function runSectorJudge(
   basket: SectorBasket,
-  constituents: SectorConstituent[]
+  constituents: SectorConstituent[],
+  audience?: ExperienceLevel | null
 ): Promise<SectorJudgeResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
+  const aud = audienceDirective(audience);
 
   const briefs = constituents.map(constituentBrief).join("\n");
   const validTickers = new Set(constituents.map((c) => c.ticker));
@@ -314,7 +317,10 @@ export async function runSectorJudge(
   const response = await anthropic.messages.create({
     model: MODELS.sectorJudge,
     max_tokens: 1800,
-    system: [{ type: "text", text: SECTOR_SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [
+      { type: "text", text: SECTOR_SYSTEM, cache_control: { type: "ephemeral" } },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [SECTOR_TOOL],
     tool_choice: { type: "tool", name: SECTOR_TOOL.name },
     messages: [

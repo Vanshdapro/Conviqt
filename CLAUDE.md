@@ -181,6 +181,30 @@ set may appear anywhere in the UI, ever.
 - Credits remain as INTERNAL metering only. No user-visible credit numbers,
   no packs, no visible token math, no navbar balance.
 
+✅ **Phase 7 is DONE (code-side).** How it's wired:
+- Plan state lives in `subscribers` (`pro_monthly`/`pro_annual` via
+  `src/lib/stripe.ts` + webhook + `/api/stripe/verify` fallback); gate =
+  `isPremium()` in `src/lib/subscription.ts`. Packs/Max are no longer sold
+  (webhook still honors live legacy subscriptions).
+- Free meter = `use_deep_analysis` RPC (migration 022, `src/lib/profile.ts`):
+  fresh analyze/compare/sector/general/audit/allocator runs consume one of 5
+  monthly slots; cache hits are free; failed runs refund the slot. 402 + code
+  `plan_limit` opens `src/components/PaywallSheet.tsx`. `deductCredits` still
+  runs everywhere but is LOG-ONLY — it never blocks anyone.
+- Onboarding (3-step Sheet) + 4-tooltip first-run tour =
+  `src/components/onboarding/FirstRun.tsx`, mounted in AppShell; state in
+  `user_profiles` (migration 022) via `GET/POST /api/profile`. Experience
+  level is the ONE prompt switch: `src/lib/agents/audience.ts` (appended as a
+  2nd system block after the cache_control block; "new"/unknown = today's
+  default, non-default levels suffix the run cache keys via
+  `audienceCacheSuffix`). Only default-audience runs publish to pSEO pages.
+- Go-live needs: migration 022 in Supabase; Stripe products + env vars
+  `STRIPE_PRICE_PRO_MONTHLY` / `STRIPE_PRICE_PRO_ANNUAL`; the Billing Portal
+  enabled in Stripe (Manage subscription uses it).
+- Academy/Alpha unlock MECHANICS still spend internal credits (visible
+  numbers removed); the proper Free-fundamentals/Pro-full Academy gating is
+  Phase 8 work.
+
 ## Data architecture
 
 - **Free keyless price feeds are ALLOWED** (Stooq CSV, Yahoo chart endpoints)

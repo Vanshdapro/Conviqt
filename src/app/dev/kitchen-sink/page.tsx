@@ -15,6 +15,8 @@ import {
   ModeToggle,
   Sheet,
 } from "@/components/ui";
+import { OnboardingSheet, Tour } from "@/components/onboarding/FirstRun";
+import { PaywallSheet } from "@/components/PaywallSheet";
 
 // Phase 2 kitchen sink — every Almanac primitive on one page, inside the live
 // shell, for founder review. Strict rule: only tokens.css colours appear; this
@@ -71,6 +73,9 @@ const grid = (min: number): React.CSSProperties => ({
 export default function KitchenSink() {
   const [mode, setMode] = useState<"council" | "flash">("council");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [obOpen, setObOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
 
   return (
@@ -263,6 +268,25 @@ export default function KitchenSink() {
           </Card>
         </div>
       </Section>
+
+      {/* Phase 7 — onboarding, soft paywall, first-run tour */}
+      <Section title="Phase 7 — onboarding & subscription">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
+          <button className="cvq-btn cvq-btn--primary" type="button" onClick={() => setObOpen(true)}>
+            Open onboarding (3 steps)
+          </button>
+          <button className="cvq-btn cvq-btn--secondary" type="button" onClick={() => setPaywallOpen(true)}>
+            Open soft paywall
+          </button>
+          <button className="cvq-btn cvq-btn--secondary" type="button" onClick={() => setTourOpen(true)}>
+            Run first-run tour
+          </button>
+        </div>
+      </Section>
+
+      {obOpen && <OnboardingSheet onClose={() => setObOpen(false)} />}
+      <PaywallSheet open={paywallOpen} onClose={() => setPaywallOpen(false)} />
+      {tourOpen && <Tour name="Vansh Agarwal" onDone={() => setTourOpen(false)} />}
 
       {/* Sheets */}
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Skill Library">

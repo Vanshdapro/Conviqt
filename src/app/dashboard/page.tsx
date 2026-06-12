@@ -6,6 +6,8 @@ import type { Quote } from "@/lib/marketdata";
 import { readDashboard } from "@/lib/feed/store";
 import { SNAPSHOT_TICKERS, timeAgo, type DashboardContent } from "@/lib/feed/types";
 import { loadPicks, pickStats, thesisLine, type PickView } from "@/lib/picksView";
+import { getVerifiedUser } from "@/lib/auth";
+import { getWatchlistStore } from "@/lib/watchlist";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,30 @@ function Snapshot({ quotes }: { quotes: Array<{ label: string; q: Quote | null }
           />
         </Card>
       )}
+    </section>
+  );
+}
+
+// Your stocks (Phase 7): the Watching list seeded by onboarding, priced from
+// the shared 15-min quote cache. Logged-out or empty → renders nothing; the
+// Dashboard stays fully usable without it.
+function YourStocks({ rows }: { rows: Array<{ ticker: string; q: Quote | null }> }) {
+  if (rows.length === 0) return null;
+  return (
+    <section aria-label="Your stocks">
+      <div className="cvq-dash-sechead">
+        <h2 className="cvq-dash-h2">Your Stocks</h2>
+        <Link href="/portfolio" className="cvq-dash-link">
+          Manage in Portfolio →
+        </Link>
+      </div>
+      <div className="cvq-dash-yourstocks">
+        {rows.map(({ ticker, q }) => (
+          <Link key={ticker} href={`/research?q=${encodeURIComponent(`analyze ${ticker}`)}`} className="cvq-yourstock">
+            <TickerChip symbol={ticker} price={q?.price} change={q?.changePct ?? undefined} />
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
@@ -238,7 +264,7 @@ function Events({ content }: { content: DashboardContent | null }) {
 export default async function DashboardPage() {
   // All independent — fetch in parallel. Each section degrades on its own:
   // a dead price feed must not blank the trends, and vice versa.
-  const [content, snapshotQuotes, picks] = await Promise.all([
+  const [content, snapshotQuotes, picks, watching] = await Promise.all([
     readDashboard().catch((err) => {
       console.error("[feed] dashboard read failed:", err);
       return null;
@@ -250,7 +276,24 @@ export default async function DashboardPage() {
       console.error("[feed] picks load failed:", err);
       return null; // error state, not an empty track record
     }),
+    // Personalization (Phase 7): the user's Watching list, max 8 chips.
+    (async () => {
+      try {
+        const user = await getVerifiedUser();
+        if (!user) return [];
+        const list = await getWatchlistStore().list(user.email);
+        return list.slice(0, 8).map((w) => w.ticker);
+      } catch (err) {
+        console.error("[dashboard] watching load failed:", err instanceof Error ? err.message : err);
+        return [];
+      }
+    })(),
   ]);
+
+  // Live prices for the Watching chips (deduped via the shared 15-min cache).
+  const watchingRows = await Promise.all(
+    watching.map(async (ticker) => ({ ticker, q: await quote(ticker) }))
+  );
 
   // Live prices for the signal chips (deduped, shared 15-min cache).
   const signalTickers = [...new Set((content?.signals ?? []).map((s) => s.ticker))];
@@ -273,6 +316,8 @@ export default async function DashboardPage() {
       </header>
 
       <Snapshot quotes={snapshotQuotes} />
+
+      <YourStocks rows={watchingRows} />
 
       <div className="cvq-dash-grid">
         <Trends content={content} />

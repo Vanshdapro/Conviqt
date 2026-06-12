@@ -1,4 +1,5 @@
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { audienceDirective, type ExperienceLevel } from "./audience";
 import { FactSheet, Source } from "./types";
 
 // Lightweight judge for focused stock questions — things like
@@ -74,10 +75,12 @@ function renderFacts(factSheet: FactSheet): string {
 
 export async function runFocusedJudge(
   factSheet: FactSheet,
-  question: string
+  question: string,
+  audience?: ExperienceLevel | null
 ): Promise<FocusedJudgeResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
+  const aud = audienceDirective(audience);
 
   const sourceLegend = factSheet.sources
     .map((s, i) => `#${i} — ${s.publisher}: ${s.title.slice(0, 80)}`)
@@ -91,7 +94,10 @@ export async function runFocusedJudge(
     // short paragraphs + indexes needs ~600-800 tokens; 1024 leaves headroom
     // for ~$0.003 extra worst-case on Haiku output.
     max_tokens: 1024,
-    system: SYSTEM,
+    system: [
+      { type: "text", text: SYSTEM },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [ANSWER_TOOL],
     tool_choice: { type: "tool", name: ANSWER_TOOL.name },
     messages: [

@@ -36,7 +36,7 @@ function friendlySignupError(message: string): string {
 
 function SignupInner() {
   const params = useSearchParams();
-  const next = params.get("next") || "/chat";
+  const next = params.get("next") || "/research";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -107,7 +107,7 @@ function SignupInner() {
             Wrong email?{" "}
             <button
               onClick={() => { setSent(false); setResendSent(false); }}
-              style={{ color: "#4f87f7", background: "none", border: "none", cursor: "pointer", padding: 0, font: "inherit" }}
+              style={{ color: "var(--link)", background: "none", border: "none", cursor: "pointer", padding: 0, font: "inherit" }}
             >
               Go back
             </button>
@@ -117,29 +117,29 @@ function SignupInner() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div
             style={{
-              background: "rgba(79,135,247,0.08)",
-              border: "1px solid rgba(79,135,247,0.2)",
-              borderRadius: 10,
+              background: "var(--accent-weak)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-control)",
               padding: "16px",
-              fontFamily: "var(--font-serif), Georgia, serif",
+              fontFamily: "var(--font-ui), system-ui, sans-serif",
               fontSize: 13,
-              color: "rgba(232,237,248,0.7)",
+              color: "var(--text-2)",
               lineHeight: 1.7,
             }}
           >
-            <strong style={{ color: "#e8edf8", fontWeight: 600 }}>Click the link in your email to activate your account</strong>
-            {" "}and claim your 50 free monthly credits. You will not be able to sign in before verifying.
+            <strong style={{ color: "var(--text)", fontWeight: 600 }}>Click the link in your email to activate your account.</strong>
+            {" "}You won&apos;t be able to sign in before verifying.
           </div>
 
           <div
             style={{
-              background: "rgba(251,191,36,0.06)",
-              border: "1px solid rgba(251,191,36,0.18)",
-              borderRadius: 10,
+              background: "var(--bg-sunken)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-control)",
               padding: "12px 16px",
-              fontFamily: "var(--font-serif), Georgia, serif",
+              fontFamily: "var(--font-ui), system-ui, sans-serif",
               fontSize: 12,
-              color: "rgba(251,191,36,0.8)",
+              color: "var(--text-2)",
               lineHeight: 1.6,
             }}
           >
@@ -152,12 +152,12 @@ function SignupInner() {
             disabled={resendLoading || resendSent}
             style={{
               background: "none",
-              border: "1px solid rgba(232,237,248,0.12)",
-              borderRadius: 10,
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-control)",
               padding: "10px 16px",
-              fontFamily: "var(--font-sans), system-ui, sans-serif",
+              fontFamily: "var(--font-ui), system-ui, sans-serif",
               fontSize: 13,
-              color: resendSent ? "rgba(52,211,153,0.8)" : "rgba(232,237,248,0.55)",
+              color: resendSent ? "var(--up-ink)" : "var(--text-muted)",
               cursor: resendLoading || resendSent ? "default" : "pointer",
               opacity: resendLoading ? 0.6 : 1,
               transition: "all 0.2s",
@@ -173,11 +173,11 @@ function SignupInner() {
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Start with 50 free credits every month. No card required."
+      subtitle="Free to start — 5 deep analyses every month. No card required."
       footer={
         <>
           Already have an account?{" "}
-          <Link href={`/login?next=${encodeURIComponent(next)}`} style={{ color: "#4f87f7" }}>
+          <Link href={`/login?next=${encodeURIComponent(next)}`} style={{ color: "var(--link)" }}>
             Sign in
           </Link>
         </>
@@ -222,7 +222,7 @@ function SignupInner() {
         </div>
 
         {error && (
-          <p style={{ fontSize: 12, color: "#f87171", margin: 0, fontFamily: "var(--font-sans), sans-serif" }}>
+          <p style={{ fontSize: 12, color: "var(--down-ink)", margin: 0, fontFamily: "var(--font-ui), sans-serif" }}>
             {error}
           </p>
         )}

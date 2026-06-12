@@ -13,7 +13,7 @@ import {
 
 function LoginInner() {
   const params = useSearchParams();
-  const next = params.get("next") || "/chat";
+  const next = params.get("next") || "/research";
   const urlError = params.get("error");
 
   const [email, setEmail] = useState("");
@@ -55,11 +55,11 @@ function LoginInner() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to access your research dashboard and credit balance."
+      subtitle="Sign in to pick up your research where you left off."
       footer={
         <>
           New to Conviqt?{" "}
-          <Link href={`/signup?next=${encodeURIComponent(next)}`} style={{ color: "#4f87f7" }}>
+          <Link href={`/signup?next=${encodeURIComponent(next)}`} style={{ color: "var(--link)" }}>
             Create an account
           </Link>
         </>
@@ -92,7 +92,7 @@ function LoginInner() {
         </div>
 
         {error && (
-          <p style={{ fontSize: 12, color: "#f87171", margin: 0, fontFamily: "var(--font-sans), sans-serif" }}>
+          <p style={{ fontSize: 12, color: "var(--down-ink)", margin: 0, fontFamily: "var(--font-ui), sans-serif" }}>
             {error}
           </p>
         )}

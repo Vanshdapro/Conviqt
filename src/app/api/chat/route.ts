@@ -30,12 +30,13 @@ import { persistCompareReport } from "@/lib/compareReports";
 import {
   deductCredits,
   grantFreeCreditsIfDue,
-  getCredits,
   CREDITS_PER_INTENT,
-  PLAN_LIMIT_MSG,
   type Intent,
 } from "@/lib/credits";
 import { getVerifiedUser } from "@/lib/auth";
+import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
+import { getExperienceLevel, useDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG } from "@/lib/profile";
+import { audienceCacheSuffix, type ExperienceLevel } from "@/lib/agents/audience";
 
 // POST /api/chat
 // Body: { messages: [...] }
@@ -151,9 +152,22 @@ function jsonResponse(body: unknown, status: number) {
   });
 }
 
-// ── Credit helper ────────────────────────────────────────────────────────────
+// ── Plan gate + internal metering (Phase 7) ──────────────────────────────────
+//
+// The user-facing rule is plan-based: Free includes FREE_DEEP_LIMIT fresh deep
+// analyses per month; Pro (active or trialing) is unlimited fair-use. Cache
+// hits are near-free replays and never count. Credits keep metering every run
+// INTERNALLY for cost observability, but they no longer block anyone.
 
-async function checkAndDeductCredits(
+// The runs that consume a Free slot: every pipeline that takes 30+ seconds of
+// fresh multi-source research. Quick takes (focused/headline) stay outside the
+// meter — "Flash basics" are part of the Free promise (playbook 2.4) and are
+// bounded by the per-IP rate limits + the daily budget kill-switch.
+const DEEP_INTENTS = new Set<Intent>(["analyze", "compare", "sector_analyze", "general"]);
+
+// (FREE_LIMIT_MSG lives in profile.ts — route files may only export handlers.)
+
+async function gateAndMeter(
   email:  string,
   intent: Intent,
   isCacheHit: boolean,
@@ -161,30 +175,33 @@ async function checkAndDeductCredits(
   const effectiveIntent: Intent = isCacheHit ? "cache" : intent;
   const needed  = CREDITS_PER_INTENT[effectiveIntent];
 
-  // Ensure free-tier row exists / refresh monthly allocation if due
+  // Keep the internal ledger row provisioned (harmless, observability only).
   await grantFreeCreditsIfDue(email);
 
-  if (needed === 0) return null; // pick redirect — no deduction
+  if (needed === 0) return null; // pick redirect — nothing to gate or meter
 
-  const current = await getCredits(email);
-  const balance = current?.credits ?? 0;
-
-  if (balance < needed) {
-    return jsonResponse(
-      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
-      402
-    );
+  if (!isCacheHit && DEEP_INTENTS.has(effectiveIntent)) {
+    const subscriber = await getSubscriberByEmail(email);
+    if (!isPremium(subscriber)) {
+      const gate = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
+      if (!gate.allowed) {
+        console.log(`[chat] free deep limit hit for ${email} (${gate.used}/${FREE_DEEP_LIMIT})`);
+        return jsonResponse(
+          { type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" },
+          402
+        );
+      }
+      console.log(`[chat] free deep analysis ${gate.used}/${FREE_DEEP_LIMIT} for ${email}`);
+    }
   }
 
+  // Internal metering — log-only, never a wall.
   const result = await deductCredits(email, needed, effectiveIntent, 0);
   if (!result.ok) {
-    return jsonResponse(
-      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
-      402
-    );
+    console.log(`[chat] internal meter dry for ${email} (${effectiveIntent}) — continuing, plan-gated`);
   }
 
-  return null; // deduction succeeded — proceed
+  return null;
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
@@ -199,6 +216,10 @@ export async function POST(req: Request) {
     );
   }
   const email = user.email;
+
+  // The one prompt switch (Phase 7): stored experience level → answer language
+  // complexity in every pipeline. null = default (maximum plain English).
+  const audience: ExperienceLevel | null = await getExperienceLevel(email);
 
   let body: ChatBody;
   try {
@@ -299,12 +320,12 @@ export async function POST(req: Request) {
   if (intent.action === "analyze") {
     const ticker   = intent.ticker;
     const focus    = intent.focus;
-    const cacheKey = councilCacheKey(ticker, focus);
+    const cacheKey = councilCacheKey(ticker, focus, audience);
     const cached   = cacheGet<CouncilResult>(cacheKey);
     const isCached = !!cached;
 
     {
-      const blocked = await checkAndDeductCredits(email, "analyze", isCached);
+      const blocked = await gateAndMeter(email, "analyze", isCached);
       if (blocked) return blocked;
     }
 
@@ -315,18 +336,18 @@ export async function POST(req: Request) {
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD });
+    return streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audience });
   }
 
   // ── FOCUSED ─────────────────────────────────────────────────────────────
   if (intent.action === "focused") {
     const { ticker, question } = intent;
-    const cacheKey = `focused:${ticker}:${question.slice(0, 60).toLowerCase().replace(/\W+/g, "_")}`;
+    const cacheKey = `focused:${ticker}:${question.slice(0, 60).toLowerCase().replace(/\W+/g, "_")}${audienceCacheSuffix(audience)}`;
     const cached   = cacheGet<FocusedResult>(cacheKey);
     const isCached = !!cached;
 
     {
-      const blocked = await checkAndDeductCredits(email, "focused", isCached);
+      const blocked = await gateAndMeter(email, "focused", isCached);
       if (blocked) return blocked;
     }
 
@@ -337,18 +358,18 @@ export async function POST(req: Request) {
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamFocused({ ticker, question, cached, cacheKey, intentCostUSD });
+    return streamFocused({ ticker, question, cached, cacheKey, intentCostUSD, audience });
   }
 
   // ── COMPARE — head-to-head between two tickers ──────────────────────────
   if (intent.action === "compare") {
     const { tickerA, tickerB } = intent;
-    const cacheKey = compareCacheKey(tickerA, tickerB);
+    const cacheKey = compareCacheKey(tickerA, tickerB, audience);
     const cached   = cacheGet<CompareResult>(cacheKey);
     const isCached = !!cached;
 
     {
-      const blocked = await checkAndDeductCredits(email, "compare", isCached);
+      const blocked = await gateAndMeter(email, "compare", isCached);
       if (blocked) return blocked;
     }
 
@@ -360,7 +381,7 @@ export async function POST(req: Request) {
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD });
+    return streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audience });
   }
 
   // ── SECTOR — thematic snapshot across a curated basket ──────────────────
@@ -369,12 +390,12 @@ export async function POST(req: Request) {
     if (!basket) {
       return jsonResponse({ type: "error", error: "Unknown sector." }, 400);
     }
-    const cacheKey = sectorCacheKey(basket.key);
+    const cacheKey = sectorCacheKey(basket.key, audience);
     const cached   = cacheGet<SectorResult>(cacheKey);
     const isCached = !!cached;
 
     {
-      const blocked = await checkAndDeductCredits(email, "sector_analyze", isCached);
+      const blocked = await gateAndMeter(email, "sector_analyze", isCached);
       if (blocked) return blocked;
     }
 
@@ -386,19 +407,19 @@ export async function POST(req: Request) {
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamSector({ basket, cached, cacheKey, intentCostUSD });
+    return streamSector({ basket, cached, cacheKey, intentCostUSD, audience });
   }
 
   // ── HEADLINE — news-impact decode (Headline Decoder skill) ──────────────
   if (intent.action === "headline") {
     const headline = intent.headline;
-    const cacheKey = `headline:${headline.toLowerCase().replace(/\W+/g, "_").slice(0, 80)}`;
+    const cacheKey = `headline:${headline.toLowerCase().replace(/\W+/g, "_").slice(0, 80)}${audienceCacheSuffix(audience)}`;
     const cached   = cacheGet<HeadlineResult>(cacheKey);
     const isCached = !!cached;
 
     {
       // Metered under "focused" — comparable weight (Haiku + 2 searches).
-      const blocked = await checkAndDeductCredits(email, "focused", isCached);
+      const blocked = await gateAndMeter(email, "focused", isCached);
       if (blocked) return blocked;
     }
 
@@ -409,7 +430,7 @@ export async function POST(req: Request) {
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamHeadline({ headline, cached, cacheKey, intentCostUSD });
+    return streamHeadline({ headline, cached, cacheKey, intentCostUSD, audience });
   }
 
   // ── PICK — redirect to Alpha Tracker ────────────────────────────────────
@@ -427,7 +448,7 @@ export async function POST(req: Request) {
 
   // ── GENERAL — Sonnet analyst ─────────────────────────────────────────────
   {
-    const blocked = await checkAndDeductCredits(email, "general", false);
+    const blocked = await gateAndMeter(email, "general", false);
     if (blocked) return blocked;
   }
 
@@ -438,7 +459,7 @@ export async function POST(req: Request) {
     return jsonResponse({ type: "error", error: msg }, 503);
   }
 
-  return streamAnalyst({ messages, intentCostUSD });
+  return streamAnalyst({ messages, intentCostUSD, audience });
 }
 
 // ── Stream helpers ───────────────────────────────────────────────────────────
@@ -488,9 +509,10 @@ interface StreamFocusedArgs {
   cached?:    FocusedResult;
   cacheKey:   string;
   intentCostUSD: number;
+  audience?:  ExperienceLevel | null;
 }
 
-function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: StreamFocusedArgs): Response {
+function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD, audience }: StreamFocusedArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -508,6 +530,7 @@ function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: St
 
       try {
         const result = await runFocusedQuery(ticker, question, {
+          audience,
           onEvent: (event: FocusedEvent) => emit({ type: "focused", event }),
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
@@ -517,7 +540,7 @@ function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: St
         const focusedMsg = focusedErr instanceof Error ? focusedErr.message : String(focusedErr);
         console.error(`[chat] focused failed for ${ticker}; falling back to analyst:`, focusedMsg);
         try {
-          const fallback = await runAnalyst([{ role: "user", content: question }]);
+          const fallback = await runAnalyst([{ role: "user", content: question }], { audience });
           recordSpend(fallback.costUSD);
           emit({ type: "text", text: fallback.text, costUSD: fallback.costUSD + intentCostUSD, intentCostUSD });
         } catch (analystErr) {
@@ -542,9 +565,10 @@ function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: St
 interface StreamAnalystArgs {
   messages:     Array<{ role: "user" | "assistant"; content: string }>;
   intentCostUSD: number;
+  audience?:    ExperienceLevel | null;
 }
 
-function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response {
+function streamAnalyst({ messages, intentCostUSD, audience }: StreamAnalystArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -553,6 +577,7 @@ function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response
 
       try {
         const result = await runAnalyst(messages, {
+          audience,
           onDelta: (delta: string) => emit({ type: "text_chunk", delta }),
         });
         recordSpend(result.costUSD);
@@ -580,9 +605,10 @@ interface StreamCouncilArgs {
   cached?:  CouncilResult;
   cacheKey: string;
   intentCostUSD: number;
+  audience?: ExperienceLevel | null;
 }
 
-function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: StreamCouncilArgs): Response {
+function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audience }: StreamCouncilArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -601,12 +627,14 @@ function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: Strea
       try {
         const result = await runCouncil(ticker, {
           focus,
+          audience,
           onEvent: (event: CouncilEvent) => emit({ type: "council", event }),
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
         recordSpend(result.estCostUSD);
-        // Publish canonical (unfocused) runs to the public /stock/[ticker] page.
-        if (!focus) void persistStockReport(result);
+        // Publish canonical (unfocused, default-audience) runs to the public
+        // /stock/[ticker] page — personalized phrasings stay private.
+        if (!focus && !audience) void persistStockReport(result);
         emit({ type: "council_done", result, costUSD: result.estCostUSD + intentCostUSD, intentCostUSD });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -633,9 +661,10 @@ interface StreamSectorArgs {
   cached?:  SectorResult;
   cacheKey: string;
   intentCostUSD: number;
+  audience?: ExperienceLevel | null;
 }
 
-function streamSector({ basket, cached, cacheKey, intentCostUSD }: StreamSectorArgs): Response {
+function streamSector({ basket, cached, cacheKey, intentCostUSD, audience }: StreamSectorArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -658,6 +687,7 @@ function streamSector({ basket, cached, cacheKey, intentCostUSD }: StreamSectorA
 
       try {
         const result = await runSector(basket, {
+          audience,
           onEvent: (event: SectorEvent) => emit({ type: "sector", event }),
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
@@ -686,9 +716,10 @@ interface StreamCompareArgs {
   cached?:  CompareResult;
   cacheKey: string;
   intentCostUSD: number;
+  audience?: ExperienceLevel | null;
 }
 
-function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD }: StreamCompareArgs): Response {
+function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audience }: StreamCompareArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -706,18 +737,20 @@ function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD }: St
 
       try {
         const result = await runCompare(tickerA, tickerB, {
+          audience,
           onEvent: (event: CompareEvent) => emit({ type: "compare", event }),
         });
         const { freshSides, ...compareResult } = result;
         cacheSet(cacheKey, compareResult, COUNCIL_CACHE_TTL_MS);
         recordSpend(compareResult.estCostUSD);
-        // Publish each freshly-run side to its public /stock/[ticker] page —
-        // a compare warms the same per-ticker reports a direct analyze would.
-        if (freshSides.includes("a")) void persistStockReport(compareResult.a);
-        if (freshSides.includes("b")) void persistStockReport(compareResult.b);
-        // Publish the head-to-head verdict to its public /compare/[pair] page.
-        // Fresh runs only — the cached branch above returns before reaching here.
-        void persistCompareReport(compareResult);
+        // Publish to the public /stock and /compare pSEO pages — default-
+        // audience runs only; personalized phrasings stay private.
+        if (!audience) {
+          if (freshSides.includes("a")) void persistStockReport(compareResult.a);
+          if (freshSides.includes("b")) void persistStockReport(compareResult.b);
+          // Fresh runs only — the cached branch above returns before reaching here.
+          void persistCompareReport(compareResult);
+        }
         emit({ type: "compare_done", result: compareResult, costUSD: compareResult.estCostUSD + intentCostUSD, intentCostUSD });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -742,9 +775,10 @@ interface StreamHeadlineArgs {
   cached?:  HeadlineResult;
   cacheKey: string;
   intentCostUSD: number;
+  audience?: ExperienceLevel | null;
 }
 
-function streamHeadline({ headline, cached, cacheKey, intentCostUSD }: StreamHeadlineArgs): Response {
+function streamHeadline({ headline, cached, cacheKey, intentCostUSD, audience }: StreamHeadlineArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -766,6 +800,7 @@ function streamHeadline({ headline, cached, cacheKey, intentCostUSD }: StreamHea
 
       try {
         const result = await runHeadlineDecoder(headline, {
+          audience,
           onEvent: (event: HeadlineEvent) => emit({ type: "headline", event }),
         });
         cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);

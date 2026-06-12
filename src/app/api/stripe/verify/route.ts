@@ -1,17 +1,20 @@
 // GET /api/stripe/verify?session_id=...
 //
 // Called from the /pricing success redirect. Verifies the Checkout Session and
-// — critically — grants the purchased credits if the webhook hasn't already.
+// — critically — applies the entitlement if the webhook hasn't already:
+// Pro subscriptions get their plan state upserted, legacy packs get their
+// credits granted (idempotent via addCreditsOnce).
 //
 // This is the resilience layer: the Stripe webhook is still the primary path,
 // but if it never fires (endpoint not registered, wrong signing secret, wrong
-// URL) the customer would be charged and never credited. Granting here too,
-// keyed on the checkout session id via addCreditsOnce, guarantees the credits
-// land exactly once regardless of which path runs first.
+// URL) the customer would be charged and never upgraded. Both paths are
+// idempotent, so it's safe regardless of which runs first.
 
 import { NextResponse } from "next/server";
-import { getStripe, CREDITS_BY_PLAN, type PlanId } from "@/lib/stripe";
+import Stripe from "stripe";
+import { getStripe, CREDITS_BY_PLAN, PRO_PLANS, type PlanId } from "@/lib/stripe";
 import { getCredits, addCreditsOnce } from "@/lib/credits";
+import { upsertSubscriber, type Plan } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -43,6 +46,29 @@ export async function GET(req: Request) {
     // This is what the success page trusts — we never claim success blindly.
     let credited = false;
 
+    // Pro subscription → plan state fallback (mirror of the webhook upsert;
+    // upsertSubscriber is a plain upsert, so double-running is harmless).
+    let proActive = false;
+    if (email && plan && PRO_PLANS.has(plan)) {
+      const sub = session.subscription as Stripe.Subscription | null;
+      const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+      if (sub && customerId) {
+        try {
+          await upsertSubscriber({
+            email,
+            stripe_customer_id: customerId,
+            subscription_id: sub.id,
+            subscription_status: sub.status,
+            plan: plan as Plan,
+            current_period_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+          });
+          proActive = ["active", "trialing"].includes(sub.status);
+        } catch (subErr) {
+          console.error("[stripe/verify] PRO upsert failed for paid session", session.id, "—", subErr instanceof Error ? subErr.message : subErr);
+        }
+      }
+    }
+
     // Fallback grant — idempotent, so it's a no-op if the webhook already ran.
     if (email && plan && expectedCredits) {
       try {
@@ -73,7 +99,7 @@ export async function GET(req: Request) {
 
     console.log(`[stripe/verify] session ${sessionId} ok — ${email} / ${plan} / ${credits} credits / credited=${credited}`);
 
-    return NextResponse.json({ ok: true, email, plan, mode: session.mode, credits, credited, expectedCredits });
+    return NextResponse.json({ ok: true, email, plan, mode: session.mode, credits, credited, expectedCredits, proActive });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[stripe/verify] error:", msg);

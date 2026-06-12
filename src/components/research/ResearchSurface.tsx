@@ -40,6 +40,7 @@ import type { HeadlineResult } from "@/lib/agents/headline";
 import type { AllocatorResult, Goal, RiskTolerance } from "@/lib/allocator/types";
 import type { PortfolioAuditResult } from "@/lib/portfolio/types";
 import { SkillLibrarySheet, SkillIcon } from "./SkillLibrarySheet";
+import { PaywallSheet } from "@/components/PaywallSheet";
 import {
   CouncilAnswer,
   FocusedAnswer,
@@ -117,6 +118,8 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
   const [mode, setMode] = useState<"council" | "flash">("council");
   const [input, setInput] = useState("");
   const [libraryOpen, setLibraryOpen] = useState(false);
+  // Soft paywall (Phase 7): opens when the month's included deep analyses run out.
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const [armedSkill, setArmedSkill] = useState<Skill | null>(null);
   const [phase, setPhase] = useState<Phase>({ name: "home" });
   const [quotes, setQuotes] = useState<QuoteMap>({});
@@ -222,7 +225,10 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
           const data = await res.json().catch(() => null);
           const msg: string = data?.error ?? "Something went wrong. Try again in a moment.";
           if (res.status === 401) return fail("Sign in to start researching.", "auth");
-          if (res.status === 402) return fail(msg, "limit");
+          if (res.status === 402) {
+            setPaywallOpen(true);
+            return fail(msg, "limit");
+          }
           if (data?.type === "text" && typeof data.text === "string") {
             return finish({ kind: "text", text: data.text });
           }
@@ -507,6 +513,7 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
                 type="button"
                 className="cvq-card cvq-card--interactive cvq-featured-card cvq-featured-card--all"
                 onClick={() => setLibraryOpen(true)}
+                data-tour="skills"
               >
                 <span className="cvq-skill-ico" aria-hidden>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -580,6 +587,7 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
       )}
 
       <SkillLibrarySheet open={libraryOpen} onClose={() => setLibraryOpen(false)} onPick={arm} />
+      <PaywallSheet open={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </div>
   );
 }

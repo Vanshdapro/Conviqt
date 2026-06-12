@@ -28,7 +28,6 @@ import {
   CREDITS_PER_INTENT,
   deductCredits,
   addCredits,
-  getCredits,
   grantFreeCreditsIfDue,
 } from "@/lib/credits";
 
@@ -38,25 +37,13 @@ export const maxDuration = 30;
 
 const QUOTE_COST = CREDITS_PER_INTENT.paper_mark;
 
+// Internal metering only (Phase 7): log the spend, never block. Live-quote
+// cost is bounded by per-IP rate limits + the daily budget kill-switch.
 async function meterQuote(email: string): Promise<{ ok: true; remaining: number } | { res: Response }> {
   await grantFreeCreditsIfDue(email);
-  const balance = (await getCredits(email))?.credits ?? 0;
-  if (balance < QUOTE_COST) {
-    return {
-      res: NextResponse.json(
-        { error: "insufficient_credits", needed: QUOTE_COST, credits: balance },
-        { status: 402 },
-      ),
-    };
-  }
   const deducted = await deductCredits(email, QUOTE_COST, "paper_mark", 0);
   if (!deducted.ok) {
-    return {
-      res: NextResponse.json(
-        { error: "insufficient_credits", needed: QUOTE_COST, credits: deducted.remaining },
-        { status: 402 },
-      ),
-    };
+    console.log(`[practice] internal meter dry for ${email} (paper_mark) — continuing`);
   }
   return { ok: true, remaining: deducted.remaining };
 }

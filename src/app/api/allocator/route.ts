@@ -10,10 +10,10 @@ import {
   deductCredits,
   addCredits,
   grantFreeCreditsIfDue,
-  getCredits,
   CREDITS_PER_INTENT,
-  PLAN_LIMIT_MSG,
 } from "@/lib/credits";
+import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
+import { getExperienceLevel, useDeepAnalysis, refundDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG } from "@/lib/profile";
 import { runAllocator } from "@/lib/allocator/orchestrator";
 import type {
   AllocatorEvent,
@@ -28,10 +28,11 @@ import type {
 //   horizonYears, goals[], highInterestDebt, hasEmergencyFund, guardrails[],
 //   age?, notes? }
 //
-// Runs the full allocation pipeline and streams progress as NDJSON. Deducts the
-// `allocator` credit cost up front (40) and refunds it if the run fails to
-// produce a usable plan. Mirrors the portfolio/audit route's gating: verified
-// session, IP rate limit, daily budget kill switch, credit balance check.
+// Runs the full allocation pipeline and streams progress as NDJSON. Phase 7
+// gating: a Starter Portfolio is a deep analysis — Free users spend one of
+// their 5 monthly slots (refunded if the run fails), Pro is unlimited
+// fair-use. Credits keep metering internally but never block. Mirrors the
+// portfolio/audit route: verified session, IP rate limit, budget kill switch.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,23 +160,23 @@ export async function POST(req: Request) {
     return json({ type: "error", error: err instanceof Error ? err.message : String(err) }, 503);
   }
 
-  // Credit gating — charge the full cost before any model call.
+  // Plan gate (Phase 7): one of the Free tier's 5 monthly deep analyses.
   await grantFreeCreditsIfDue(email);
-  const current = await getCredits(email);
-  const balance = current?.credits ?? 0;
-  if (balance < COST) {
-    return json(
-      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
-      402
-    );
+  const subscriber = await getSubscriberByEmail(email);
+  const isPro = isPremium(subscriber);
+  if (!isPro) {
+    const gate = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
+    if (!gate.allowed) {
+      return json({ type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" }, 402);
+    }
   }
-  const deduction = await deductCredits(email, COST, "allocator", 0);
-  if (!deduction.ok) {
-    return json(
-      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
-      402
-    );
-  }
+
+  // Internal metering — log-only, never a wall.
+  void deductCredits(email, COST, "allocator", 0).catch((err) =>
+    console.error("[allocator] internal meter error:", err instanceof Error ? err.message : err)
+  );
+
+  const audience = await getExperienceLevel(email);
 
   // Stream the run.
   const stream = new ReadableStream<Uint8Array>({
@@ -188,6 +189,7 @@ export async function POST(req: Request) {
       let creditsRefunded = false;
       try {
         const result = await runAllocator(profile, {
+          audience,
           onEvent: (event: AllocatorEvent) => emit({ type: "allocator", event }),
         });
         recordSpend(result.estCostUSD);
@@ -201,8 +203,10 @@ export async function POST(req: Request) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[allocator] failed:", msg);
-        // Refund — the user got no usable plan.
+        // Refund — the user got no usable plan. Free users get their monthly
+        // deep-analysis slot back; the internal ledger gets its mirror entry.
         try {
+          if (!isPro) await refundDeepAnalysis(email);
           await addCredits(email, COST, "allocator_refund");
           creditsRefunded = true;
         } catch (refundErr) {
@@ -212,7 +216,7 @@ export async function POST(req: Request) {
           type: "error",
           error: msg.includes("source any")
             ? "Could not fetch live market data for the recommended vehicles right now. Please try again in a moment."
-            : "The plan could not be completed. You weren't charged for this run.",
+            : "The plan could not be completed. This run doesn't count against your month.",
           creditsRefunded,
         });
       } finally {

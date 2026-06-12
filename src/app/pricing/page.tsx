@@ -1,590 +1,290 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+// /pricing — rebuilt for the subscription model (Phase 7, playbook 2.4).
+//
+// Two plans, no packs, no credit math anywhere:
+//   Free — 5 deep analyses/mo + quick takes + Academy fundamentals + the full
+//          public track record (transparency is free, always).
+//   Pro  — $25 monthly · $16/mo billed annually · 7-day free trial.
+//
+// Soft sell only: clear prices, a visible toggle, cancel-anytime copy, and a
+// FAQ that answers the real questions. Nothing counts down, nothing guilts.
+
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { PricingCard, ManageSubscriptionButton } from "@/components/PricingCard";
-import type { PricingPlan } from "@/components/PricingCard";
+import { track } from "@/lib/analytics/track";
 
-// ── Plan definitions ─────────────────────────────────────────────────────────
+type Billing = "annual" | "monthly";
 
-const FREE_PLAN: PricingPlan = {
-  id: "free",
-  kind: "free",
-  name: "Free",
-  price: "$0",
-  period: "/ month",
-  credits: 50,
-  description: "50 credits every month — resets on the 1st.",
-  features: [
-    "50 credits / month (auto-resets)",
-    "~1 full stock analysis per month",
-    "Unlimited general chat (within credits)",
-    "All 5 Council agents on every analysis",
-    "Every claim cited with a source URL",
-  ],
-  cta: "Start free",
-};
+const PRO_FEATURES = [
+  "Unlimited deep analyses — fair use, no monthly cap",
+  "Every skill open: Face-Off, Sector Pulse, Headline Decoder…",
+  "Portfolio tools + AI Health Check on what you own",
+  "Full Academy — all 11 tracks and 89 lessons",
+  "Priority speed — your runs go first",
+];
 
-const PRO_PACKS: PricingPlan[] = [
+const FREE_FEATURES = [
+  "5 deep analyses every month",
+  "Quick takes on any ticker",
+  "Dashboard + Headlines, refreshed twice a day",
+  "Our full public track record — losses included",
+  "Academy fundamentals",
+];
+
+const FAQ: Array<{ q: string; a: string }> = [
   {
-    id: "credits_500",
-    kind: "pack",
-    name: "Starter",
-    price: "$5",
-    period: "one-time",
-    credits: 500,
-    description: "Casual investor, 1–2 stocks a week.",
-    features: [
-      "500 credits, never expire",
-      "~16 full stock analyses",
-      "~31 focused questions",
-      "~13 general market discussions",
-    ],
-    cta: "Buy 500 credits",
+    q: "Is this financial advice?",
+    a: "No. Conviqt is a research and education tool. We show you what the data says and teach you what it means — what you do with it is yours. Markets involve risk.",
   },
   {
-    id: "credits_1000",
-    kind: "pack",
-    name: "Standard",
-    price: "$9",
-    period: "one-time",
-    credits: 1000,
-    highlighted: true,
-    badge: "Best value",
-    description: "Active investor, daily research.",
-    features: [
-      "1 000 credits, never expire",
-      "~33 full stock analyses",
-      "~62 focused questions",
-      "~27 general market discussions",
-    ],
-    cta: "Buy 1 000 credits",
+    q: "What does \"fair use\" mean?",
+    a: "Use Conviqt as much as a person reasonably can. The limit exists only to stop bots and scripts — no real reader has ever hit it.",
   },
   {
-    id: "credits_2000",
-    kind: "pack",
-    name: "Plus",
-    price: "$16",
-    period: "one-time",
-    credits: 2000,
-    description: "Heavy user, multiple portfolios.",
-    features: [
-      "2 000 credits, never expire",
-      "~66 full stock analyses",
-      "~125 focused questions",
-      "~55 general market discussions",
-    ],
-    cta: "Buy 2 000 credits",
+    q: "Can I cancel anytime?",
+    a: "Yes — two taps from your account menu, no email, no phone call. Cancel during the trial and you won't be charged at all.",
   },
   {
-    id: "credits_3000",
-    kind: "pack",
-    name: "Power",
-    price: "$24",
-    period: "one-time",
-    credits: 3000,
-    description: "Power user or small fund.",
-    features: [
-      "3 000 credits, never expire",
-      "~100 full stock analyses",
-      "~187 focused questions",
-      "~83 general market discussions",
-    ],
-    cta: "Buy 3 000 credits",
+    q: "What's actually free, forever?",
+    a: "Our entire public track record, the Dashboard, Headlines, quick takes, and 5 full deep analyses a month. Transparency is free, always — that's the point of it.",
   },
 ];
 
-const MAX_PLANS: PricingPlan[] = [
-  {
-    id: "max_monthly",
-    kind: "subscription",
-    name: "Max",
-    price: "$28",
-    period: "/ month",
-    credits: 4000,
-    highlighted: true,
-    badge: "Most popular",
-    description: "Unlimited research for the serious investor.",
-    features: [
-      "4 000 credits / month (incl. 500 bonus)",
-      "Up to 25 % rollover on unused credits",
-      "~133 full stock analyses per month",
-      "Effectively unlimited daily research",
-      "Cancel anytime — credits remain",
-    ],
-    cta: "Start Max",
-  },
-  {
-    id: "max_pro_monthly",
-    kind: "subscription",
-    name: "Max Pro",
-    price: "$52",
-    period: "/ month",
-    credits: 7500,
-    description: "For professionals and power traders.",
-    features: [
-      "7 500 credits / month (incl. 1 500 bonus)",
-      "Up to 25 % rollover on unused credits",
-      "~250 full stock analyses per month",
-      "Everything in Max, scaled up",
-      "Ideal for multi-portfolio management",
-    ],
-    cta: "Start Max Pro",
-  },
-];
-
-// ── Section label ─────────────────────────────────────────────────────────────
-
-function SectionLabel({ label }: { label: string }) {
+function CheckIcon() {
   return (
-    <p style={{
-      fontFamily: "var(--font-serif), Georgia, serif",
-      fontSize: "11px",
-      letterSpacing: "0.24em",
-      textTransform: "uppercase" as const,
-      color: "rgba(140,200,255,0.72)",
-      margin: "0 0 16px",
-    }}>
-      {label}
-    </p>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
-function SectionHeader({ label, sub }: { label: string; sub: string }) {
-  return (
-    <div style={{ textAlign: "center", marginBottom: 48 }}>
-      <SectionLabel label={label} />
-      <p style={{
-        fontFamily: "var(--font-serif), Georgia, serif",
-        fontSize: "14px",
-        color: "rgba(232,237,248,0.5)",
-        letterSpacing: "0.01em",
-        lineHeight: 1.65,
-        margin: 0,
-        maxWidth: 480,
-        marginLeft: "auto",
-        marginRight: "auto",
-      }}>
-        {sub}
-      </p>
-    </div>
-  );
-}
+function PricingInner() {
+  const params = useSearchParams();
+  const success = params.get("success") === "true";
+  const canceled = params.get("canceled") === "true";
+  const sessionId = params.get("session_id");
 
-// ── Credit cost table ─────────────────────────────────────────────────────────
-
-function CreditCosts() {
-  return (
-    <div style={{ maxWidth: 560, margin: "0 auto" }}>
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <SectionLabel label="Credit costs per query" />
-        <p style={{
-          fontFamily: "var(--font-serif), Georgia, serif",
-          fontSize: "14px",
-          color: "rgba(232,237,248,0.5)",
-          letterSpacing: "0.01em",
-          lineHeight: 1.65,
-          margin: 0,
-        }}>
-          Each action draws a fixed number of credits based on which pipeline stages run.
-        </p>
-      </div>
-      <div style={{
-        borderRadius: 14,
-        background: "rgba(10,19,35,0.6)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        border: "1px solid rgba(232,237,248,0.07)",
-        overflow: "hidden",
-      }}>
-        {[
-          { action: "Full Council analysis", credits: 15, note: "5-agent debate, all sources cited" },
-          { action: "Focused stock question", credits: 8,  note: "Targeted sweep + expert answer" },
-          { action: "General analyst chat",  credits: 18, note: "Sonnet + live web search" },
-          { action: "Cache hit (any)",       credits: 1,  note: "Same query within 4 hours" },
-        ].map((row, i, arr) => (
-          <div
-            key={row.action}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              padding: "16px 22px",
-              borderBottom: i < arr.length - 1 ? "1px solid rgba(232,237,248,0.06)" : "none",
-            }}
-          >
-            <div>
-              <p style={{
-                fontFamily: "var(--font-serif), Georgia, serif",
-                fontSize: "14px",
-                color: "rgba(232,237,248,0.8)",
-                margin: "0 0 2px",
-                letterSpacing: "0.01em",
-              }}>
-                {row.action}
-              </p>
-              <p style={{
-                fontFamily: "var(--font-serif), Georgia, serif",
-                fontSize: "12px",
-                color: "rgba(232,237,248,0.35)",
-                margin: 0,
-                letterSpacing: "0.01em",
-              }}>
-                {row.note}
-              </p>
-            </div>
-            <span style={{
-              fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
-              fontSize: "13px",
-              color: "rgba(140,200,255,0.85)",
-              flexShrink: 0,
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              {row.credits} cr
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Success Banner ────────────────────────────────────────────────────────────
-
-function SuccessBanner({ sessionId }: { sessionId: string }) {
-  const [info, setInfo] = useState<{ email?: string; plan?: string; credits?: number; credited?: boolean; expectedCredits?: number } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [billing, setBilling] = useState<Billing>("annual");
+  const [plan, setPlan] = useState<"free" | "pro" | null>(null); // null = logged out / unknown
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/stripe/verify?session_id=${sessionId}`)
-      .then((r) => r.json())
-      .then((d) => setInfo(d.ok ? d : null))
-      .catch(() => setInfo(null))
-      .finally(() => setLoading(false));
-  }, [sessionId]);
+    let alive = true;
+    fetch("/api/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive) return;
+        if (d && typeof d.plan === "string") {
+          setAuthed(true);
+          setPlan(d.plan === "pro" ? "pro" : "free");
+        } else {
+          setAuthed(false);
+        }
+      })
+      .catch(() => alive && setAuthed(false));
+    return () => {
+      alive = false;
+    };
+  }, [success]);
 
-  if (loading) return null;
+  // Returning from checkout: confirm the session server-side (webhook fallback).
+  useEffect(() => {
+    if (!success || !sessionId) return;
+    fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sessionId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.proActive) setPlan("pro");
+      })
+      .catch(() => null);
+  }, [success, sessionId]);
 
-  // Payment verified but credits did not land — be honest instead of claiming
-  // success. The /verify route logs the failure server-side for follow-up.
-  const pending = info != null && info.credited === false;
+  async function startCheckout() {
+    if (authed === false) {
+      window.location.href = "/signup?next=/pricing";
+      return;
+    }
+    setBusy(true);
+    setNotice(null);
+    track("checkout_start", { plan: billing === "annual" ? "pro_annual" : "pro_monthly" });
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: billing === "annual" ? "pro_annual" : "pro_monthly" }),
+      });
+      const d = await res.json().catch(() => null);
+      if (res.status === 401) {
+        window.location.href = "/signup?next=/pricing";
+        return;
+      }
+      if (res.ok && d?.url) {
+        window.location.href = d.url as string;
+        return;
+      }
+      setNotice(
+        res.status === 503
+          ? "Payments are almost ready — check back in a little while."
+          : "Checkout couldn't start. Try again in a moment."
+      );
+    } catch {
+      setNotice("Checkout couldn't start. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openPortal() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const d = await res.json().catch(() => null);
+      if (d?.url) {
+        window.location.href = d.url as string;
+        return;
+      }
+      setNotice("Couldn't open billing right now. Try again in a moment.");
+    } catch {
+      setNotice("Couldn't open billing right now. Try again in a moment.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const isPro = plan === "pro";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -14 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{
-        maxWidth: 520,
-        margin: "0 auto 48px",
-        borderRadius: 14,
-        border: pending ? "1px solid rgba(247,181,113,0.35)" : "1px solid rgba(232,237,248,0.12)",
-        background: "rgba(10,19,35,0.7)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        padding: "28px 32px",
-        textAlign: "center",
-      }}
-    >
-      <p style={{
-        fontFamily: "var(--font-display), Georgia, serif",
-        fontWeight: 500,
-        fontSize: "20px",
-        letterSpacing: "-0.01em",
-        color: pending ? "#f7b571" : "#e8edf8",
-        margin: "0 0 8px",
-      }}>
-        {pending ? "Payment received — credits processing" : "Credits added"}
-      </p>
-      {pending && (
-        <p style={{
-          fontFamily: "var(--font-serif), Georgia, serif",
-          fontSize: "13px",
-          color: "rgba(232,237,248,0.6)",
-          margin: "0 0 12px",
-          letterSpacing: "0.01em",
-          lineHeight: 1.6,
-        }}>
-          Your payment went through. Your{info?.expectedCredits ? ` ${info.expectedCredits.toLocaleString()}` : ""} credits
-          will appear shortly — refresh this page in a moment. If they don&apos;t,
-          email support and we&apos;ll add them right away.
+    <div className="cvq-price-page">
+      <header className="cvq-price-top">
+        <Link href="/" className="cvq-wordmark" data-no-translate>
+          CONVI<span className="cvq-wordmark-tick">Q</span>T
+        </Link>
+        <Link href="/research" className="cvq-btn cvq-btn--secondary">
+          Open the app
+        </Link>
+      </header>
+
+      <main className="cvq-price-main">
+        {success && (
+          <div className="cvq-price-banner cvq-price-banner--good" role="status">
+            {isPro
+              ? "Your free week of Pro has started. Everything is open — enjoy."
+              : "Payment received — your account is updating. Give it a few seconds and refresh."}
+          </div>
+        )}
+        {canceled && (
+          <div className="cvq-price-banner" role="status">
+            Checkout canceled — nothing was charged.
+          </div>
+        )}
+
+        <h1 className="cvq-price-h1">Simple pricing. No surprises.</h1>
+        <p className="cvq-price-sub">
+          Start free. Upgrade when you want more. Cancel anytime — it takes two taps.
         </p>
-      )}
-      {info?.email && (
-        <p style={{
-          fontFamily: "var(--font-serif), Georgia, serif",
-          fontSize: "13px",
-          color: "rgba(232,237,248,0.55)",
-          margin: "0 0 4px",
-          letterSpacing: "0.01em",
-        }}>
-          Receipt sent to <span style={{ color: "#e8edf8" }}>{info.email}</span>
-        </p>
-      )}
-      {info?.credits != null && (
-        <p style={{
-          fontFamily: "var(--font-mono), monospace",
-          fontSize: "13px",
-          color: "rgba(140,200,255,0.85)",
-          margin: "0 0 20px",
-          letterSpacing: "0.04em",
-        }}>
-          Balance: {info.credits.toLocaleString()} credits
-        </p>
-      )}
-      <p style={{
-        fontFamily: "var(--font-serif), Georgia, serif",
-        fontSize: "13px",
-        color: "rgba(232,237,248,0.45)",
-        margin: "0 0 20px",
-        letterSpacing: "0.01em",
-      }}>
-        Go to{" "}
-        <a href="/chat" style={{ color: "rgba(140,200,255,0.85)", textDecoration: "underline", textUnderlineOffset: 3 }}>
-          /chat
-        </a>{" "}
-        and enter your email to start using your credits.
-      </p>
-      {info?.email && (
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <ManageSubscriptionButton email={info.email} />
-        </div>
-      )}
-    </motion.div>
-  );
-}
 
-function CanceledBanner() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -14 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{
-        maxWidth: 520,
-        margin: "0 auto 48px",
-        borderRadius: 14,
-        border: "1px solid rgba(232,237,248,0.07)",
-        background: "rgba(10,19,35,0.4)",
-        padding: "16px 24px",
-        textAlign: "center",
-        fontFamily: "var(--font-serif), Georgia, serif",
-        fontSize: "13px",
-        color: "rgba(232,237,248,0.45)",
-        letterSpacing: "0.01em",
-      }}
-    >
-      Checkout was canceled — no charge was made. Pick a plan below whenever you&apos;re ready.
-    </motion.div>
-  );
-}
-
-// ── Divider ───────────────────────────────────────────────────────────────────
-
-function Divider() {
-  return (
-    <div style={{
-      maxWidth: 960,
-      margin: "0 auto 80px",
-      height: 1,
-      background: "linear-gradient(90deg, transparent, rgba(232,237,248,0.08), transparent)",
-    }} />
-  );
-}
-
-// ── Trust strip ───────────────────────────────────────────────────────────────
-
-function TrustStrip() {
-  return (
-    <div style={{
-      maxWidth: 640,
-      margin: "0 auto",
-      display: "flex",
-      flexWrap: "wrap" as const,
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px 36px",
-    }}>
-      {[
-        "Secured by Stripe",
-        "Packs never expire",
-        "Every claim cited",
-        "No hallucinated data",
-      ].map((label) => (
-        <span
-          key={label}
-          style={{
-            fontFamily: "var(--font-serif), Georgia, serif",
-            fontSize: "11px",
-            letterSpacing: "0.08em",
-            color: "rgba(232,237,248,0.28)",
-          }}
-        >
-          {label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-// ── Page ─────────────────────────────────────────────────────────────────────
-
-function PricingContent() {
-  const params    = useSearchParams();
-  const success   = params.get("success") === "true";
-  const canceled  = params.get("canceled") === "true";
-  const sessionId = params.get("session_id") ?? "";
-
-  return (
-    <div style={{ background: "#050d1a", minHeight: "100vh" }}>
-
-      <main style={{ padding: "80px clamp(20px, 5vw, 80px) 0", position: "relative" }}>
-
-        {/* ── Hero ── */}
-        <div style={{ maxWidth: 700, margin: "0 auto 80px", textAlign: "center" }}>
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        <div className="cvq-price-toggle" role="radiogroup" aria-label="Billing period">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={billing === "monthly"}
+            data-active={billing === "monthly"}
+            onClick={() => setBilling("monthly")}
           >
-            <p style={{
-              fontFamily: "var(--font-serif), Georgia, serif",
-              fontSize: "11px",
-              letterSpacing: "0.24em",
-              textTransform: "uppercase",
-              color: "rgba(140,200,255,0.72)",
-              margin: "0 0 22px",
-            }}>
-              Simple pricing
-            </p>
-
-            <h1 style={{
-              fontFamily: "var(--font-display), Georgia, serif",
-              fontWeight: 500,
-              fontSize: "clamp(40px, 5.5vw, 80px)",
-              lineHeight: 1.06,
-              letterSpacing: "-0.018em",
-              color: "#e8edf8",
-              margin: "0 0 8px",
-            }}>
-              Pay for what you use.
-            </h1>
-
-            <h1 style={{
-              fontFamily: "var(--font-display), Georgia, serif",
-              fontWeight: 500,
-              fontSize: "clamp(40px, 5.5vw, 80px)",
-              lineHeight: 1.06,
-              letterSpacing: "-0.018em",
-              margin: "0 0 28px",
-              background: "linear-gradient(108deg, #6eb6ff 0%, #c084fc 38%, #f472b6 65%, #67e8f9 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}>
-              Nothing more.
-            </h1>
-
-            <p style={{
-              fontFamily: "var(--font-serif), Georgia, serif",
-              fontSize: "clamp(15px, 1.4vw, 18px)",
-              color: "rgba(232,237,248,0.55)",
-              lineHeight: 1.72,
-              letterSpacing: "0.015em",
-              maxWidth: 500,
-              margin: "0 auto",
-            }}>
-              Credits are charged per query based on which pipeline runs.
-              One-time packs never expire. Max plans reset monthly with rollover.
-            </p>
-          </motion.div>
+            Monthly
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={billing === "annual"}
+            data-active={billing === "annual"}
+            onClick={() => setBilling("annual")}
+          >
+            Annual <em>save 36%</em>
+          </button>
         </div>
 
-        {/* Banners */}
-        {success && sessionId && <SuccessBanner sessionId={sessionId} />}
-        {canceled && <CanceledBanner />}
+        <div className="cvq-price-grid">
+          {/* Free */}
+          <section className="cvq-price-card" aria-label="Free plan">
+            <h2>Free</h2>
+            <p className="cvq-price-amount">
+              $0 <span>forever</span>
+            </p>
+            <p className="cvq-price-tag">Real research, on the house.</p>
+            <ul className="cvq-price-list">
+              {FREE_FEATURES.map((f) => (
+                <li key={f}>
+                  <CheckIcon />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {authed === false ? (
+              <Link href="/signup" className="cvq-btn cvq-btn--secondary cvq-price-cta">
+                Start free
+              </Link>
+            ) : (
+              <span className="cvq-price-current">
+                {isPro ? "Included in Pro" : "Your current plan"}
+              </span>
+            )}
+          </section>
 
-        {/* ── Free plan ── */}
-        <section style={{ maxWidth: 400, margin: "0 auto 80px" }}>
-          <SectionHeader
-            label="Start free"
-            sub="No card required. 50 credits auto-reset on the 1st of each month."
-          />
-          <PricingCard plan={FREE_PLAN} />
+          {/* Pro */}
+          <section className="cvq-price-card cvq-price-card--pro" aria-label="Pro plan">
+            <span className="cvq-price-badge">7-day free trial</span>
+            <h2>Pro</h2>
+            <p className="cvq-price-amount">
+              {billing === "annual" ? "$16" : "$25"} <span>/ month</span>
+            </p>
+            <p className="cvq-price-tag">
+              {billing === "annual" ? "Billed $192 once a year." : "Billed monthly. Switch or stop whenever."}
+            </p>
+            <ul className="cvq-price-list">
+              {PRO_FEATURES.map((f) => (
+                <li key={f}>
+                  <CheckIcon />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {isPro ? (
+              <button type="button" className="cvq-btn cvq-btn--secondary cvq-price-cta" onClick={openPortal} disabled={busy}>
+                Manage subscription
+              </button>
+            ) : (
+              <button type="button" className="cvq-btn cvq-btn--primary cvq-price-cta" onClick={startCheckout} disabled={busy}>
+                {busy ? "Opening checkout…" : "Try Pro free for 7 days"}
+              </button>
+            )}
+            <p className="cvq-price-fine">Cancel during the trial and you won&apos;t be charged.</p>
+          </section>
+        </div>
+
+        {notice && (
+          <p className="cvq-price-notice" role="status">
+            {notice}
+          </p>
+        )}
+
+        <section className="cvq-price-faq" aria-label="Common questions">
+          <h2>Fair questions</h2>
+          {FAQ.map((item) => (
+            <details key={item.q}>
+              <summary>{item.q}</summary>
+              <p>{item.a}</p>
+            </details>
+          ))}
         </section>
 
-        <Divider />
-
-        {/* ── Pro packs ── */}
-        <section style={{ maxWidth: 980, margin: "0 auto 80px" }}>
-          <SectionHeader
-            label="Pro — one-time packs"
-            sub="Credits never expire. Top up whenever you need more. Max $24 for a single pack."
-          />
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-            gap: 16,
-          }}>
-            {PRO_PACKS.map((plan, i) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                style={{ height: "100%" }}
-              >
-                <PricingCard plan={plan} />
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        <Divider />
-
-        {/* ── Max subscriptions ── */}
-        <section style={{ maxWidth: 700, margin: "0 auto 80px" }}>
-          <SectionHeader
-            label="Max — monthly subscription"
-            sub="Full monthly credit allocation with 25 % rollover. Cancel anytime — credits remain."
-          />
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 16,
-          }}>
-            {MAX_PLANS.map((plan, i) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.09, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <PricingCard plan={plan} />
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        <Divider />
-
-        {/* ── Credit cost table ── */}
-        <section style={{ marginBottom: 80 }}>
-          <CreditCosts />
-        </section>
-
-        <Divider />
-
-        {/* ── Trust strip ── */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          style={{ paddingBottom: 80 }}
-        >
-          <TrustStrip />
-        </motion.section>
-
+        <p className="cvq-disclaimer" style={{ textAlign: "center" }}>
+          Conviqt is a research and education tool, not a licensed financial adviser. Nothing here is
+          financial advice. Markets involve risk.
+        </p>
       </main>
     </div>
   );
@@ -593,7 +293,7 @@ function PricingContent() {
 export default function PricingPage() {
   return (
     <Suspense fallback={null}>
-      <PricingContent />
+      <PricingInner />
     </Suspense>
   );
 }

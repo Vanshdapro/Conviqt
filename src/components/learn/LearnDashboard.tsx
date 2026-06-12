@@ -152,7 +152,7 @@ export function LearnDashboard() {
       });
       if (res.status === 401) { setAuthed(false); setError("Sign in to unlock lessons."); setConfirm(null); return; }
       if (res.status === 402) {
-        setError("Not enough credits to unlock that. Top up to continue.");
+        setError("You've used your included unlocks for now. Pro opens the whole Academy.");
         setConfirm(null);
         refreshCredits();
         return;
@@ -169,7 +169,7 @@ export function LearnDashboard() {
         await fetchAndShow(pending.lesson, pending.track);
       }
     } catch {
-      setError("Connection dropped during unlock. Check your credits and try again.");
+      setError("Connection dropped during unlock. Try again in a moment.");
       setConfirm(null);
     } finally {
       setUnlocking(false);
@@ -337,7 +337,7 @@ export function LearnDashboard() {
                 </div>
               </div>
               <p style={{ margin: "0 0 14px", color: MUTED, fontSize: 12.5, lineHeight: 1.5 }}>
-                Own all {lockedPayable.length} remaining {lockedPayable.length === 1 ? "lesson" : "lessons"} forever — {BUNDLE_RATE_PER_LESSON} credits each.
+                Own all {lockedPayable.length} remaining {lockedPayable.length === 1 ? "lesson" : "lessons"} forever.
               </p>
               <button
                 className="learn-primary"
@@ -361,7 +361,7 @@ export function LearnDashboard() {
                   cursor: busy ? "wait" : "pointer",
                 }}
               >
-                Unlock all · {unlockAllCost} cr
+                Unlock all {lockedPayable.length}
               </button>
             </div>
           )}
@@ -373,13 +373,6 @@ export function LearnDashboard() {
             </div>
           )}
 
-          {/* Credits */}
-          {authed === true && credits !== null && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(232,237,248,0.025)", border: `1px solid ${BORDER}`, borderRadius: 8 }}>
-              <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>Credits</span>
-              <span style={{ color: INK, fontFamily: MONO, fontSize: 14, fontWeight: 650 }}>{credits.toLocaleString()}</span>
-            </div>
-          )}
         </aside>
       </header>
 
@@ -403,7 +396,7 @@ export function LearnDashboard() {
           <span>{error}</span>
           {authed === false
             ? <Link href="/login" style={{ color: "#fecaca", fontWeight: 650 }}>Sign in</Link>
-            : <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>Get credits</Link>}
+            : <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>See what Pro unlocks</Link>}
         </div>
       )}
 
@@ -553,8 +546,8 @@ function UnlockConfirm({
   const title = confirm.kind === "all" ? "Unlock everything" : confirm.lesson.title;
   const body =
     confirm.kind === "all"
-      ? `Unlock all ${confirm.count} remaining lessons forever for ${confirm.cost} credits.`
-      : `Unlock this lesson forever for ${confirm.cost} credits. You'll never pay for it again.`;
+      ? `Unlock all ${confirm.count} remaining lessons forever — yours to revisit anytime.`
+      : "Unlock this lesson forever. Once it's yours, it stays yours.";
 
   return (
     <div
@@ -586,13 +579,10 @@ function UnlockConfirm({
           {title}
         </h3>
         <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.55, margin: "0 0 18px" }}>{body}</p>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderTop: `1px solid ${RULE}`, borderBottom: `1px solid ${RULE}`, marginBottom: 18, fontFamily: MONO, fontSize: 13 }}>
-          <span style={{ color: MUTED }}>Cost</span>
-          <span style={{ color: INK, fontWeight: 650 }}>{confirm.cost} credits</span>
-        </div>
         {!enough && (
           <p style={{ color: "#fca5a5", fontSize: 13, lineHeight: 1.5, margin: "0 0 16px" }}>
-            You have {credits} credits. <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>Get more</Link> to unlock this.
+            You&apos;ve used your included unlocks for now.{" "}
+            <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>See what Pro unlocks</Link>.
           </p>
         )}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>

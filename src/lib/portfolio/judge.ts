@@ -1,4 +1,5 @@
 import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { audienceDirective, type ExperienceLevel } from "../agents/audience";
 import { renderMetricsBrief } from "./metrics";
 import type {
   PortfolioFactSheet,
@@ -127,10 +128,12 @@ const VALID_DIMS: RiskDimension[] = [
 export async function runPortfolioJudge(
   factSheet: PortfolioFactSheet,
   metrics: PortfolioMetrics,
-  agents: RiskAgentOutput[]
+  agents: RiskAgentOutput[],
+  audience?: ExperienceLevel | null
 ): Promise<PortfolioJudgeRunResult> {
   const t0 = Date.now();
   const anthropic = getAnthropic();
+  const aud = audienceDirective(audience);
   const sourceCount = factSheet.sources.length;
 
   const userMessage = `EXACT METRICS:
@@ -147,7 +150,10 @@ Synthesize the final audit now via report_audit. Remember: exactly four scenario
   const response = await anthropic.messages.create({
     model: MODELS.cio, // Sonnet — the high-stakes synthesis
     max_tokens: 2000,
-    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [
+      { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+      ...(aud ? [{ type: "text" as const, text: aud }] : []),
+    ],
     tools: [REPORT_TOOL],
     tool_choice: { type: "tool", name: REPORT_TOOL.name },
     messages: [{ role: "user", content: userMessage }],

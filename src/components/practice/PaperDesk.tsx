@@ -65,7 +65,6 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCta, setErrorCta] = useState<{ href: string; label: string } | null>(null);
-  const [credits, setCredits] = useState<number | null>(null);
 
   // open form
   const [ticker, setTicker] = useState("");
@@ -144,8 +143,7 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
       });
       if (res.status === 401) { fail("Sign in to trade the live desk.", { href: "/login", label: "Sign in" }); return; }
       if (res.status === 402) {
-        const d = (await res.json().catch(() => null)) as { needed?: number; credits?: number } | null;
-        fail(d?.needed != null && d?.credits != null ? `A live quote costs ${d.needed} credits and you have ${d.credits}.` : "Not enough credits for a live quote.", { href: "/pricing", label: "View pricing" });
+        fail("You've hit this month's included usage. Pro removes the limit.", { href: "/pricing", label: "See what Pro unlocks" });
         return;
       }
       if (res.status === 502) { fail(`Couldn't source a live price for ${tk} right now — you weren't charged. Try again shortly.`); return; }
@@ -162,9 +160,8 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
       if (res.status === 400) { fail("Check the ticker and share count and try again."); return; }
       if (!res.ok) { fail("Couldn't open that position. Try again shortly."); return; }
 
-      const d = (await res.json()) as { position: PaperPosition; creditsRemaining?: number };
+      const d = (await res.json()) as { position: PaperPosition };
       upsert(d.position);
-      if (typeof d.creditsRemaining === "number") setCredits(d.creditsRemaining);
       setTicker(""); setQty(""); setStop(""); setTarget(""); setThesis("");
       setShowForm(false);
       void refreshProfile();
@@ -185,15 +182,13 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
         body: JSON.stringify({ action: "mark", id }),
       });
       if (res.status === 402) {
-        const d = (await res.json().catch(() => null)) as { needed?: number; credits?: number } | null;
-        fail(d?.needed != null && d?.credits != null ? `A fresh mark costs ${d.needed} credits and you have ${d.credits}.` : "Not enough credits to mark to market.", { href: "/pricing", label: "View pricing" });
+        fail("You've hit this month's included usage. Pro removes the limit.", { href: "/pricing", label: "See what Pro unlocks" });
         return;
       }
-      if (res.status === 502) { fail("Couldn't source a fresh quote right now — you weren't charged."); return; }
+      if (res.status === 502) { fail("Couldn't source a fresh quote right now — this attempt doesn't count."); return; }
       if (!res.ok) { fail("Couldn't mark that position. Try again shortly."); return; }
-      const d = (await res.json()) as { position: PaperPosition; creditsRemaining?: number };
+      const d = (await res.json()) as { position: PaperPosition };
       upsert(d.position);
-      if (typeof d.creditsRemaining === "number") setCredits(d.creditsRemaining);
       void refreshProfile();
     } catch {
       fail("Connection dropped while marking. Try again.");
@@ -268,13 +263,10 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
         <h2 style={{ color: INK, fontFamily: DISPLAY, fontSize: 26, fontWeight: 500, letterSpacing: "-0.01em", margin: 0 }}>
           Live paper desk
         </h2>
-        {credits != null && (
-          <span style={{ marginLeft: "auto", color: CREDIT, fontFamily: MONO, fontSize: 12.5 }}>{credits.toLocaleString()} cr left</span>
-        )}
       </div>
       <p style={{ color: MUTED, fontFamily: SERIF, fontSize: 15, lineHeight: 1.6, margin: "0 0 20px", maxWidth: 720 }}>
         Beyond the historical drills: take real positions in real tickers at live, <strong style={{ color: INK, fontWeight: 600 }}>cited</strong> prices.
-        Opening and re-marking pull a fresh web-sourced quote and cost a credit each; closing is free. Paper only — no real money, not advice.
+        Opening and re-marking pull a fresh web-sourced quote. Paper only — no real money, not advice.
       </p>
 
       {!signedIn ? (
@@ -405,7 +397,7 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
                 </button>
                 <button onClick={() => { setShowForm(false); setError(null); }} style={ghostBtn()}>Cancel</button>
                 <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <ShieldIcon size={13} /> Costs 1 quote credit · refunded if no price can be sourced
+                  <ShieldIcon size={13} /> Pulls a fresh sourced quote — if no price can be found, nothing happens
                 </span>
               </div>
             </div>

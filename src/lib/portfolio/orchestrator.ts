@@ -1,3 +1,4 @@
+import type { ExperienceLevel } from "../agents/audience";
 import { runPortfolioSweep } from "./sweep";
 import { computeMetrics } from "./metrics";
 import { runRiskAgent, RISK_DIMENSIONS } from "./agents";
@@ -33,6 +34,7 @@ export type AuditEvent =
 export interface RunAuditOptions {
   name?: string;
   onEvent?: (event: AuditEvent) => void;
+  audience?: ExperienceLevel | null;
 }
 
 function makeRunId(): string {
@@ -43,7 +45,7 @@ export async function runAudit(
   holdings: Holding[],
   options: RunAuditOptions = {}
 ): Promise<PortfolioAuditResult> {
-  const { name = "My Portfolio", onEvent } = options;
+  const { name = "My Portfolio", onEvent, audience } = options;
   const t0 = Date.now();
   const runId = makeRunId();
   const asOf = new Date().toISOString();
@@ -119,7 +121,7 @@ export async function runAudit(
   const disagreement = computePortfolioDisagreement(agents);
 
   // Step 5: synthesis judge.
-  const judgeResult = await runPortfolioJudge(sweep.factSheet, metrics, agents);
+  const judgeResult = await runPortfolioJudge(sweep.factSheet, metrics, agents, audience);
   totalCostUSD += judgeResult.costUSD;
 
   const result: PortfolioAuditResult = {

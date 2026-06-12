@@ -103,7 +103,8 @@ interface Props {
   onChange: (d: ProfileDraft) => void;
   onSubmit: () => void;
   disabled?: boolean;
-  cost: number;
+  /** Legacy prop — metering is internal now; kept so callers don't break. */
+  cost?: number;
 }
 
 function Chip({
@@ -149,7 +150,7 @@ const LABEL: React.CSSProperties = {
   marginBottom: 10,
 };
 
-export function ProfileForm({ draft, onChange, onSubmit, disabled, cost }: Props) {
+export function ProfileForm({ draft, onChange, onSubmit, disabled }: Props) {
   const [touched, setTouched] = useState(false);
   const set = (patch: Partial<ProfileDraft>) => onChange({ ...draft, ...patch });
   const toggle = <T,>(arr: T[], v: T): T[] => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -328,7 +329,7 @@ export function ProfileForm({ draft, onChange, onSubmit, disabled, cost }: Props
             {disabled ? "Building your plan…" : "Build my allocation plan"}
           </button>
           <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12 }}>
-            {cost} credits · 4 planning agents + synthesis
+            From your goals to an actual plan · ~60–90s
           </span>
           {touched && !valid && (
             <span style={{ color: MUTED, fontFamily: SERIF, fontSize: 13 }}>
