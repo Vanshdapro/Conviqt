@@ -159,7 +159,7 @@ function PricingInner() {
   return (
     <div className="cvq-price-page">
       <header className="cvq-price-top">
-        <Link href="/" className="cvq-wordmark" data-no-translate>
+        <Link href="/" className="cvq-wordmark">
           CONVI<span className="cvq-wordmark-tick">Q</span>T
         </Link>
         <Link href="/research" className="cvq-btn cvq-btn--secondary">

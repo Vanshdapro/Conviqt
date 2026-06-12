@@ -13,12 +13,6 @@ export default function Analytics() {
 
   useEffect(() => {
     captureUtmFirstTouch();
-    // Activate the deferred Noto script-fallback sheet: the layout renders it
-    // with media="print" so it doesn't block first paint (the brand Latin fonts
-    // are self-hosted via next/font and need no flip). Flipping to "all" here
-    // (post-hydration) applies it with no SSR/client attribute mismatch.
-    const noto = document.getElementById("cvq-fonts-noto") as HTMLLinkElement | null;
-    if (noto) noto.media = "all";
   }, []);
 
   useEffect(() => {

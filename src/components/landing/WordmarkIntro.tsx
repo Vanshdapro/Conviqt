@@ -17,7 +17,7 @@ export function WordmarkIntro() {
   return (
     <>
       <div id="cvq-intro" className="cvq-intro" aria-hidden="true">
-        <span className="cvq-intro-word" data-no-translate>
+        <span className="cvq-intro-word">
           CONVI<span className="cvq-intro-q">Q</span>T
         </span>
       </div>

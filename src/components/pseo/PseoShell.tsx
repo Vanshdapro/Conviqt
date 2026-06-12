@@ -12,7 +12,7 @@ export function PseoShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="cvq-pseo flex flex-col min-h-screen">
       <header className="cvq-pseo-header">
-        <Link href="/" className="cvq-land-wordmark" data-no-translate>
+        <Link href="/" className="cvq-land-wordmark">
           CONVI<span className="cvq-land-wordmark-q">Q</span>T
         </Link>
         <nav className="cvq-pseo-nav">
@@ -29,7 +29,7 @@ export function PseoShell({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="cvq-pseo-footer">
         <div className="cvq-pseo-footer-row">
-          <span data-no-translate>© {new Date().getFullYear()} Conviqt</span>
+          <span>© {new Date().getFullYear()} Conviqt</span>
           <Link href="/methodology">How it works</Link>
         </div>
         <p>

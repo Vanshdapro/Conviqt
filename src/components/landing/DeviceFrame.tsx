@@ -55,7 +55,7 @@ export function BrowserFrame({
           <i />
           <i />
         </span>
-        <span className="cvq-browser-url" data-no-translate>
+        <span className="cvq-browser-url">
           {url}
         </span>
       </div>

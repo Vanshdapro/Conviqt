@@ -5,7 +5,6 @@ import "../styles/tokens.css";
 import "../styles/app.css";
 import { fontVars } from "@/lib/fonts";
 import { AppFrame } from "@/components/shell/AppShell";
-import { TranslationProvider } from "@/components/i18n/TranslationProvider";
 import Analytics from "@/components/analytics/Analytics";
 
 const SITE_URL = "https://www.conviqt.com";
@@ -96,7 +95,7 @@ export const metadata: Metadata = {
   },
   // NOTE: no site-wide `alternates.canonical` here. A canonical set on the root
   // layout is inherited by every child page that doesn't override it, which
-  // would wrongly point pages like /developers at the homepage and de-index
+  // would wrongly point pages like /pricing at the homepage and de-index
   // them. Each page sets its own canonical; the homepage's lives in page.tsx.
   category: "finance",
 };
@@ -115,29 +114,19 @@ const GOOGLE_ADS_ID =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "AW-18214353433";
 const ADS_TAG_ENABLED = process.env.VERCEL_ENV === "production";
 
-// Script fallbacks (Chinese / Devanagari / Arabic) are appended to every font
-// chain so translated copy — including headings — renders real glyphs instead
-// of tofu boxes when Conviqt Translate switches language.
-const SCRIPT_FALLBACKS =
-  "'Noto Sans SC', 'Noto Sans Devanagari', 'Noto Sans Arabic'";
-
-// The Almanac Latin type pairing (Cabinet Grotesk + General Sans) is now
-// SELF-HOSTED via next/font/local (see src/lib/fonts.ts) — no CDN <link>. Only
-// the Noto script fallbacks (CJK / Devanagari / Arabic) still load from the
-// Google CDN, and only matter once Conviqt Translate switches to a non-Latin
-// language; kept off the critical path with media="print" (flipped post-hydration).
-const FONTS_NOTO =
-  "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap";
-
+// The Almanac type pairing (Cabinet Grotesk + General Sans) is SELF-HOSTED via
+// next/font/local (see src/lib/fonts.ts) — no CDN <link>. The Noto script
+// fallbacks died with Conviqt Translate (Phase 8): the UI is English-only.
+//
 // Map the next/font custom properties (--font-cabinet / --font-general, emitted
 // by the className on <html>) into the cascade the app + legacy pages read.
 // tokens.css also defines --font-display / --font-ui from these; this inline set
 // additionally rebinds the legacy --font-sans/-serif/-display vars onto the new
 // brand so pre-rebrand pages inherit Almanac type instead of Inter/Playfair.
 const FONT_VARS = {
-  "--font-sans": `var(--font-general), ${SCRIPT_FALLBACKS}, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`,
-  "--font-serif": `var(--font-general), ${SCRIPT_FALLBACKS}, system-ui, sans-serif`,
-  "--font-display": `var(--font-cabinet), ${SCRIPT_FALLBACKS}, Georgia, "Times New Roman", serif`,
+  "--font-sans": `var(--font-general), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`,
+  "--font-serif": `var(--font-general), system-ui, sans-serif`,
+  "--font-display": `var(--font-cabinet), Georgia, "Times New Roman", serif`,
   "--font-mono": "ui-monospace, SFMono-Regular, Menlo, monospace",
 } as React.CSSProperties;
 
@@ -205,27 +194,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${fontVars}`} style={FONT_VARS}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* The brand Latin fonts are self-hosted (next/font/local); only the Noto
-            script fallbacks load from the CDN, off the critical path with
-            media="print". <Analytics> flips it to "all" post-hydration, so SSR
-            and the first client render stay identical (no hydration mismatch).
-            The <noscript> path keeps the fallbacks working with JS disabled. */}
-        <link rel="stylesheet" href={FONTS_NOTO} media="print" id="cvq-fonts-noto" />
-        <noscript>
-          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-          <link rel="stylesheet" href={FONTS_NOTO} />
-        </noscript>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body className="min-h-full flex flex-col relative">
-        <TranslationProvider>
-          <AppFrame>{children}</AppFrame>
-        </TranslationProvider>
+        <AppFrame>{children}</AppFrame>
         <Analytics />
         {ADS_TAG_ENABLED && (
           <>

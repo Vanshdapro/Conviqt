@@ -1,0 +1,10 @@
+[
+  {
+    "email": "preview-test@example.com",
+    "status": "pending",
+    "confirm_token": "VZ1YgJ670k0wouSwHxQfjvk0256lsm8f",
+    "unsubscribe_token": "Y56x5g99HuVQexfylkJBzM1cAaUWXVlv",
+    "source": "preview_check",
+    "created_at": "2026-06-02T11:47:13.535Z"
+  }
+]

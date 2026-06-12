@@ -30,7 +30,7 @@ export function AuthShell({
         <Link
           href="/"
           className="cvq-wordmark"
-          data-no-translate
+         
           style={{ display: "block", marginBottom: 8, fontSize: 18 }}
         >
           CONVI<span className="cvq-wordmark-tick">Q</span>T

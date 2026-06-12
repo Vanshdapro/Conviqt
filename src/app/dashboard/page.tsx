@@ -186,7 +186,7 @@ function Picks({ views }: { views: PickView[] | null }) {
             <Card key={v.pick.id ?? `${v.pick.ticker}-${v.pick.entry_date}`} className="cvq-dash-pick">
               <div className="cvq-dash-pick-top">
                 <div>
-                  <span className="cvq-ticker-sym" data-no-translate>
+                  <span className="cvq-ticker-sym">
                     {v.pick.ticker}
                   </span>
                   <span className="cvq-dash-pick-company">{v.pick.company_name}</span>
@@ -235,7 +235,7 @@ function Events({ content }: { content: DashboardContent | null }) {
         <ul className="cvq-dash-events">
           {events.map((e, i) => (
             <li key={i} className="cvq-dash-event">
-              <span className="cvq-dash-event-date" data-no-translate>
+              <span className="cvq-dash-event-date">
                 {e.date}
               </span>
               <span className="cvq-dash-event-label">

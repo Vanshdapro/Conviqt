@@ -100,7 +100,7 @@ export function TickerChip({
   return (
     <span className="cvq-tickerchip">
       {symbol && (
-        <span className="cvq-ticker-sym" data-no-translate>
+        <span className="cvq-ticker-sym">
           {symbol}
         </span>
       )}

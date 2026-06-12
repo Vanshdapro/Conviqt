@@ -52,7 +52,7 @@ const ICON = {
 } as const;
 
 const NAV: NavItem[] = [
-  { key: "research", label: "Research", href: "/research", icon: ICON.research, match: ["/research", "/chat", "/stock", "/alpha", "/cdi"] },
+  { key: "research", label: "Research", href: "/research", icon: ICON.research, match: ["/research", "/chat", "/stock"] },
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: ICON.dashboard, match: ["/dashboard"] },
   { key: "headlines", label: "Headlines", href: "/headlines", icon: ICON.headlines, match: ["/headlines"] },
   { key: "portfolio", label: "Portfolio", href: "/portfolio", icon: ICON.portfolio, match: ["/portfolio"] },
@@ -60,13 +60,13 @@ const NAV: NavItem[] = [
 ];
 
 // Path prefixes where the logged-in shell appears. Public + marketing + auth
-// pages (/, /login, /signup, /pricing, /about, /developers, /newsletter,
-// /methodology, /admin, /auth) render with NO shell. /dev hosts the kitchen sink.
+// pages (/, /login, /signup, /pricing, /about, /methodology, /admin, /auth)
+// render with NO shell. /dev hosts the kitchen sink.
 // /stock and /compare are public pSEO pages with their own shell (PseoShell,
 // Phase 6) — wrapping them here again would double-chrome the page.
 const SHELL_PREFIXES = [
   "/research", "/dashboard", "/headlines", "/portfolio", "/academy",
-  "/chat", "/alpha", "/cdi", "/dev",
+  "/chat", "/dev",
 ];
 
 function activeKey(pathname: string): NavKey | null {
@@ -81,7 +81,7 @@ function showsShell(pathname: string): boolean {
 }
 
 const Wordmark = () => (
-  <span data-no-translate>
+  <span>
     CONVI<span className="cvq-wordmark-tick">Q</span>T
   </span>
 );
@@ -178,7 +178,7 @@ function AccountMenu() {
         aria-label="Account menu"
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="cvq-avatar" aria-hidden data-no-translate>
+        <span className="cvq-avatar" aria-hidden>
           {initial}
         </span>
         <span className="cvq-account-id">

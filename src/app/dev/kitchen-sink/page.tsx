@@ -105,7 +105,7 @@ export default function KitchenSink() {
                 {group.tokens.map((tk) => (
                   <div key={tk} style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-control)", overflow: "hidden", background: "var(--bg-surface)" }}>
                     <div style={{ height: 52, background: `var(${tk})`, borderBottom: "1px solid var(--border)" }} />
-                    <div style={{ padding: "8px 10px", fontSize: "11.5px", color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }} data-no-translate>
+                    <div style={{ padding: "8px 10px", fontSize: "11.5px", color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
                       {tk}
                     </div>
                   </div>

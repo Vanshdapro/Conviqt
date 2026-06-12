@@ -141,7 +141,7 @@ export function HeadlinesFeed() {
                 }}
               >
                 <div className="cvq-heads-meta">
-                  <span className="cvq-heads-source" data-no-translate>
+                  <span className="cvq-heads-source">
                     {h.source || "wire"}
                   </span>
                   {h.publishedAt && <span className="cvq-heads-time">{timeAgo(h.publishedAt)}</span>}

@@ -1,0 +1,677 @@
+{
+  "feed:dashboard": {
+    "payload": {
+      "trends": [
+        {
+          "text": "SpaceX's $1.78 trillion IPO debut and Iran peace deal ease geopolitical risk, fueling relief rally."
+        },
+        {
+          "text": "Producer prices surge fastest in four years (1.1% headline), reigniting inflation concerns."
+        },
+        {
+          "text": "Semiconductor and chip designers rally on AI demand: Lam up 12.7%, Intel up 10%+, AMD and Micron each up 8-11%."
+        }
+      ],
+      "signals": [
+        {
+          "ticker": "LRCX",
+          "note": "Surged 12.7% on semiconductor expansion for AI chip demand.",
+          "reason": "Company expanding Singapore manufacturing to support AI chip production capacity."
+        },
+        {
+          "ticker": "INTC",
+          "note": "Jumped over 10% on Bank of America upgrade to buy.",
+          "reason": "Analyst cited confidence in Intel's lead-edge wafer and agentic CPU market opportunity."
+        },
+        {
+          "ticker": "ORCL",
+          "note": "Plunged nearly 10% despite beating earnings.",
+          "reason": "Cloud/software revenue missed estimates and company plans $20B equity raise for AI buildout."
+        }
+      ],
+      "events": [
+        {
+          "kind": "fed",
+          "date": "2026-06-17",
+          "label": "FOMC rate decision and economic projections (June 16-17 meeting)",
+          "sourceUrl": "https://coingape.com/trending/when-is-the-next-fomc-meeting-full-2026-schedule/"
+        },
+        {
+          "kind": "earnings",
+          "date": "2026-06-17",
+          "label": "CarMax earnings",
+          "ticker": "KMX",
+          "sourceUrl": "https://www.schwab.com/learn/story/stock-market-update-open"
+        },
+        {
+          "kind": "earnings",
+          "date": "2026-06-18",
+          "label": "Accenture earnings",
+          "ticker": "ACN",
+          "sourceUrl": "https://www.schwab.com/learn/story/stock-market-update-open"
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:29.129Z"
+    },
+    "generatedAt": "2026-06-12T07:34:29.655Z"
+  },
+  "feed:headlines:us": {
+    "payload": {
+      "region": "us",
+      "headlines": [
+        {
+          "id": "aac11b82-d957-5a3d-b1e6-6ce31e5bc583",
+          "title": "SpaceX's Biggest Believers Say The IPO Is A Ticket To A 'Star Trek Future' — Here's What Jim Cramer, Alex",
+          "url": "https://www.benzinga.com/markets/ipos/26/06/53159999/spacex-bulls-say-ipo-is-a-ticket-to-a-star-trek-future",
+          "source": "benzinga.com",
+          "publishedAt": "2026-06-12T07:13:21.000Z",
+          "take": "SpaceX IPO could reshape satellite, space tourism, and Earth-based tech markets; early-stage investors betting on multi-decade growth.",
+          "tickers": []
+        },
+        {
+          "id": "132be3f7-27f0-5429-933d-5d68470f2d43",
+          "title": "SpaceX IPO: How Locked-Out Asian Investors Are Trading",
+          "url": "https://www.bloomberg.com/news/videos/2026-06-12/spacex-ipo-how-locked-out-asian-investors-are-trading-video",
+          "source": "bloomberg.com",
+          "publishedAt": "2026-06-12T07:10:48.000Z",
+          "take": "$75B SpaceX IPO faces geographic limits; Asian demand shows underserved investor appetite for space/tech exposure.",
+          "tickers": []
+        },
+        {
+          "id": "53753fd3-8c91-5bcc-bd71-81d8a90276f2",
+          "title": "Italian Financial Stocks Soar as Paschi Bids Revive Deal Chatter",
+          "url": "https://www.bloomberg.com/news/articles/2026-06-12/italian-financial-stocks-soar-as-paschi-bids-revive-deal-chatter",
+          "source": "bloomberg.com",
+          "publishedAt": "2026-06-12T07:07:40.000Z",
+          "take": "Monte dei Paschi takeover chatter lifts Italian financials; consolidation could reshape European banking sector.",
+          "tickers": []
+        },
+        {
+          "id": "fad2ed86-a8b3-589b-9571-9ea0190b49f1",
+          "title": "Bernstein reiterates Datadog stock rating on AI expansion By Investing.com",
+          "url": "https://www.investing.com/news/analyst-ratings/bernstein-reiterates-datadog-stock-rating-on-ai-expansion-93CH-4738988",
+          "source": "investing.com",
+          "publishedAt": "2026-06-12T07:03:24.000Z",
+          "take": "Datadog gains analyst support on AI expansion; cloud monitoring software seen as key infrastructure play for enterprise AI.",
+          "tickers": [
+            "DDOG"
+          ]
+        },
+        {
+          "id": "e99cc8f0-f033-506e-9175-6278874f748a",
+          "title": "DXC Technology Company (DXC) Analyst/Investor Day Transcript",
+          "url": "https://seekingalpha.com/article/4914447-dxc-technology-company-dxc-analyst-investor-day-transcript",
+          "source": "seekingalpha.com",
+          "publishedAt": "2026-06-12T07:12:10.000Z",
+          "take": "DXC investor day reveals strategic direction for legacy IT services firm navigating digital transformation pressure.",
+          "tickers": [
+            "DXC"
+          ]
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.716Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.278Z"
+  },
+  "feed:headlines:india": {
+    "payload": {
+      "region": "india",
+      "headlines": [
+        {
+          "id": "aa741c8d-88d2-5c97-98e4-2d1d4bb0536e",
+          "title": "Tata Motors Hikes Car Prices By Up To 1.5% From July 1; Nexon, Punch, Curvv Buyers May Feel Impact",
+          "url": "https://www.news18.com/business/markets/tata-motors-hikes-car-prices-by-up-to-1-5-from-july-1-nexon-punch-curvv-buyers-may-feel-impact-10144813.html",
+          "source": "news18.com",
+          "publishedAt": "2026-06-12T06:47:20.000Z",
+          "take": "Tata Motors raises prices 1.5% on input cost pressures; signals broader inflation impact across Indian auto sector.",
+          "tickers": [
+            "TTM"
+          ]
+        },
+        {
+          "id": "fbe43531-4117-5956-a6e2-30e1d360967a",
+          "title": "'We will bring back Tatas in Bengal': Suvendu Adhikari",
+          "url": "https://economictimes.indiatimes.com/news/politics-and-nation/suvendu-adhikari-says-the-bjp-would-bring-the-tata-group-back-to-west-bengal/articleshow/131676954.cms",
+          "source": "economictimes.indiatimes.com",
+          "publishedAt": "2026-06-12T07:01:31.000Z",
+          "take": "BJP pledges to revive Tata Motors Nano in Bengal; major political commitment to restructure auto manufacturing landscape.",
+          "tickers": [
+            "TTM"
+          ]
+        },
+        {
+          "id": "1e7d4067-3d00-546c-8e36-0e2adee0ba39",
+          "title": "These 20 Stocks Have Crashed Up To 62% From Their Lifetime Highs",
+          "url": "https://www.news18.com/photogallery/business/markets/these-20-stocks-have-crashed-up-to-62-from-their-lifetime-highs-ws-l-10144565.html",
+          "source": "news18.com",
+          "publishedAt": "2026-06-12T06:15:38.000Z",
+          "take": "20 Indian stocks down 40-62% from peaks; rotation away from oversold segments may create value opportunities.",
+          "tickers": []
+        },
+        {
+          "id": "68d152d9-41d5-5228-881e-a87e7e327525",
+          "title": "'Let’s not pretend...': Jaishankar takes aim at US double standards over energy policy, tariffs",
+          "url": "https://economictimes.indiatimes.com/news/india/lets-not-pretend-jaishankar-takes-aim-at-us-double-standards-over-energy-policy-tariffs/videoshow/131677104.cms",
+          "source": "economictimes.indiatimes.com",
+          "publishedAt": "2026-06-12T07:01:52.000Z",
+          "take": "Indian FM defends Russian oil purchases; geopolitical tensions influence India's energy security strategy and pricing.",
+          "tickers": []
+        },
+        {
+          "id": "ca896c1a-20ba-58b8-8469-29d80e73ace9",
+          "title": "Andhra government overcoming inherited challenges, delivering welfare, development in 2 years: CM Chandrababu Naidu",
+          "url": "https://economictimes.indiatimes.com/news/politics-and-nation/andhra-government-overcoming-inherited-challenges-delivering-welfare-development-in-2-years-cm-chandrababu-naidu/articleshow/131677042.cms",
+          "source": "economictimes.indiatimes.com",
+          "publishedAt": "2026-06-12T07:05:11.000Z",
+          "take": "Andhra Pradesh government marks two years; state welfare and development spending signals regional growth agenda.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.716Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.357Z"
+  },
+  "feed:headlines:china": {
+    "payload": {
+      "region": "china",
+      "headlines": [
+        {
+          "id": "fc2445f4-f1b9-51e5-81b3-7fc1e18db8ae",
+          "title": "EVs capture two-thirds of China’s car market in record-breaking week",
+          "url": "https://www.scmp.com/business/china-evs/article/3356789/evs-capture-two-thirds-chinas-car-market-record-breaking-week",
+          "source": "scmp.com",
+          "publishedAt": "2026-06-12T00:00:20.000Z",
+          "take": "EVs hit 67% of China's car sales in record week; petrol car collapse accelerates shift in auto industry structure.",
+          "tickers": [
+            "NIO",
+            "LI",
+            "XPEV"
+          ]
+        },
+        {
+          "id": "e29bde64-c779-54bf-8faf-114ed348da8b",
+          "title": "Yuan poll finds 95% of overseas firms expect to sustain or boost use of currency",
+          "url": "https://www.scmp.com/economy/global-economy/article/3356861/95-overseas-firms-expect-sustain-or-boost-use-yuan-bank-china-poll",
+          "source": "scmp.com",
+          "publishedAt": "2026-06-12T06:07:58.000Z",
+          "take": "95% of overseas firms plan to sustain or boost yuan usage; reflects progress in currency internationalization despite dollar dominance.",
+          "tickers": []
+        },
+        {
+          "id": "eaef1398-c1b5-5028-9255-134688361f44",
+          "title": "Li-Ning’s Strategic Move with Stephen Curry Deal: Building a Global Brand Presence",
+          "url": "https://www.chinamoneynetwork.com/2026/06/12/li-nings-strategic-move-with-stephen-curry-deal-building-a-global-brand-presence",
+          "source": "chinamoneynetwork.com",
+          "publishedAt": "2026-06-11T23:25:07.000Z",
+          "take": "Li-Ning's Stephen Curry partnership signals Chinese sportswear brand's global expansion ambitions and Western market entry.",
+          "tickers": [
+            "LI"
+          ]
+        },
+        {
+          "id": "2b110cd2-e2c4-5afe-8e25-4d7e8098dae9",
+          "title": "Private Equity Market: What Lies Ahead After the Celebration?",
+          "url": "https://www.chinamoneynetwork.com/2026/06/12/private-equity-market-what-lies-ahead-after-the-celebration",
+          "source": "chinamoneynetwork.com",
+          "publishedAt": "2026-06-11T16:15:17.000Z",
+          "take": "China private equity fund assets surged 42% to 7.85 trillion yuan; boom signals strong domestic capital deployment.",
+          "tickers": []
+        },
+        {
+          "id": "e7219322-c463-5673-b917-b8b4d3cd81cf",
+          "title": "Solar to hydrogen: Clean energy, smart grid",
+          "url": "https://news.cgtn.com/news/2026-06-11/Solar-to-hydrogen-Clean-energy-smart-grid-1NTa1zz72us/p.html",
+          "source": "news.cgtn.com",
+          "publishedAt": "2026-06-11T08:57:17.000Z",
+          "take": "China's solar-hydrogen farm produces 10,000 m³ hydrogen daily; scales green energy infrastructure for long-term storage.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.716Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.402Z"
+  },
+  "feed:headlines:japan": {
+    "payload": {
+      "region": "japan",
+      "headlines": [
+        {
+          "id": "0e3e57cd-d905-5a6b-9f0e-a2adc3d8e4b5",
+          "title": "Asia Intelligence Brief — Thursday, June 11, 2026",
+          "url": "https://www.riotimesonline.com/asia-intelligence-brief-energy-squeeze-june-11/",
+          "source": "riotimesonline.com",
+          "publishedAt": "2026-06-11T17:00:21.000Z",
+          "take": "Japan factory-gate prices hit three-year highs; inflation pressures mount as BOJ watches input costs surge.",
+          "tickers": []
+        },
+        {
+          "id": "805642a9-317e-5405-8f52-9f2546eee6f4",
+          "title": "Four developed market central banks are now hiking rates",
+          "url": "https://www.channelnewsasia.com/business/four-developed-market-central-banks-are-now-hiking-rates-6177296",
+          "source": "channelnewsasia.com",
+          "publishedAt": "2026-06-11T15:01:57.000Z",
+          "take": "Four developed markets now hiking rates; BOJ and peers tightening policy amid global inflation, lifting bond yields.",
+          "tickers": []
+        },
+        {
+          "id": "9586634d-42f4-520c-8438-69de33a7b538",
+          "title": "Gold Slumps Below 23,300 Yen Per Gram in Japan",
+          "url": "https://newsonjapan.com/article/149620.php",
+          "source": "newsonjapan.com",
+          "publishedAt": "2026-06-11T06:47:13.000Z",
+          "take": "Gold prices in Japan fall sharply below 23,300 yen per gram; currency and commodity volatility impact wealth assets.",
+          "tickers": []
+        },
+        {
+          "id": "d773371c-620d-5833-bbe9-671057a21e72",
+          "title": "Futures Rise, Oil Drops As US Ends Iran Strikes",
+          "url": "https://www.zerohedge.com/markets/futures-rise-oil-drops-us-ends-iran-strikes",
+          "source": "zerohedge.com",
+          "publishedAt": "2026-06-11T12:19:56.000Z",
+          "take": "US ends Iran strikes, oil drops; reduced geopolitical risk lifts equity futures, benefits energy-dependent Asian markets.",
+          "tickers": []
+        },
+        {
+          "id": "ab1baa59-1841-5fa2-bd44-9f89917c83a4",
+          "title": "Iran and Ukraine loom over G7 as France accommodates Trump By Reuters",
+          "url": "https://www.investing.com/news/world-news/iran-and-ukraine-loom-over-g7-as-france-accommodates-trump-4736619",
+          "source": "investing.com",
+          "publishedAt": "2026-06-11T08:13:36.000Z",
+          "take": "Iran and Ukraine tensions overshadow G7; geopolitical risks persist despite France-Trump accommodation efforts.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.716Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.482Z"
+  },
+  "feed:headlines:europe": {
+    "payload": {
+      "region": "europe",
+      "headlines": [
+        {
+          "id": "d133c26d-c5ce-503e-9f56-d3afe1d7855b",
+          "title": "AION Officially Launches in the UK, Accelerating Global Expansion and Redefining Smart Mobility in Europe",
+          "url": "https://www.prnewswire.com/news-releases/aion-officially-launches-in-the-uk-accelerating-global-expansion-and-redefining-smart-mobility-in-europe-302798846.html",
+          "source": "prnewswire.com",
+          "publishedAt": "2026-06-12T05:32:00.000Z",
+          "take": "GAC's AION launches in UK, signaling Chinese EV makers expanding into Europe at scale.",
+          "tickers": []
+        },
+        {
+          "id": "5eeaf0f6-15ed-559a-b894-7aa7c8510f1a",
+          "title": "CySEC and ESMA call for stronger EU supervision amid market shift",
+          "url": "https://cyprus-mail.com/2026/06/12/cysec-and-esma-call-for-stronger-eu-supervision-amid-market-shift",
+          "source": "cyprus-mail.com",
+          "publishedAt": "2026-06-12T04:00:00.000Z",
+          "take": "EU regulators push for stronger cross-border market supervision as capital flows grow digitally.",
+          "tickers": []
+        },
+        {
+          "id": "62ac88e6-0949-5549-b1c6-894f4024cf43",
+          "title": "Working from home: Why your chances vary so much across Europe",
+          "url": "https://www.euronews.com/business/2026/06/12/working-from-home-in-europe-why-your-chances-vary-so-much-depending-on-where-you-live",
+          "source": "euronews.com",
+          "publishedAt": "2026-06-12T07:12:55.000Z",
+          "take": "Remote work policies vary 16x across EU, affecting labor costs and talent competition by country.",
+          "tickers": []
+        },
+        {
+          "id": "4fa70e71-98fb-5bd0-8bb8-a283dd569583",
+          "title": "Bank of Japan set to hike rates to 31-year high, drop hawkish signals",
+          "url": "https://www.businesstimes.com.sg/companies-markets/banking-finance/bank-japan-set-hike-rates-31-year-high-drop-hawkish-signals",
+          "source": "businesstimes.com.sg",
+          "publishedAt": "2026-06-12T01:49:07.000Z",
+          "take": "Bank of Japan preparing rate hike to 31-year high, shifting global monetary policy outlook.",
+          "tickers": []
+        },
+        {
+          "id": "b3bc0ad4-0d24-5f0d-853c-c0ee95ffdb30",
+          "title": "South Korea, Belgium Sign SME Cooperation MOU",
+          "url": "https://www.businesskorea.co.kr/news/articleView.html?idxno=271163",
+          "source": "businesskorea.co.kr",
+          "publishedAt": "2026-06-12T03:02:40.000Z",
+          "take": "South Korea and Belgium deepen SME cooperation, opening trade paths for small business growth.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.624Z"
+  },
+  "feed:headlines:uk": {
+    "payload": {
+      "region": "uk",
+      "headlines": [
+        {
+          "id": "ba583c28-8fa7-523c-9640-f0603c030464",
+          "title": "Where will Rolls-Royce shares be 12 months from now?",
+          "url": "https://www.twelfthmagpie.com/2026/06/12/where-will-rolls-royce-shares-be-12-months-from-now/",
+          "source": "twelfthmagpie.com",
+          "publishedAt": "2026-06-12T06:46:00.000Z",
+          "take": "Rolls-Royce shares seen outperforming next 12 months as analysts turn positive on recovery outlook.",
+          "tickers": [
+            "RR"
+          ]
+        },
+        {
+          "id": "4fde7fe4-2c7a-547a-9958-185d4bd4c544",
+          "title": "Did Raspberry Pi just become the best growth share on the UK market?",
+          "url": "https://www.twelfthmagpie.com/2026/06/12/did-raspberry-pi-just-become-the-best-growth-share-on-the-uk-market/",
+          "source": "twelfthmagpie.com",
+          "publishedAt": "2026-06-12T06:36:34.000Z",
+          "take": "Raspberry Pi flagged as potential growth stock, offering rare UK tech expansion play on public markets.",
+          "tickers": [
+            "RPI"
+          ]
+        },
+        {
+          "id": "ae78f565-41c0-5d66-a0fe-0d74dd5c35da",
+          "title": "BT boss Allison Kirkby sees pay double to £5.6m as job cuts continue",
+          "url": "https://www.thisismoney.co.uk/money/markets/article-15892931/BT-boss-Allison-Kirkby-sees-pay-double-5-6m-telecoms-company-axes-thousands-jobs.html",
+          "source": "thisismoney.co.uk",
+          "publishedAt": "2026-06-11T21:01:08.000Z",
+          "take": "BT boss pay doubles to £5.6m amid job cuts, signaling restructuring costs ahead for the telecom.",
+          "tickers": [
+            "BT"
+          ]
+        },
+        {
+          "id": "9751da2e-4863-5830-af89-d4ac0871f42e",
+          "title": "SpaceX investors, beware the momentum trap",
+          "url": "https://www.thisismoney.co.uk/money/markets/article-15891961/SpaceX-readies-biggest-IPO-history-investors-beware-momentum-trap.html",
+          "source": "thisismoney.co.uk",
+          "publishedAt": "2026-06-12T05:05:01.000Z",
+          "take": "SpaceX IPO momentum could trap investors; analysts debate valuation vs. fundamental growth.",
+          "tickers": []
+        },
+        {
+          "id": "a39a6ffb-3a54-5aa3-bc42-d5114bad8a60",
+          "title": "Creative employers are struggling to fill vacancies due to a lack of skills – here’s how we can fix that",
+          "url": "https://theconversation.com/creative-employers-are-struggling-to-fill-vacancies-due-to-a-lack-of-skills-heres-how-we-can-fix-that-283536",
+          "source": "theconversation.com",
+          "publishedAt": "2026-06-11T14:52:30.000Z",
+          "take": "Creative sector job vacancies reveal UK skills gap, threatening growth in high-margin industries.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.687Z"
+  },
+  "feed:headlines:mideast": {
+    "payload": {
+      "region": "mideast",
+      "headlines": [
+        {
+          "id": "f11a3925-6692-5178-846b-4f7feb6fd8c7",
+          "title": "Stocks extend rally on Gulf breakthrough hopes, oil near two-month lows",
+          "url": "https://www.thestar.com.my/business/business-news/2026/06/12/stocks-extend-rally-on-gulf-breakthrough-hopes-oil-near-two-month-lows",
+          "source": "thestar.com.my",
+          "publishedAt": "2026-06-12T03:21:00.000Z",
+          "take": "Middle East peace hopes spark global stock rally and oil drop to 2-month lows, easing inflation pressure.",
+          "tickers": []
+        },
+        {
+          "id": "4bd3db40-4262-5260-b3bb-8b3cb4832bb9",
+          "title": "Rupee in green: Currency jumps to 95.20 against US dollar on Middle East peace hopes",
+          "url": "https://timesofindia.indiatimes.com/business/india-business/rupee-in-green-currency-rises-to-95-20-on-middle-east-peace-hopes/articleshow/131674203.cms",
+          "source": "timesofindia.indiatimes.com",
+          "publishedAt": "2026-06-12T05:06:58.000Z",
+          "take": "Rupee strengthens on Middle East peace signals and falling crude, boosting India's import costs and currency.",
+          "tickers": []
+        },
+        {
+          "id": "fcecfa79-b909-5281-b878-c99381729a46",
+          "title": "GDP data to show impact of Iran war on UK economic growth",
+          "url": "https://www.cityam.com/ftse-100-live-uk-economy-tipped-to-have-shrank-as-iran-war-impacts-take-hold/",
+          "source": "cityam.com",
+          "publishedAt": "2026-06-12T05:14:38.000Z",
+          "take": "Iran tensions and UK economic impact from Middle East conflict create growth headwinds for Q2.",
+          "tickers": []
+        },
+        {
+          "id": "a1ce95d6-8ded-5e80-9243-21d282c02c6e",
+          "title": "KOSPI Soars 7% to 8,349 While Won Strengthens Past 1,520 Per Dollar",
+          "url": "https://www.businesskorea.co.kr/news/articleView.html?idxno=271147",
+          "source": "businesskorea.co.kr",
+          "publishedAt": "2026-06-12T02:33:13.000Z",
+          "take": "India bans retail fuel sales to industries, forcing bulk purchasing and reshaping oil market structure.",
+          "tickers": []
+        },
+        {
+          "id": "b2f020e8-6d0c-5ae3-9dae-453563b33145",
+          "title": "Australia, NZ dollars off lows as markets cling to peace hopes",
+          "url": "https://www.forexfactory.com/news/1403282-australia-nz-dollars-off-lows-as-markets-cling",
+          "source": "forexfactory.com",
+          "publishedAt": "2026-06-12T07:02:08.000Z",
+          "take": "Australian and NZ dollars recover on Middle East peace optimism, reducing safe-haven flows.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.727Z"
+  },
+  "feed:headlines:latam": {
+    "payload": {
+      "region": "latam",
+      "headlines": [
+        {
+          "id": "d0b9f5e8-039c-5028-b0f9-95e77cf92827",
+          "title": "Mexico Investment Extends One of Longest Slumps in Decades",
+          "url": "https://financialpost.com/pmn/business-pmn/mexico-investment-extends-one-of-longest-slumps-in-decades",
+          "source": "financialpost.com",
+          "publishedAt": "2026-06-04T14:52:41.000Z",
+          "take": "Mexico's investment slump extends as tariff and policy uncertainty deter business spending.",
+          "tickers": []
+        },
+        {
+          "id": "c7bfa381-d62a-5c41-a87c-add40c4222e4",
+          "title": "Peru's Economic Miracle Is At Stake as Voters Head to Polls",
+          "url": "https://financialpost.com/pmn/business-pmn/perus-economic-miracle-is-at-stake-as-voters-head-to-polls",
+          "source": "financialpost.com",
+          "publishedAt": "2026-06-07T12:37:06.000Z",
+          "take": "Peru's presidential runoff shapes economic policy direction for Latin America's growth model.",
+          "tickers": []
+        },
+        {
+          "id": "93d6de5c-8114-5c37-8951-b7264e889956",
+          "title": "Chile Economy Starts Second Quarter With Minimal Monthly Growth",
+          "url": "https://financialpost.com/pmn/business-pmn/chile-economy-starts-second-quarter-with-minimal-monthly-growth",
+          "source": "financialpost.com",
+          "publishedAt": "2026-06-01T13:33:57.000Z",
+          "take": "Chile's weak Q2 start signals economic slowdown, raising risks for regional growth forecasts.",
+          "tickers": []
+        },
+        {
+          "id": "136b5e94-6df9-5475-97ad-17b10295f771",
+          "title": "5 Dividend Stocks to Put in a Canadian Income Portfolio",
+          "url": "https://www.fool.ca/2026/06/11/5-dividend-stocks-to-put-in-a-canadian-income-portfolio/",
+          "source": "fool.ca",
+          "publishedAt": "2026-06-11T20:20:00.000Z",
+          "take": "Canadian dividend stocks offer income stability in volatile global markets and rising rates.",
+          "tickers": []
+        },
+        {
+          "id": "364557d6-12a3-52bb-b188-1782573849b9",
+          "title": "South America to ramp up India outreach despite geography",
+          "url": "https://economictimes.indiatimes.com/news/economy/foreign-trade/south-america-to-ramp-up-india-outreach-despite-geography/articleshow/131546582.cms",
+          "source": "economictimes.indiatimes.com",
+          "publishedAt": "2026-06-06T07:23:02.000Z",
+          "take": "South America courts India for trade, signaling shift in geopolitical economic alliances.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.774Z"
+  },
+  "feed:headlines:africa": {
+    "payload": {
+      "region": "africa",
+      "headlines": [
+        {
+          "id": "0bfc4228-4ac0-5443-98eb-08896b34cdd6",
+          "title": "World Bank cuts South Africa’s growth forecast as global conflict clouds economic outlook",
+          "url": "https://iol.co.za/business-report/2026-06-11-world-bank-cuts-south-africas-growth-forecast-as-global-conflict-clouds-economic-outlook/",
+          "source": "iol.co.za",
+          "publishedAt": "2026-06-11T14:36:11.000Z",
+          "take": "World Bank downgrades South Africa growth forecast due to global conflict and energy costs pressuring emerging markets.",
+          "tickers": []
+        },
+        {
+          "id": "033a4b36-8517-560e-a9c0-0222d6ad3a22",
+          "title": "World Bank warns Middle East conflict threatens Africa’s growth amid inflation pressures",
+          "url": "https://iol.co.za/business-report/2026-06-12-world-bank-warns-middle-east-conflict-threatens-africas-growth-amid-inflation-pressures/",
+          "source": "iol.co.za",
+          "publishedAt": "2026-06-11T14:03:53.000Z",
+          "take": "Middle East escalation threatens Sub-Saharan Africa's 2026 growth outlook, adding to inflation headwinds across the continent.",
+          "tickers": []
+        },
+        {
+          "id": "a0ece777-c98a-5008-98a0-ae70e881713a",
+          "title": "India offers a moment of potential for South Africa's citrus industry",
+          "url": "https://iol.co.za/business-report/2026-06-10-india-offers-a-moment-of-potential-for-south-africas-citrus-industry/",
+          "source": "iol.co.za",
+          "publishedAt": "2026-06-09T08:07:25.000Z",
+          "take": "South African citrus exporters see India market opportunity as agriculture ministry pursues new trade relationships.",
+          "tickers": []
+        },
+        {
+          "id": "c8406584-7080-5a5c-b1cd-ed600e29ef3b",
+          "title": "NGX Rebounds as Stocks Add ₦514.97bn - Economi Confidential",
+          "url": "https://economicconfidential.com/ngx-rebounds-stocks/",
+          "source": "economicconfidential.com",
+          "publishedAt": "2026-06-09T05:51:41.000Z",
+          "take": "Nigerian Exchange rebounds ₦515bn as investors hunt bargains, signaling renewed interest in African equities.",
+          "tickers": []
+        },
+        {
+          "id": "7b73f772-1612-51b7-931b-d121133dbe1e",
+          "title": "Morocco pitches itself as India's gateway to Europe and Africa",
+          "url": "https://economictimes.indiatimes.com/news/international/world-news/morocco-pitches-itself-as-indias-gateway-to-europe-and-africa/articleshow/131573794.cms",
+          "source": "economictimes.indiatimes.com",
+          "publishedAt": "2026-06-07T20:45:43.000Z",
+          "take": "Morocco positions itself as logistics hub linking Indian manufacturers to European and African markets.",
+          "tickers": []
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.831Z"
+  },
+  "feed:headlines:australia": {
+    "payload": {
+      "region": "australia",
+      "headlines": [
+        {
+          "id": "2ae28b96-8dd2-5d5c-b7d2-5da8c0e3f612",
+          "title": "Brokers name 3 ASX shares to buy right now",
+          "url": "https://www.fool.com.au/2026/06/12/brokers-name-3-asx-shares-to-buy-right-now-12-june-2026/",
+          "source": "fool.com.au",
+          "publishedAt": "2026-06-12T05:47:25.000Z",
+          "take": "ASX brokers upgrade WiseTech Global and peers on bullish catalysts this week, signaling fresh momentum.",
+          "tickers": [
+            "WTC"
+          ]
+        },
+        {
+          "id": "90c5d6f3-a323-51f9-b0db-3d38c94fcf32",
+          "title": "Amplia eyes major role in new cancer drug frontier",
+          "url": "https://www.smh.com.au/business/companies/amplia-eyes-major-role-in-new-cancer-drug-frontier-20260612-p606cx.html",
+          "source": "smh.com.au",
+          "publishedAt": "2026-06-12T05:21:58.000Z",
+          "take": "Amplia Therapeutics positions cancer drug to capture emerging kRAS inhibitor class opportunity at oncology conference.",
+          "tickers": [
+            "AMPH"
+          ]
+        },
+        {
+          "id": "88de6f16-9da0-50bc-8c02-a7215ef04117",
+          "title": "Up 15% in a week, is it too late to buy rebounding CSL shares?",
+          "url": "https://www.fool.com.au/2026/06/12/up-15-in-a-week-is-it-too-late-to-buy-rebounding-csl-shares/",
+          "source": "fool.com.au",
+          "publishedAt": "2026-06-12T04:36:08.000Z",
+          "take": "CSL rebounds 15% in a week but analyst sees value remaining in beaten-down healthcare stock.",
+          "tickers": [
+            "CSL"
+          ]
+        },
+        {
+          "id": "07dfc617-1375-5cbc-adfd-b56d6d12d685",
+          "title": "Manhattan rolls out Canadian gold strategy under new leadership",
+          "url": "https://www.smh.com.au/business/companies/manhattan-rolls-out-canadian-gold-strategy-under-new-leadership-20260612-p606by.html",
+          "source": "smh.com.au",
+          "publishedAt": "2026-06-12T04:13:07.000Z",
+          "take": "Manhattan Gold launches new exploration strategy under new leadership to unlock Hook Lake gold project.",
+          "tickers": []
+        },
+        {
+          "id": "1be2e787-8717-58aa-9e26-101e0d373cb2",
+          "title": "Woodside to pay $320m for greater stake in gas project",
+          "url": "https://thewest.com.au/business/woodside-to-pay-320m-for-greater-stake-in-gas-project-c-22421892",
+          "source": "thewest.com.au",
+          "publishedAt": "2026-06-12T03:36:04.000Z",
+          "take": "Woodside Energy invests $320m to raise stake in $49bn Browse gas field, betting on long-term LNG demand.",
+          "tickers": [
+            "WDS"
+          ]
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.908Z"
+  },
+  "feed:headlines:crypto": {
+    "payload": {
+      "region": "crypto",
+      "headlines": [
+        {
+          "id": "1b716ac8-3233-51a0-9497-8f8c75085688",
+          "title": "Australian Financial Watchdogs Back New Powers To Curb Money-Laundering Via Crypto",
+          "url": "https://assets.zerohedge.com/crypto/australian-financial-watchdogs-back-new-powers-curb-money-laundering-crypto",
+          "source": "assets.zerohedge.com",
+          "publishedAt": "2026-06-12T00:05:00.000Z",
+          "take": "Australian regulators gain new powers to curb crypto money-laundering as ATM growth explodes from 23 to 2,000 machines.",
+          "tickers": [
+            "COIN"
+          ]
+        },
+        {
+          "id": "ba23e82a-f641-55de-8f69-cda383b9e07c",
+          "title": "Bitcoin at $1 million? The math points to a wildly different number.",
+          "url": "https://www.marketwatch.com/story/bitcoin-at-1-million-the-math-points-to-a-wildly-different-number-cb835b8a",
+          "source": "marketwatch.com",
+          "publishedAt": "2026-06-11T18:47:00.000Z",
+          "take": "Long-term Bitcoin math suggests returns may approach zero, raising questions about cryptocurrency's store-of-value thesis.",
+          "tickers": []
+        },
+        {
+          "id": "6b2970f0-1013-5dd2-a764-5bfa7957101d",
+          "title": "Strategy: An Expensive Bitcoin Sale (NASDAQ:MSTR)",
+          "url": "https://seekingalpha.com/article/4914258-strategy-an-expensive-bitcoin-sale?utm_source=flipboard&utm_content=topic%2Fstockmarket",
+          "source": "seekingalpha.com",
+          "publishedAt": "2026-06-11T15:44:05.000Z",
+          "take": "MicroStrategy remains heavily leveraged to Bitcoin holdings, amplifying exposure to crypto price swings.",
+          "tickers": [
+            "MSTR"
+          ]
+        },
+        {
+          "id": "225f43ea-f76d-5926-a1d2-97da49ddd3d3",
+          "title": "Japan gives crypto stock-like status: New rules, ETFs, tax cuts, and more inside",
+          "url": "https://seekingalpha.com/news/4602635-japan-gives-crypto-stock-like-status-new-law-etfs-tax-cut-and-more-inside?feed_item_type=news",
+          "source": "seekingalpha.com",
+          "publishedAt": "2026-06-11T15:13:18.000Z",
+          "take": "Japan classifies crypto as financial instrument, enabling Bitcoin ETFs and cutting tax to 20%, boosting institutional access.",
+          "tickers": [
+            "COIN"
+          ]
+        }
+      ],
+      "generatedAt": "2026-06-12T07:34:32.717Z"
+    },
+    "generatedAt": "2026-06-12T07:34:43.973Z"
+  }
+}

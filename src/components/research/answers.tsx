@@ -357,7 +357,7 @@ export function CompareAnswer({ result, quotes }: { result: CompareResult; quote
           return (
             <Card key={side} className="cvq-faceoff-side">
               <div className="cvq-faceoff-side-head">
-                <span className="cvq-ticker-sym" data-no-translate>{ticker}</span>
+                <span className="cvq-ticker-sym">{ticker}</span>
                 <QuoteLine quote={quotes[ticker]} />
               </div>
               <div className="cvq-answer-verdictrow">
@@ -378,9 +378,9 @@ export function CompareAnswer({ result, quotes }: { result: CompareResult; quote
         <Section title="Head to head">
           <div className="cvq-h2h">
             <div className="cvq-h2h-row cvq-h2h-row--head">
-              <span data-no-translate>{result.tickerA}</span>
+              <span>{result.tickerA}</span>
               <span />
-              <span data-no-translate>{result.tickerB}</span>
+              <span>{result.tickerB}</span>
             </div>
             {/* Defense in depth: older cached verdicts (and the odd model
                 slip) can still carry internal score rows — never render them. */}
@@ -464,7 +464,7 @@ export function SectorAnswer({ result }: { result: SectorResult }) {
             {v.ranking.map((r, i) => (
               <div key={r.ticker} className="cvq-ranking-row">
                 <span className="cvq-ranking-pos">{i + 1}</span>
-                <span className="cvq-ticker-sym" data-no-translate>{r.ticker}</span>
+                <span className="cvq-ticker-sym">{r.ticker}</span>
                 <span className={`cvq-verdict cvq-verdict--${r.verdict.toLowerCase()} cvq-verdict--mini`}>
                   {VERDICT_LABEL[r.verdict]}
                 </span>
@@ -506,7 +506,7 @@ export function HeadlineAnswer({ result, quotes }: { result: HeadlineResult; quo
             return (
               <Card key={imp.ticker} className="cvq-impact">
                 <div className="cvq-impact-head">
-                  <span className="cvq-ticker-sym" data-no-translate>{imp.ticker}</span>
+                  <span className="cvq-ticker-sym">{imp.ticker}</span>
                   <span className="cvq-impact-name">{imp.companyName}</span>
                   <QuoteLine quote={q} />
                 </div>
@@ -573,7 +573,7 @@ export function AllocatorAnswer({ result }: { result: AllocatorResult }) {
           {plan.allocation.map((line, i) => (
             <div key={i} className="cvq-alloc-row">
               <div className="cvq-alloc-head">
-                <span className="cvq-ticker-sym" data-no-translate>{line.vehicle}</span>
+                <span className="cvq-ticker-sym">{line.vehicle}</span>
                 <span className="cvq-alloc-name">{line.vehicleName}</span>
                 <span className="cvq-alloc-weight">{line.weightPct}%</span>
               </div>
@@ -680,7 +680,7 @@ export function AuditAnswer({ result }: { result: PortfolioAuditResult }) {
                 </div>
                 <p>{stripCites(a.finding)}</p>
                 {a.flaggedTickers.length > 0 && (
-                  <p className="cvq-riskdim-flags" data-no-translate>
+                  <p className="cvq-riskdim-flags">
                     {a.flaggedTickers.join(" · ")}
                   </p>
                 )}

@@ -152,7 +152,7 @@ function TickerSearch({
                 setOpen(false);
               }}
             >
-              <span className="cvq-ticker-sym" data-no-translate>{m.ticker}</span>
+              <span className="cvq-ticker-sym">{m.ticker}</span>
               <span className="cvq-folio-suggest-name">{m.name}</span>
             </button>
           ))}
@@ -630,7 +630,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
           <label className="cvq-field cvq-folio-add-ticker">
             <span>{editing ? "Holding" : "Ticker or company"}</span>
             {editing ? (
-              <input type="text" className="cvq-folio-search-input" value={editing} disabled aria-label="Ticker being edited" data-no-translate />
+              <input type="text" className="cvq-folio-search-input" value={editing} disabled aria-label="Ticker being edited" />
             ) : (
               <TickerSearch
                 value={query}
@@ -757,7 +757,7 @@ function SummaryStrip({ totals }: { totals: LiveTotals }) {
         {/* $0.00 would read as "your portfolio is worth nothing"; when no
             holding could be priced, say so honestly instead of a fake zero. */}
         {totals.pricedCount > 0 ? (
-          <span className="cvq-folio-summary-value" data-no-translate>
+          <span className="cvq-folio-summary-value">
             {fmtMoney(totals.value)}
           </span>
         ) : (
@@ -826,7 +826,7 @@ function StatsStrip({
             <StatTile
               key={key}
               label={info.label}
-              value={v !== null ? <span data-no-translate>{info.format(v)}</span> : "—"}
+              value={v !== null ? <span>{info.format(v)}</span> : "—"}
               sub={key === "beta" ? "vs the S&P 500" : key === "sharpe" ? "risk-adjusted return" : "past year"}
               onInfo={() => onInfo(key)}
               infoLabel={`What does ${info.label} mean?`}
@@ -876,16 +876,16 @@ function HoldingsTable({
         {rows.map((r) => (
           <div key={r.ticker} className="cvq-folio-row" role="row">
             <span role="cell" className="cvq-folio-cell--id">
-              <span className="cvq-ticker-sym" data-no-translate>{r.ticker}</span>
+              <span className="cvq-ticker-sym">{r.ticker}</span>
               {r.companyName && <span className="cvq-folio-cell-name">{r.companyName}</span>}
             </span>
-            <span role="cell" className="cvq-folio-cell--num" data-label="Shares" data-no-translate>
+            <span role="cell" className="cvq-folio-cell--num" data-label="Shares">
               {fmtShares(r.shares)}
             </span>
-            <span role="cell" className="cvq-folio-cell--num" data-label="Cost basis" data-no-translate>
+            <span role="cell" className="cvq-folio-cell--num" data-label="Cost basis">
               {r.costBasis !== null ? fmtMoney(r.costBasis) : "—"}
             </span>
-            <span role="cell" className="cvq-folio-cell--num" data-label="Price" data-no-translate>
+            <span role="cell" className="cvq-folio-cell--num" data-label="Price">
               {r.price !== null ? fmtMoney(r.price) : <span title="Data unavailable right now">—</span>}
             </span>
             <span role="cell" className="cvq-folio-cell--num" data-label="Today">
@@ -896,7 +896,7 @@ function HoldingsTable({
                 </span>
               )}
             </span>
-            <span role="cell" className="cvq-folio-cell--num" data-label="Value" data-no-translate>
+            <span role="cell" className="cvq-folio-cell--num" data-label="Value">
               {r.value !== null ? fmtMoney(r.value) : "—"}
             </span>
             <span role="cell" className="cvq-folio-cell--num" data-label="Total P/L">
@@ -1170,13 +1170,13 @@ function WatchingTab({ active }: { active: boolean }) {
             {items.map((it) => (
               <li key={it.ticker} className="cvq-folio-watchrow">
                 <div className="cvq-folio-watchid">
-                  <span className="cvq-ticker-sym" data-no-translate>{it.ticker}</span>
+                  <span className="cvq-ticker-sym">{it.ticker}</span>
                   {it.companyName && <span className="cvq-folio-cell-name">{it.companyName}</span>}
                 </div>
                 <div className="cvq-folio-watchquote">
                   {it.price !== null ? (
                     <>
-                      <span className="cvq-ticker-price" data-no-translate>{fmtMoney(it.price)}</span>
+                      <span className="cvq-ticker-price">{fmtMoney(it.price)}</span>
                       {it.changePct !== null && <ChangePill change={it.changePct} />}
                     </>
                   ) : (

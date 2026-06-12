@@ -79,7 +79,7 @@ function PickCard({ v }: { v: PickView }) {
     <article className="cvq-card cvq-land-pick">
       <div className="cvq-land-pick-top">
         <div>
-          <span className="cvq-ticker-sym" data-no-translate>
+          <span className="cvq-ticker-sym">
             {v.pick.ticker}
           </span>
           <span className="cvq-land-pick-company">{v.pick.company_name}</span>
@@ -137,7 +137,7 @@ export default async function Home() {
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header className="cvq-land-topbar">
-        <Link href="/" className="cvq-land-wordmark" data-no-translate>
+        <Link href="/" className="cvq-land-wordmark">
           CONVI<span className="cvq-land-wordmark-q">Q</span>T
         </Link>
         <nav className="cvq-land-nav" aria-label="Landing">
@@ -354,7 +354,7 @@ export default async function Home() {
             <div className="cvq-card cvq-card--pad-lg cvq-land-plan">
               <h3>Free</h3>
               <p className="cvq-land-plan-price">
-                <span data-no-translate>$0</span>
+                <span>$0</span>
               </p>
               <ul>
                 <li>5 deep analyses a month</li>
@@ -369,7 +369,7 @@ export default async function Home() {
             <div className="cvq-card cvq-card--pad-lg cvq-land-plan cvq-land-plan--pro">
               <h3>Pro</h3>
               <p className="cvq-land-plan-price">
-                <span data-no-translate>$16</span>
+                <span>$16</span>
                 <span className="cvq-land-plan-per">/month billed annually</span>
               </p>
               <p className="cvq-land-plan-alt">or $25 month-to-month · 7-day free trial</p>
@@ -408,7 +408,7 @@ export default async function Home() {
       <footer className="cvq-land-footer">
         <div className="cvq-land-footer-inner">
           <div className="cvq-land-footer-brand">
-            <span className="cvq-land-wordmark cvq-land-wordmark--footer" data-no-translate>
+            <span className="cvq-land-wordmark cvq-land-wordmark--footer">
               CONVI<span className="cvq-land-wordmark-q">Q</span>T
             </span>
             <p>Your personal team of AI analysts.</p>

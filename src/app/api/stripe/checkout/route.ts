@@ -2,9 +2,8 @@
 //
 // Creates a Stripe Checkout Session. Since Phase 7 the consumer offer is the
 // Pro subscription only (pro_monthly | pro_annual, both with a 7-day trial).
-// Credit packs and the Max plans are retired — not purchasable here anymore.
-// Developer plans remain purchasable until the /developers surface retires
-// in Phase 8.
+// Credit packs, the Max plans, and the Developer plans are retired — not
+// purchasable here anymore (Phase 8 removed the /developers surface).
 //
 // Body:   { plan: PlanId }
 // Returns: { url: string }  — Stripe-hosted checkout URL to redirect to.

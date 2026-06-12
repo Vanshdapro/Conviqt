@@ -90,17 +90,17 @@ export const SUBSCRIPTION_PLANS = new Set<PlanId>([
 // plan-state entitlement (subscribers table), NOT a credit grant.
 export const PRO_PLANS = new Set<PlanId>(["pro_monthly", "pro_annual"]);
 
-// What checkout will still sell. Credit packs and the Max plans are retired —
-// existing ones keep working through the webhook, but no new sales.
+// What checkout will still sell. Credit packs, the Max plans, and the Developer
+// (API) plans are retired — existing subscriptions keep working through the
+// webhook, but no new sales. Pro is the only thing money buys (Phase 7/8).
 export const PURCHASABLE_PLANS = new Set<PlanId>([
   "pro_monthly",
   "pro_annual",
-  "dev_500",
-  "dev_2000",
 ]);
 
-// Developer (API) plans — billed monthly, grant an API call quota rather than
-// consumer credits. Kept separate so the webhook can route them correctly.
+// LEGACY: Developer (API) plans — the /developers surface and the public /v1
+// API retired in Phase 8. The sets below survive only so the webhook can keep
+// honoring any live legacy subscription without misrouting it.
 export const DEVELOPER_PLANS = new Set<PlanId>(["dev_500", "dev_2000"]);
 
 /** Monthly API call quota granted by each developer plan. */

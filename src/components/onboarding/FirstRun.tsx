@@ -165,7 +165,7 @@ export function OnboardingSheet({
                   className="cvq-ob-ticker"
                   aria-pressed={picked.includes(t)}
                   onClick={() => toggleTicker(t)}
-                  data-no-translate
+                 
                 >
                   {t}
                 </button>

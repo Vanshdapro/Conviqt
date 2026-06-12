@@ -63,7 +63,7 @@ export function FounderNote() {
           ) : (
             // Honest placeholder — a monogram, not a stock face.
             <div className="cvq-founder-img cvq-founder-placeholder" aria-hidden="true">
-              <span data-no-translate>Q</span>
+              <span>Q</span>
             </div>
           )}
         </div>

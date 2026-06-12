@@ -638,7 +638,7 @@ function ProgressCard({ progress }: { progress: ProgressState }) {
         <div className="cvq-progress-tickers">
           {progress.tickerStages.map((s) => (
             <span key={s.ticker} className="cvq-progress-ticker" data-state={s.state}>
-              <span data-no-translate>{s.ticker}</span> · {s.label}
+              <span>{s.ticker}</span> · {s.label}
             </span>
           ))}
         </div>
@@ -880,7 +880,7 @@ function GuidedInput(props: {
             placeholder="e.g. NVDA"
             maxLength={7}
             autoFocus
-            data-no-translate
+           
           />
         </div>
       )}
@@ -895,7 +895,7 @@ function GuidedInput(props: {
             placeholder="First — e.g. NVDA"
             maxLength={7}
             autoFocus
-            data-no-translate
+           
           />
           <span className="cvq-guided-vs">vs</span>
           <input
@@ -905,7 +905,7 @@ function GuidedInput(props: {
             onChange={(e) => props.setGTickerB(e.target.value.toUpperCase())}
             placeholder="Second — e.g. AMD"
             maxLength={7}
-            data-no-translate
+           
           />
         </div>
       )}
@@ -1003,7 +1003,7 @@ function GuidedInput(props: {
                 }
                 placeholder="Ticker"
                 maxLength={7}
-                data-no-translate
+               
               />
               <input
                 type="number"
