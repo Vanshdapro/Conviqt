@@ -1,0 +1,44 @@
+# Dashboard + Headlines refresh — 2×/day (pre-US-open, post-close).
+#
+# Why GitHub Actions and not a Vercel cron: the Vercel project is on the
+# HOBBY plan, whose cron jobs fire at most once per day. A twice-daily cron
+# in vercel.json would silently never run twice (playbook Phase 4 forbids
+# shipping that). This workflow is free and visible in the Actions tab.
+#
+# Times are UTC (GitHub cron has no timezone support) and intentionally
+# buffered: GitHub schedules can drift 5-30 min at peak.
+#   12:30 UTC ≈ 8:30am ET in summer / 7:30am ET in winter  → pre-open
+#   21:30 UTC ≈ 5:30pm ET in summer / 4:30pm ET in winter  → post-close
+#
+# Setup (one-time): add repo secret CRON_SECRET = the same value as the
+# Vercel env var CRON_SECRET (Settings → Secrets and variables → Actions).
+
+name: Feed refresh
+
+on:
+  schedule:
+    - cron: "30 12 * * *" # pre-US-open
+    - cron: "30 21 * * *" # post-US-close
+  workflow_dispatch: {} # manual runs from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Parts run separately so a slow dashboard search can't starve the
+      # headlines (and each stays well inside the function time limit).
+      - name: Refresh dashboard content
+        run: |
+          curl -fsS -X POST \
+            --retry 3 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.conviqt.com/api/feed/refresh?part=dashboard"
+
+      - name: Refresh headlines
+        if: ${{ always() }} # a dashboard failure must not skip headlines
+        run: |
+          curl -fsS -X POST \
+            --retry 3 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.conviqt.com/api/feed/refresh?part=headlines"
