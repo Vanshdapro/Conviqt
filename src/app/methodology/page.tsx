@@ -46,7 +46,7 @@ const PIPELINE = [
     step: "06",
     name: "Judge",
     tags: ["synthesis", "conviction", "#verdict"],
-    desc: "Synthesizes all four specialist verdicts into a final BUY / HOLD / SELL. Produces a conviction score and a disagreement score. High disagreement is published — it is the signal, not a failure.",
+    desc: "Weighs all four specialist views into one final verdict and an honest reading of how sure the team is. When the specialists split, the split is published — it is the signal, not a failure.",
     detail: ["Consensus", "Dissent", "Conviction", "Catalysts"],
     isJudge: true,
   },
@@ -59,7 +59,7 @@ const PRINCIPLES = [
   },
   {
     label: "Disagreement is the product",
-    body: "When specialists disagree, the Judge publishes the dissents alongside the verdict. A high disagreement score tells you the setup is contested — that is the most valuable signal we generate.",
+    body: "When specialists disagree, the dissents are published alongside the verdict. A contested setup is the most valuable signal we generate — so we show it, never smooth it over.",
   },
   {
     label: "Full track record, no omissions",
@@ -415,7 +415,7 @@ export default function MethodologyPage() {
             <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>One judge. Every dissent published.</span>
           </h1>
           <p style={{ fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-2)", lineHeight: 1.75, margin: 0, maxWidth: 520 }}>
-            When you analyze a stock, a live web sweep feeds five AI agents that run in sequence. Each only works with facts that have source URLs. The final verdict is a synthesis of four independent specialist views — agreements and disagreements alike.
+            When you analyze a stock, a live web sweep feeds a team of AI analysts. Each only works with facts that have source URLs. The final verdict is a synthesis of four independent specialist views — agreements and disagreements alike.
           </p>
         </motion.div>
 

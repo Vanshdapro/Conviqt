@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     "financial research AI",
     "cited stock research",
     "transparent AI research",
-    "alpha tracker",
+    "stock track record",
     "stock picks AI",
   ],
   authors: [{ name: "Conviqt", url: SITE_URL }],

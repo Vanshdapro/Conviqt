@@ -159,7 +159,7 @@ export default function CouncilReport({
                 {vc.label}
               </div>
               <div className="mono text-[10px] text-dim mt-1">
-                {agents.length}-agent council
+                {agents.length}-analyst team
               </div>
             </div>
             <ConvictionRing
@@ -345,7 +345,7 @@ export default function CouncilReport({
               strokeLinejoin="round"
             />
           </svg>
-          {showBreakdown ? "Hide" : "Show"} agent breakdown · {agents.length} agents
+          {showBreakdown ? "Hide" : "Show"} analyst breakdown · {agents.length} analysts
         </button>
         {showBreakdown && (
           <div className="mt-3">

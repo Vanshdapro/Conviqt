@@ -11,7 +11,7 @@ const BASE = "https://www.conviqt.com";
 
 const TITLE = "About Conviqt — What Is Conviqt?";
 const DESCRIPTION =
-  "Conviqt is an AI equity research platform where five specialist AI agents debate every stock and return one cited BUY/HOLD/SELL verdict. Every number links to a live web source you can verify.";
+  "Conviqt is your personal team of AI analysts: specialist analysts study every stock independently and return one cited, plain-English verdict. Every number links to a live web source you can verify.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -29,15 +29,15 @@ export const metadata: Metadata = {
 const FAQ: { q: string; a: string }[] = [
   {
     q: "What is Conviqt?",
-    a: "Conviqt is an AI equity research platform. When you ask it about a stock, five specialist AI agents — covering fundamentals, technicals, sentiment, and macro — independently analyze it and a sixth Judge agent synthesizes them into a single BUY, HOLD, or SELL verdict with a conviction score. Every quantitative claim links to the live web source it came from.",
+    a: "Conviqt is your personal team of AI analysts. Ask about any stock and specialist analysts — fundamentals, technicals, sentiment, and macro — each study it independently, then their views are pulled into one plain-English verdict that tells you how sure the team is. Every number links to the live web source it came from.",
   },
   {
     q: "How is Conviqt different from ChatGPT or asking an AI for stock picks?",
-    a: "A general chatbot answers in one voice and can invent numbers. Conviqt runs a structured council of agents that must cite a real, clickable source URL for every figure — if a fact has no source, it is dropped, never invented. It also publishes a disagreement score so you can see when the agents conflict, and a public Alpha Tracker with the full track record of every call, winners and losers included.",
+    a: "A general chatbot answers in one voice and can invent numbers. Conviqt's analysts must cite a real, clickable source for every figure — if a fact has no source, it is dropped, never invented. When the analysts disagree, the report says so plainly. And every published pick lands on a public track record, winners and losers included.",
   },
   {
     q: "Is Conviqt free to use?",
-    a: "Conviqt has a free tier that lets you run AI stock analysis, plus paid plans for heavier usage and a developer API. You can see current plans on the pricing page.",
+    a: "Yes — Free includes 5 deep analyses every month, quick takes, Headlines, the fundamentals Academy track, and full access to the public track record. Pro ($16/mo billed annually, $25 monthly, 7-day free trial) opens unlimited fair-use analyses, the full Academy, and the portfolio tools. Current plans are on the pricing page.",
   },
   {
     q: "How accurate is Conviqt, and is it financial advice?",
@@ -48,8 +48,8 @@ const FAQ: { q: string; a: string }[] = [
     a: "Conviqt can analyze any valid ticker on demand. The S&P 500 and major Nasdaq names have warm, pre-built research pages, and any other ticker is generated on request against live web data.",
   },
   {
-    q: "Can I use Conviqt's research in my own app?",
-    a: "Yes. Conviqt offers a developer API: POST a ticker to /v1/analyze with a bearer key and receive the Council's verdict, conviction, disagreement score, and source-linked research as JSON. See the developers page for documentation.",
+    q: "Do I need to know finance to use Conviqt?",
+    a: "No. Conviqt is built for beginner and intermediate investors: every report reads in plain English, concepts link to short Academy lessons that explain them, and the fundamentals track of the Academy is free for everyone.",
   },
 ];
 
@@ -127,11 +127,11 @@ export default function AboutPage() {
         </h1>
 
         <p style={{ fontSize: 19, lineHeight: 1.6, color: INK, margin: "0 0 20px", fontFamily: SERIF }}>
-          <strong>Conviqt is an AI equity research platform.</strong> Ask it about
-          any stock and five specialist AI agents — fundamentals, technicals,
-          sentiment, and macro — debate it in parallel. A sixth Judge agent
-          synthesizes their views into one verdict: <strong>BUY, HOLD, or SELL</strong>,
-          with a conviction score and a disagreement score.
+          <strong>Conviqt is your personal team of AI analysts.</strong> Ask it
+          about any stock and specialist analysts — fundamentals, technicals,
+          sentiment, and macro — study it independently. Their views become one
+          plain-English verdict, with an honest reading of how sure the team is
+          and where they disagree.
         </p>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: DIM, margin: "0 0 40px" }}>
@@ -148,29 +148,26 @@ export default function AboutPage() {
         </Section>
 
         <Section title="Disagreement is the signal">
-          When the agents conflict, Conviqt does not hide it. It publishes a
-          disagreement score and surfaces the dissenting cases. A contested setup is
-          often the most valuable thing to know about a stock.
+          When the analysts conflict, Conviqt does not hide it. The report says
+          where they split and why. A contested setup is often the most valuable
+          thing to know about a stock.
         </Section>
 
         <Section title="A public, unedited track record">
           The{" "}
-          <Link href="/alpha" style={{ color: ACCENT }}>
-            Alpha Tracker
+          <Link href="/dashboard" style={{ color: ACCENT }}>
+            Dashboard
           </Link>{" "}
-          publishes every call — winners and losers — with the original thesis and
+          publishes every pick — winners and losers — with the original thesis and
           exit reason. Nothing is quietly deleted.
         </Section>
 
-        <Section title="Built for investors, not beginners">
-          Conviqt is for active retail investors, finance students, and junior
-          analysts who want fast, source-linked research. Read the full{" "}
+        <Section title="Built for people starting out">
+          Conviqt is for beginner and intermediate investors who want research
+          they can actually read — and learn from. Every concept links to a short
+          Academy lesson. The curious can read the full{" "}
           <Link href="/methodology" style={{ color: ACCENT }}>
             methodology
-          </Link>{" "}
-          or call it programmatically through the{" "}
-          <Link href="/developers" style={{ color: ACCENT }}>
-            developer API
           </Link>
           .
         </Section>
