@@ -62,7 +62,12 @@ marketing pages.
 **Status:** the **3D intro + particle canvas are GONE** (deleted in Phase 2:
 `src/components/3d`, `HeroSection`, the `/preview` page; `page.tsx` is now an
 on-brand placeholder until Phase 6). **DashNav is GONE** too — replaced by the
-shell in `src/components/shell/AppShell.tsx`. The remaining retired items
+shell in `src/components/shell/AppShell.tsx`. **The legacy chat is GONE**
+(Phase 3): `/research` is the Research surface
+(`src/components/research/ResearchSurface.tsx` + `answers.tsx` +
+`SkillLibrarySheet.tsx`; skill registry = `src/lib/skills.ts`); `/chat`
+redirects to `/research?q=…`; `Chat.tsx`, `ChatWithQuery.tsx`, and
+`ResearchHub.tsx` are deleted (`legacy-v1` has them). The remaining retired items
 (API/developers, CDI, standalone Watchlist, Translate, Newsletter, gradient-serif
 marketing) still exist as route pages; their removal + 301s happen in Phase 8.
 Until then: do NOT extend or build new features on those routes, but do NOT

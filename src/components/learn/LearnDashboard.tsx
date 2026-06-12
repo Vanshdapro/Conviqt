@@ -8,6 +8,7 @@ import {
   ALL_LESSON_IDS,
   FREE_LESSON_IDS,
   BUNDLE_RATE_PER_LESSON,
+  findLesson,
   lessonUnlockCost,
 } from "@/lib/learn/curriculum";
 import { levelForXp, xpIntoLevel } from "@/lib/learn/types";
@@ -119,6 +120,23 @@ export function LearnDashboard() {
     }
     void fetchAndShow(lesson, track);
   }
+
+  // Deep-link: /academy/learn?lesson=<id> ("Learn why →" links from Research
+  // answers). Waits for progress/unlock state so a paid-but-unlocked lesson
+  // opens directly instead of bouncing through the unlock confirm.
+  const [deepLinked, setDeepLinked] = useState(false);
+  useEffect(() => {
+    if (deepLinked || stats === null) return;
+    const id = new URLSearchParams(window.location.search).get("lesson");
+    if (!id) {
+      setDeepLinked(true);
+      return;
+    }
+    const found = findLesson(id);
+    if (found) openLesson(found.lesson, found.track);
+    setDeepLinked(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when progress lands
+  }, [deepLinked, stats]);
 
   async function runUnlock() {
     if (!confirm || unlocking) return;

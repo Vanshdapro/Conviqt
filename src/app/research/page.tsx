@@ -1,36 +1,41 @@
 import type { Metadata } from "next";
-import { ResearchTabs } from "@/components/research/ResearchTabs";
-import { ResearchHub } from "@/components/research/ResearchHub";
+import { getSessionUser } from "@/lib/auth";
+import { ResearchSurface } from "@/components/research/ResearchSurface";
+
+// Research — the home of the logged-in app (playbook 2.2, Phase 3).
+// Server component: resolves the session user's first name for the greeting,
+// then hands off to the client surface.
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Research",
   description:
-    "Conviqt Research — ask the AI Council to analyze any ticker on demand, or run a deep five-agent audit of your whole portfolio for hidden concentration, sector, macro, and correlation risk.",
+    "Ask anything about any stock and get a plain-English answer with live market data — fast take or deep dive, plus one-tap skills like Worth Owning?, Face-Off, and Sector Pulse.",
+  // Logged-in app surface — keep it out of the index so crawl budget goes to
+  // the public pages (/stock, /compare), same policy the old /chat page had.
+  robots: { index: false, follow: true },
   alternates: { canonical: "https://www.conviqt.com/research" },
   openGraph: {
-    title: "Conviqt Research | Analyst + Portfolio Auditor",
+    title: "Conviqt Research",
     description:
-      "Two surfaces: the Analyst runs the Council on any ticker; the Portfolio Auditor stress-tests your whole book with five risk agents and a transparent disagreement score.",
+      "Plain-English stock research: ask anything, pick a skill, get an honest verdict with live data.",
     url: "https://www.conviqt.com/research",
     type: "website",
   },
 };
 
-export default function ResearchPage() {
+export default async function ResearchPage() {
+  const user = await getSessionUser();
+  const rawFirst = user?.name?.trim().split(/\s+/)[0] ?? null;
+  // Stored names are sometimes all-lowercase; greet politely either way.
+  const firstName = rawFirst
+    ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1)
+    : null;
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(ellipse at 15% 60%, rgba(30,90,180,0.22) 0%, transparent 55%), radial-gradient(ellipse at 85% 20%, rgba(20,70,160,0.18) 0%, transparent 55%), radial-gradient(ellipse at 50% 95%, rgba(15,60,120,0.16) 0%, transparent 50%), linear-gradient(175deg, #060b12 0%, #0b1020 60%, #07090f 100%)",
-      }}
-    >
-      <ResearchTabs active="overview" />
-      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
-        <ResearchHub />
-      </main>
-    </div>
+    <main>
+      <ResearchSurface firstName={firstName} />
+    </main>
   );
 }

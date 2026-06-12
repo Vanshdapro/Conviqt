@@ -19,7 +19,7 @@ Rules:
 - Be direct and concrete. No fluff, no "it depends", no "consult a financial advisor" hedging.
 - Cite source indexes inline as [#N] for any number or claim you make.
 - keyTakeaway: one sentence capturing the most important thing. Think front-page of a research note.
-- answer: 2-3 short paragraphs. Wall Street analyst tone — financially literate audience.
+- answer: 2-3 short paragraphs. Plain English a newer investor can follow — gloss any technical term in passing. Never use the words "Council", "agents", or "pipeline"; the writing is shown to users verbatim.
 - Only cite facts from the FactSheet. If the sweep didn't gather something, say so.
 
 Output via answer_question.`;
@@ -85,7 +85,12 @@ export async function runFocusedJudge(
 
   const response = await anthropic.messages.create({
     model: MODELS.judge,
-    max_tokens: 400,
+    // 400 was too tight for the tool call: the model spent it on keyTakeaway
+    // and the answer field was truncated away entirely (observed live —
+    // every focused run rendered with an empty body). keyTakeaway + 2-3
+    // short paragraphs + indexes needs ~600-800 tokens; 1024 leaves headroom
+    // for ~$0.003 extra worst-case on Haiku output.
+    max_tokens: 1024,
     system: SYSTEM,
     tools: [ANSWER_TOOL],
     tool_choice: { type: "tool", name: ANSWER_TOOL.name },
@@ -130,9 +135,22 @@ Answer the question now.`,
       )
     : [];
 
+  // Never return a hollow answer — fall back to the takeaway so downstream
+  // always has prose to render. With max_tokens at 1024 this should not fire;
+  // if it does, the warning makes a token-budget regression visible in logs
+  // instead of silently shipping takeaway-only answers.
+  const keyTakeaway = (input.keyTakeaway ?? "").trim();
+  let answer = (input.answer ?? "").trim();
+  if (!answer) {
+    console.warn(
+      `[FocusedJudge] ${factSheet.ticker}: model returned an empty answer (stop: ${response.stop_reason}) — falling back to keyTakeaway. Check max_tokens.`
+    );
+    answer = keyTakeaway;
+  }
+
   return {
-    keyTakeaway: (input.keyTakeaway ?? "").trim(),
-    answer: (input.answer ?? "").trim(),
+    keyTakeaway,
+    answer,
     sourceIndexes: Array.from(new Set(cleanIndexes)).sort((a, b) => a - b),
     costUSD: estimateCallCostUSD(MODELS.judge, response.usage),
     durationMs: Date.now() - t0,

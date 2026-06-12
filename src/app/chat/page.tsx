@@ -1,18 +1,16 @@
-import type { Metadata } from "next";
-import { ResearchTabs } from "@/components/research/ResearchTabs";
-import ChatWithQuery from "@/components/ChatWithQuery";
+import { redirect } from "next/navigation";
 
-// Gated app surface (login-protected, no static content) — keep it out of the
-// index so crawl budget goes to the public research pages instead.
-export const metadata: Metadata = {
-  robots: { index: false, follow: true },
-};
+// The chat surface was rebuilt as Research (playbook Phase 3). Old deep links
+// (/chat?q=… from lessons, stock pages, practice) land on the new surface with
+// the question prefilled.
 
-export default function ChatPage() {
-  return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#050d1a" }}>
-      <ResearchTabs active="analyst" />
-      <ChatWithQuery />
-    </div>
-  );
+export const dynamic = "force-dynamic";
+
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  redirect(q ? `/research?q=${encodeURIComponent(q)}` : "/research");
 }

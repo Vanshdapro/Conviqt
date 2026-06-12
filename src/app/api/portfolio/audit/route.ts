@@ -12,6 +12,7 @@ import {
   grantFreeCreditsIfDue,
   getCredits,
   CREDITS_PER_INTENT,
+  PLAN_LIMIT_MSG,
 } from "@/lib/credits";
 import { runAudit, type AuditEvent } from "@/lib/portfolio/orchestrator";
 import { savePortfolio, recordAudit, sanitizeHoldings } from "@/lib/portfolio/store";
@@ -84,26 +85,14 @@ export async function POST(req: Request) {
   const balance = current?.credits ?? 0;
   if (balance < COST) {
     return json(
-      {
-        type: "error",
-        error: `Insufficient credits. A portfolio audit costs ${COST} credits; you have ${balance}. Top up at /pricing.`,
-        code: "insufficient_credits",
-        credits: balance,
-        needed: COST,
-      },
+      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
       402
     );
   }
   const deduction = await deductCredits(email, COST, "portfolio_audit", 0);
   if (!deduction.ok) {
     return json(
-      {
-        type: "error",
-        error: `Insufficient credits. A portfolio audit costs ${COST} credits; you have ${deduction.remaining}.`,
-        code: "insufficient_credits",
-        credits: deduction.remaining,
-        needed: COST,
-      },
+      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
       402
     );
   }
@@ -158,7 +147,7 @@ export async function POST(req: Request) {
           type: "error",
           error: msg.includes("price any")
             ? "Could not fetch live prices for these tickers right now. Double-check the symbols and try again."
-            : "The audit could not be completed. Your credits were not charged.",
+            : "The health check could not be completed. You weren't charged for this run.",
           creditsRefunded,
         });
       } finally {

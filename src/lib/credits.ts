@@ -45,6 +45,13 @@ export const FREE_MONTHLY_CREDITS = 50;
 // once we're ready to enforce monthly cycles.
 export const CREDIT_RESETS_ENABLED = false;
 
+// The ONE user-facing out-of-allowance message, shared by every metered route.
+// Copy rule (CLAUDE.md): metering is internal — users hear about their monthly
+// plan, never the word "credits". Phase 7 replaces this with the subscription
+// paywall sheet.
+export const PLAN_LIMIT_MSG =
+  "You've used up this month's included analyses. Pro removes the limit — see /pricing.";
+
 export const CREDITS_PER_INTENT = {
   analyze: 30,
   focused: 16,

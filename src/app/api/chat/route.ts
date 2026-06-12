@@ -1,11 +1,15 @@
 import {
   classifyIntent,
   RouterMessage,
+  RouterIntent,
+  VALID_TICKER_RE,
 } from "@/lib/agents/router";
 import { runCouncil, runFocusedQuery, runCompare, runSector, type CouncilEvent, type FocusedEvent, type CompareEvent, type SectorEvent } from "@/lib/agents/orchestrator";
 import { runAnalyst } from "@/lib/agents/analyst";
+import { runHeadlineDecoder, type HeadlineEvent, type HeadlineResult } from "@/lib/agents/headline";
 import { resolveSector, type SectorBasket } from "@/lib/agents/sectors";
 import type { CouncilResult, FocusedResult, CompareResult, SectorResult } from "@/lib/agents/types";
+import { quote as mdQuote, type Quote } from "@/lib/marketdata";
 import {
   checkRateLimit,
   ensureDailyBudget,
@@ -28,6 +32,7 @@ import {
   grantFreeCreditsIfDue,
   getCredits,
   CREDITS_PER_INTENT,
+  PLAN_LIMIT_MSG,
   type Intent,
 } from "@/lib/credits";
 import { getVerifiedUser } from "@/lib/auth";
@@ -40,21 +45,103 @@ import { getVerifiedUser } from "@/lib/auth";
 //   the session (never the request body), then credits are deducted from their
 //   account before the pipeline runs. No anonymous access.
 //
-// Intents and their credit costs:
+// Intents and their internal metering costs (NEVER rendered to users —
+// subscription brand; "credits" is backstage vocabulary only):
 //   analyze  → 30 credits  (Full Council)
-//   focused  → 16 credits  (Focused query)
+//   focused  → 16 credits  (Focused query; also meters Headline Decoder)
 //   general  → 36 credits  (Sonnet analyst)
 //   compare  → 50 credits  (two Councils + comparative synthesis; warm sides reuse cache)
 //   sector   → 80 credits  (5-8 abbreviated Council passes + thematic synthesis; warm names reuse cache)
 //   cache    →  2 credits  (any cache hit)
 //   pick     →  0 credits  (text redirect only)
+//
+// Research-surface skill runs (playbook 2.3) send { skill, params } and skip
+// the intent router entirely — the mapping below is deterministic and free.
+// Free-text asks still go through the router; the Council/Flash mode toggle
+// biases the analyze↔focused choice.
 
 export const runtime  = "nodejs";
 export const dynamic  = "force-dynamic";
-export const maxDuration = 60;
+// Compare/sector worst case runs two cold Councils back-to-back; 60s clipped
+// real runs. Matches the allocator/audit routes.
+export const maxDuration = 120;
+
+type ResearchMode = "council" | "flash";
 
 interface ChatBody {
   messages?: Array<{ role: string; content: string }>;
+  /** Research-surface skill id (playbook 2.3) — bypasses the intent router. */
+  skill?: string;
+  /** Council (deep) / Flash (fast) toggle for free-text asks. */
+  mode?: string;
+  /** Structured params for skill runs. */
+  params?: {
+    ticker?: string;
+    tickerA?: string;
+    tickerB?: string;
+    sectorKey?: string;
+    headline?: string;
+  };
+}
+
+// ── Skill → pipeline mapping (playbook 2.3 "What it runs") ──────────────────
+// Focus strings are fixed per skill so the 4h Council cache keys stay stable.
+
+const SKILL_FOCUS = {
+  entryExit:
+    "entry and exit zones: support and resistance levels, trend and momentum — describe the price zones the analysts watch for entries and exits, framed as analysis of levels, never as instructions to the reader",
+  crowdCheck:
+    "crowd check: what investors are feeling versus what the data says — sentiment, positioning, hype versus fundamentals",
+  bullBear:
+    "scenario map: the best case, the worst case, and the base case for this stock, with what would trigger each scenario",
+} as const;
+
+function intentFromSkill(
+  skill: string,
+  params: NonNullable<ChatBody["params"]>
+): RouterIntent | { action: "headline"; headline: string } | { error: string } {
+  const ticker = (params.ticker ?? "").trim().toUpperCase();
+  switch (skill) {
+    case "worth-owning":
+      if (!VALID_TICKER_RE.test(ticker)) return { error: "That doesn't look like a US-listed ticker." };
+      return { action: "analyze", ticker };
+    case "quick-take":
+      if (!VALID_TICKER_RE.test(ticker)) return { error: "That doesn't look like a US-listed ticker." };
+      return {
+        action: "focused",
+        ticker,
+        question: `The 30-second read on ${ticker}: what's the setup right now and what actually matters?`,
+      };
+    case "entry-exit-zones":
+      if (!VALID_TICKER_RE.test(ticker)) return { error: "That doesn't look like a US-listed ticker." };
+      return { action: "analyze", ticker, focus: SKILL_FOCUS.entryExit };
+    case "crowd-check":
+      if (!VALID_TICKER_RE.test(ticker)) return { error: "That doesn't look like a US-listed ticker." };
+      return { action: "analyze", ticker, focus: SKILL_FOCUS.crowdCheck };
+    case "bull-bear-map":
+      if (!VALID_TICKER_RE.test(ticker)) return { error: "That doesn't look like a US-listed ticker." };
+      return { action: "analyze", ticker, focus: SKILL_FOCUS.bullBear };
+    case "face-off": {
+      const a = (params.tickerA ?? "").trim().toUpperCase();
+      const b = (params.tickerB ?? "").trim().toUpperCase();
+      if (!VALID_TICKER_RE.test(a) || !VALID_TICKER_RE.test(b))
+        return { error: "A Face-Off needs two US-listed tickers." };
+      if (a === b) return { action: "analyze", ticker: a };
+      return { action: "compare", tickerA: a, tickerB: b };
+    }
+    case "sector-pulse": {
+      const key = (params.sectorKey ?? "").trim();
+      if (!key) return { error: "Pick an industry to take the pulse of." };
+      return { action: "sector", sectorKey: key };
+    }
+    case "headline-decoder": {
+      const headline = (params.headline ?? "").trim();
+      if (headline.length < 12) return { error: "Paste the full headline so there's enough to decode." };
+      return { action: "headline", headline };
+    }
+    default:
+      return { error: "Unknown skill." };
+  }
 }
 
 function jsonResponse(body: unknown, status: number) {
@@ -84,13 +171,7 @@ async function checkAndDeductCredits(
 
   if (balance < needed) {
     return jsonResponse(
-      {
-        type:     "error",
-        error:    `Insufficient credits. You need ${needed} credits but have ${balance}. Top up at /pricing.`,
-        code:     "insufficient_credits",
-        credits:  balance,
-        needed,
-      },
+      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
       402
     );
   }
@@ -98,13 +179,7 @@ async function checkAndDeductCredits(
   const result = await deductCredits(email, needed, effectiveIntent, 0);
   if (!result.ok) {
     return jsonResponse(
-      {
-        type:    "error",
-        error:   `Insufficient credits. You need ${needed} credits but have ${result.remaining}. Top up at /pricing.`,
-        code:    "insufficient_credits",
-        credits: result.remaining,
-        needed,
-      },
+      { type: "error", error: PLAN_LIMIT_MSG, code: "insufficient_credits" },
       402
     );
   }
@@ -169,22 +244,52 @@ export async function POST(req: Request) {
     return jsonResponse({ type: "error", error: msg }, 503);
   }
 
-  // ── Intent classification ────────────────────────────────────────────────
-  let routerResult;
-  try {
-    routerResult = await classifyIntent(messages);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[chat] router failed:", msg);
-    return jsonResponse({ type: "error", error: msg }, 503);
-  }
+  // ── Resolve intent: deterministic skill dispatch, or the router ──────────
+  const skillId = typeof body.skill === "string" ? body.skill.trim() : "";
+  const mode: ResearchMode = body.mode === "flash" ? "flash" : "council";
 
-  const intent        = routerResult.intent;
-  const intentCostUSD = routerResult.costUSD;
-  recordSpend(intentCostUSD);
-  console.log(
-    `[chat] intent=${intent.action} routerCost=$${intentCostUSD.toFixed(4)} email=${email ?? "anon"}`
-  );
+  let intent: RouterIntent | { action: "headline"; headline: string };
+  let intentCostUSD = 0;
+
+  if (skillId) {
+    const mapped = intentFromSkill(skillId, body.params ?? {});
+    if ("error" in mapped) {
+      return jsonResponse({ type: "error", error: mapped.error }, 400);
+    }
+    intent = mapped;
+    console.log(`[chat] skill=${skillId} → ${intent.action} email=${email}`);
+  } else {
+    let routerResult;
+    try {
+      routerResult = await classifyIntent(messages);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[chat] router failed:", msg);
+      return jsonResponse({ type: "error", error: msg }, 503);
+    }
+
+    intent = routerResult.intent;
+    intentCostUSD = routerResult.costUSD;
+    recordSpend(intentCostUSD);
+
+    // Mode bias (Research surface toggle): Flash answers a "full thesis" ask
+    // with the lighter focused pipeline; Council upgrades a focused question
+    // to the full multi-analyst run. Compare/sector/general are mode-agnostic.
+    const lastUser = messages[messages.length - 1].content;
+    if (mode === "flash" && intent.action === "analyze") {
+      intent = {
+        action: "focused",
+        ticker: intent.ticker,
+        question: lastUser.trim().slice(0, 300) || `What's the current setup for ${intent.ticker}?`,
+      };
+    } else if (mode === "council" && intent.action === "focused") {
+      intent = { action: "analyze", ticker: intent.ticker, focus: intent.question.slice(0, 200) };
+    }
+
+    console.log(
+      `[chat] intent=${intent.action} mode=${mode} routerCost=$${intentCostUSD.toFixed(4)} email=${email ?? "anon"}`
+    );
+  }
 
   if (intent.action === "reject") {
     return jsonResponse({ type: "error", error: intent.reason || "Off-topic for Conviqt." }, 400);
@@ -284,6 +389,29 @@ export async function POST(req: Request) {
     return streamSector({ basket, cached, cacheKey, intentCostUSD });
   }
 
+  // ── HEADLINE — news-impact decode (Headline Decoder skill) ──────────────
+  if (intent.action === "headline") {
+    const headline = intent.headline;
+    const cacheKey = `headline:${headline.toLowerCase().replace(/\W+/g, "_").slice(0, 80)}`;
+    const cached   = cacheGet<HeadlineResult>(cacheKey);
+    const isCached = !!cached;
+
+    {
+      // Metered under "focused" — comparable weight (Haiku + 2 searches).
+      const blocked = await checkAndDeductCredits(email, "focused", isCached);
+      if (blocked) return blocked;
+    }
+
+    try {
+      ensureDailyBudget(0.05);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return jsonResponse({ type: "error", error: msg }, 503);
+    }
+
+    return streamHeadline({ headline, cached, cacheKey, intentCostUSD });
+  }
+
   // ── PICK — redirect to Alpha Tracker ────────────────────────────────────
   if (intent.action === "pick") {
     return jsonResponse(
@@ -315,6 +443,45 @@ export async function POST(req: Request) {
 
 // ── Stream helpers ───────────────────────────────────────────────────────────
 
+// Guarded NDJSON writer. The header-card quote arrives on its own promise, so
+// emits can race the stream close — a late enqueue on a closed controller must
+// never crash the route.
+function ndjsonWriter(controller: ReadableStreamDefaultController<Uint8Array>) {
+  const enc = new TextEncoder();
+  let closed = false;
+  const emit = (obj: unknown) => {
+    if (closed) return;
+    try {
+      controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+    } catch {
+      closed = true;
+    }
+  };
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    try {
+      controller.close();
+    } catch {
+      /* already closed by the runtime */
+    }
+  };
+  return { emit, close };
+}
+
+// Fetch the verdict-header quote from the marketdata layer and emit it as its
+// own event. Returns the promise so cached fast-paths can await it before
+// closing. quote() never throws (provider chain catches) — null is the honest
+// "price unavailable" state the UI must render as such.
+function emitQuote(
+  emit: (obj: unknown) => void,
+  ticker: string
+): Promise<void> {
+  return mdQuote(ticker).then((q: Quote | null) => {
+    emit({ type: "quote", ticker: ticker.toUpperCase(), quote: q });
+  });
+}
+
 interface StreamFocusedArgs {
   ticker:     string;
   question:   string;
@@ -326,15 +493,16 @@ interface StreamFocusedArgs {
 function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: StreamFocusedArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc  = new TextEncoder();
-      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const { emit, close } = ndjsonWriter(controller);
 
       emit({ type: "intent", action: "focused", ticker, question, costUSD: intentCostUSD });
+      const quoteDone = emitQuote(emit, ticker);
 
       if (cached) {
+        await quoteDone;
         emit({ type: "focused_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
         emit({ type: "done" });
-        controller.close();
+        close();
         return;
       }
 
@@ -358,8 +526,9 @@ function streamFocused({ ticker, question, cached, cacheKey, intentCostUSD }: St
           emit({ type: "error", error: "Unable to answer this right now. Try asking me to 'analyze AAPL' instead." });
         }
       } finally {
+        await quoteDone;
         emit({ type: "done" });
-        controller.close();
+        close();
       }
     },
   });
@@ -378,8 +547,7 @@ interface StreamAnalystArgs {
 function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc  = new TextEncoder();
-      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const { emit, close } = ndjsonWriter(controller);
 
       emit({ type: "intent", action: "general", costUSD: intentCostUSD });
 
@@ -392,10 +560,10 @@ function streamAnalyst({ messages, intentCostUSD }: StreamAnalystArgs): Response
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[chat] analyst failed:", msg);
-        emit({ type: "error", error: msg });
+        emit({ type: "error", error: "The answer couldn't be completed right now. Try again in a moment." });
       } finally {
         emit({ type: "done" });
-        controller.close();
+        close();
       }
     },
   });
@@ -417,15 +585,16 @@ interface StreamCouncilArgs {
 function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: StreamCouncilArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc  = new TextEncoder();
-      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const { emit, close } = ndjsonWriter(controller);
 
       emit({ type: "intent", action: "analyze", ticker, focus, costUSD: intentCostUSD });
+      const quoteDone = emitQuote(emit, ticker);
 
       if (cached) {
+        await quoteDone;
         emit({ type: "council_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
         emit({ type: "done" });
-        controller.close();
+        close();
         return;
       }
 
@@ -442,10 +611,13 @@ function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD }: Strea
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] council failed for ${ticker}:`, msg);
-        emit({ type: "error", error: msg });
+        // Internal pipeline errors carry backstage vocabulary — users get
+        // honest plain English, the console gets the real message.
+        emit({ type: "error", error: `We couldn't pull enough verified facts on ${ticker} just now. Give it another try in a moment.` });
       } finally {
+        await quoteDone;
         emit({ type: "done" });
-        controller.close();
+        close();
       }
     },
   });
@@ -466,8 +638,7 @@ interface StreamSectorArgs {
 function streamSector({ basket, cached, cacheKey, intentCostUSD }: StreamSectorArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc  = new TextEncoder();
-      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const { emit, close } = ndjsonWriter(controller);
 
       emit({
         type: "intent",
@@ -481,7 +652,7 @@ function streamSector({ basket, cached, cacheKey, intentCostUSD }: StreamSectorA
       if (cached) {
         emit({ type: "sector_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
         emit({ type: "done" });
-        controller.close();
+        close();
         return;
       }
 
@@ -495,10 +666,10 @@ function streamSector({ basket, cached, cacheKey, intentCostUSD }: StreamSectorA
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] sector failed for ${basket.key}:`, msg);
-        emit({ type: "error", error: msg });
+        emit({ type: "error", error: `Couldn't score enough names in ${basket.label} just now. Give it another try in a moment.` });
       } finally {
         emit({ type: "done" });
-        controller.close();
+        close();
       }
     },
   });
@@ -520,15 +691,16 @@ interface StreamCompareArgs {
 function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD }: StreamCompareArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enc  = new TextEncoder();
-      const emit = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
+      const { emit, close } = ndjsonWriter(controller);
 
       emit({ type: "intent", action: "compare", tickerA, tickerB, costUSD: intentCostUSD });
+      const quotesDone = Promise.all([emitQuote(emit, tickerA), emitQuote(emit, tickerB)]);
 
       if (cached) {
+        await quotesDone;
         emit({ type: "compare_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
         emit({ type: "done" });
-        controller.close();
+        close();
         return;
       }
 
@@ -550,10 +722,63 @@ function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD }: St
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] compare failed for ${tickerA} vs ${tickerB}:`, msg);
-        emit({ type: "error", error: msg });
+        emit({ type: "error", error: `The ${tickerA} vs ${tickerB} match-up couldn't be completed just now. Give it another try in a moment.` });
+      } finally {
+        await quotesDone;
+        emit({ type: "done" });
+        close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
+  });
+}
+
+interface StreamHeadlineArgs {
+  headline: string;
+  cached?:  HeadlineResult;
+  cacheKey: string;
+  intentCostUSD: number;
+}
+
+function streamHeadline({ headline, cached, cacheKey, intentCostUSD }: StreamHeadlineArgs): Response {
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const { emit, close } = ndjsonWriter(controller);
+
+      emit({ type: "intent", action: "headline", headline, costUSD: intentCostUSD });
+
+      // After the decode lands, attach live prices to the affected tickers
+      // (marketdata layer, 15-min cache — null renders as "unavailable").
+      const emitImpactQuotes = (result: HeadlineResult) =>
+        Promise.all(result.impacts.map((i) => emitQuote(emit, i.ticker)));
+
+      if (cached) {
+        await emitImpactQuotes(cached);
+        emit({ type: "headline_done", result: { ...cached, cached: true }, costUSD: intentCostUSD, intentCostUSD });
+        emit({ type: "done" });
+        close();
+        return;
+      }
+
+      try {
+        const result = await runHeadlineDecoder(headline, {
+          onEvent: (event: HeadlineEvent) => emit({ type: "headline", event }),
+        });
+        cacheSet(cacheKey, result, COUNCIL_CACHE_TTL_MS);
+        recordSpend(result.estCostUSD);
+        await emitImpactQuotes(result);
+        emit({ type: "headline_done", result, costUSD: result.estCostUSD + intentCostUSD, intentCostUSD });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[chat] headline decode failed:`, msg);
+        emit({ type: "error", error: "Couldn't decode that headline right now. Try pasting the full headline text." });
       } finally {
         emit({ type: "done" });
-        controller.close();
+        close();
       }
     },
   });
