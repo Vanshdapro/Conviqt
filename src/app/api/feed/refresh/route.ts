@@ -60,7 +60,7 @@ async function refreshDashboard(): Promise<PartReport> {
       durationMs: Date.now() - started,
       meta: { trends: content.trends.length, signals: content.signals.length, events: content.events.length },
     };
-    await store.logRun({ kind: "dashboard", ...report, costUSD: report.costUSD });
+    await store.logRun({ kind: "dashboard", ...report });
     return report;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

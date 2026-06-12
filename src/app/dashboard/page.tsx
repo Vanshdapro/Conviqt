@@ -205,7 +205,25 @@ function Signals({
   );
 }
 
-function Picks({ views }: { views: PickView[] }) {
+function Picks({ views }: { views: PickView[] | null }) {
+  // null = the picks store itself failed — that is an ERROR state, not an
+  // empty track record. Saying "no picks yet" when the database is down
+  // would be a lie (CLAUDE.md: say so honestly).
+  if (views === null) {
+    return (
+      <section aria-label="Picks">
+        <div className="cvq-dash-sechead">
+          <h2 className="cvq-dash-h2">Picks</h2>
+        </div>
+        <Card>
+          <EmptyState
+            title="Picks are unavailable right now"
+            body="The track record store didn't answer. The full history — losses included — is back as soon as it does."
+          />
+        </Card>
+      </section>
+    );
+  }
   const stats = pickStats(views);
   return (
     <section aria-label="Picks">
@@ -221,7 +239,9 @@ function Picks({ views }: { views: PickView[] }) {
       )}
       {views.length > 0 ? (
         <div className="cvq-dash-picks">
-          {views.map((v) => (
+          {views.map((v) => {
+            const thesis = thesisLine(v.pick);
+            return (
             <Card key={v.pick.id ?? `${v.pick.ticker}-${v.pick.entry_date}`} className="cvq-dash-pick">
               <div className="cvq-dash-pick-top">
                 <div>
@@ -245,9 +265,10 @@ function Picks({ views }: { views: PickView[] }) {
                 </span>
                 {v.returnPct !== null ? <ChangePill change={v.returnPct} /> : <span className="cvq-dash-fresh">—</span>}
               </div>
-              {thesisLine(v.pick) && <p className="cvq-dash-pick-thesis">{thesisLine(v.pick)}</p>}
+              {thesis && <p className="cvq-dash-pick-thesis">{thesis}</p>}
             </Card>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <Card>
@@ -310,9 +331,9 @@ export default async function DashboardPage() {
     Promise.all(
       SNAPSHOT_TICKERS.map(async ({ ticker, label }) => ({ label, q: await quote(ticker) }))
     ),
-    loadPicks().catch((err) => {
+    loadPicks().catch((err): PickView[] | null => {
       console.error("[feed] picks load failed:", err);
-      return [] as PickView[];
+      return null; // error state, not an empty track record
     }),
   ]);
 
