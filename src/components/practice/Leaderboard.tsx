@@ -12,21 +12,21 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { TrophyIcon, ShieldIcon, ArrowLeftIcon, ArrowRightIcon } from "./icons";
 
-const SURFACE = "#071120";
-const SURFACE_SOFT = "rgba(232,237,248,0.035)";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const BAD = "#f87171";
-const GOLD = "#e0a23b";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const SURFACE_SOFT = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--up-ink)";
+const BAD = "var(--down-ink)";
+const GOLD = "var(--accent)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 interface LbRow {
   handle: string;
@@ -134,7 +134,7 @@ export function Leaderboard({ signedIn, hasHandle }: { signedIn: boolean; hasHan
 
       {/* claim CTA — only for signed-in traders without a handle */}
       {signedIn && !hasHandle && (
-        <div style={{ background: `linear-gradient(180deg, rgba(224,162,59,0.10), rgba(224,162,59,0.02))`, border: `1px solid rgba(224,162,59,0.3)`, borderRadius: 12, padding: "16px 18px", marginBottom: 22, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ background: `linear-gradient(180deg, var(--accent-weak), var(--accent-weak))`, border: `1px solid var(--accent)`, borderRadius: 12, padding: "16px 18px", marginBottom: 22, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <ShieldIcon size={18} style={{ color: GOLD }} />
           <span style={{ color: INK, fontFamily: SERIF, fontSize: 14.5, lineHeight: 1.5 }}>
             You&apos;re trading but not on the board yet. Claim a handle on the desk to start a public track record.
@@ -160,7 +160,7 @@ export function Leaderboard({ signedIn, hasHandle }: { signedIn: boolean; hasHan
         <>
           {/* featured top trader */}
           {week.featured && (
-            <article style={{ background: `linear-gradient(180deg, rgba(224,162,59,0.13), rgba(224,162,59,0.02))`, border: `1px solid rgba(224,162,59,0.34)`, borderRadius: 14, padding: "20px 22px", marginBottom: 18, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+            <article style={{ background: `linear-gradient(180deg, var(--accent-weak), var(--accent-weak))`, border: `1px solid var(--accent)`, borderRadius: 14, padding: "20px 22px", marginBottom: 18, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <TrophyIcon size={28} style={{ color: GOLD }} />
                 <div>
@@ -206,7 +206,7 @@ export function Leaderboard({ signedIn, hasHandle }: { signedIn: boolean; hasHan
               </div>
               <div style={{ display: "grid", gap: 7 }}>
                 {building.map((r) => (
-                  <div key={r.handle} style={{ display: "flex", alignItems: "center", gap: 12, background: SURFACE_SOFT, border: `1px solid ${r.isSelf ? "rgba(79,135,247,0.4)" : RULE}`, borderRadius: 9, padding: "10px 15px", flexWrap: "wrap" }}>
+                  <div key={r.handle} style={{ display: "flex", alignItems: "center", gap: 12, background: SURFACE_SOFT, border: `1px solid ${r.isSelf ? "var(--accent)" : RULE}`, borderRadius: 9, padding: "10px 15px", flexWrap: "wrap" }}>
                     <span style={{ color: INK, fontFamily: MONO, fontSize: 13.5, fontWeight: 650 }}>
                       @{r.handle}
                       {r.isSelf && <span style={{ color: ACCENT, fontSize: 11, marginLeft: 8 }}>you</span>}
@@ -229,9 +229,9 @@ export function Leaderboard({ signedIn, hasHandle }: { signedIn: boolean; hasHan
 }
 
 function Row({ r }: { r: LbRow }) {
-  const medal = r.rank === 1 ? GOLD : r.rank === 2 ? "#c0c7d4" : r.rank === 3 ? "#cd7f4e" : FAINT;
+  const medal = r.rank === 1 ? GOLD : r.rank === 2 ? "var(--text-2)" : r.rank === 3 ? "var(--text-2)" : FAINT;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 18px", borderBottom: `1px solid ${RULE}`, background: r.isSelf ? "rgba(79,135,247,0.08)" : "transparent" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 18px", borderBottom: `1px solid ${RULE}`, background: r.isSelf ? "var(--accent-weak)" : "transparent" }}>
       <span style={{ width: 32, color: medal, fontFamily: MONO, fontSize: 15, fontWeight: 700 }}>{r.rank}</span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ color: INK, fontFamily: MONO, fontSize: 14.5, fontWeight: 650 }}>@{r.handle}</span>
@@ -266,6 +266,6 @@ function navBtn(enabled: boolean): React.CSSProperties {
 
 const claimBtn: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 7, minHeight: 38,
-  border: `1px solid ${GOLD}`, borderRadius: 9, background: GOLD, color: "#1a1206",
+  border: `1px solid ${GOLD}`, borderRadius: 9, background: GOLD, color: "var(--on-accent)",
   padding: "0 16px", fontSize: 13, fontWeight: 700, fontFamily: SANS,
 };

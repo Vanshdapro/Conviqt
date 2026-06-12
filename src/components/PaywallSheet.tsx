@@ -16,14 +16,23 @@ const PRO_PERKS = [
   { title: "Priority speed", sub: "Your runs go to the front of the line." },
 ] as const;
 
-export function PaywallSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function PaywallSheet({
+  open,
+  onClose,
+  title = "That's your 5 for this month",
+  lead = "Free includes 5 deep analyses every month — they refresh on the 1st. Quick takes, Headlines, and your track record access stay free, always.",
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Optional context-specific heading (default: the free-meter message). */
+  title?: string;
+  /** Optional context-specific first paragraph. */
+  lead?: string;
+}) {
   return (
-    <Sheet open={open} onClose={onClose} title="That's your 5 for this month">
+    <Sheet open={open} onClose={onClose} title={title}>
       <div className="cvq-paywall">
-        <p className="cvq-paywall-lead">
-          Free includes 5 deep analyses every month — they refresh on the 1st.
-          Quick takes, Headlines, and your track record access stay free, always.
-        </p>
+        <p className="cvq-paywall-lead">{lead}</p>
 
         <ul className="cvq-paywall-perks">
           {PRO_PERKS.map((p) => (

@@ -3,20 +3,20 @@
 import { PriceChart, type ChartMarker } from "./PriceChart";
 import { StarIcon, ReplayIcon, ArrowLeftIcon, ArrowRightIcon, BoltIcon } from "./icons";
 
-const SURFACE = "#071120";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const BAD = "#f87171";
-const CREDIT = "#e0a23b";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--up-ink)";
+const BAD = "var(--down-ink)";
+const CREDIT = "var(--accent)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 interface ScoreDimension { id: string; label: string; score: number; weight: number; note: string; }
 interface EpisodeScore {
@@ -156,7 +156,7 @@ export function Debrief({
                 </span>
                 <span style={{ color: scoreColor(d.score), fontFamily: MONO, fontSize: 13, fontWeight: 650 }}>{d.score}</span>
               </div>
-              <div style={{ height: 5, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden", marginBottom: 6 }}>
+              <div style={{ height: 5, borderRadius: 999, background: "var(--bg-sunken)", overflow: "hidden", marginBottom: 6 }}>
                 <div style={{ width: `${Math.max(0, Math.min(100, d.score))}%`, height: "100%", background: scoreColor(d.score), borderRadius: 999 }} />
               </div>
               <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: 0 }}>{d.note}</p>
@@ -245,7 +245,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 function primaryBtn(color: string): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44,
-    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "#04101f",
+    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "var(--on-accent)",
     padding: "0 20px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer",
   };
 }

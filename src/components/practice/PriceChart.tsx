@@ -4,10 +4,10 @@
 // future. Pure presentational — no 3D, per CLAUDE.md (charts on the dashboard
 // stay flat SVG).
 
-const INK = "#e8edf8";
-const FAINT = "#526684";
-const GRID = "rgba(232,237,248,0.07)";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
+const INK = "var(--text)";
+const FAINT = "var(--text-muted)";
+const GRID = "var(--border)";
+const MONO = "var(--font-ui)";
 
 export type MarkerKind =
   | "buy" | "sell" | "stop" | "target"
@@ -27,9 +27,9 @@ export interface ChartMarker {
 }
 
 const EVENT_COLOR: Record<string, string> = {
-  "event-bull": "#22c55e",
-  "event-bear": "#f87171",
-  "event-neutral": "#8aa0c2",
+  "event-bull": "var(--up-ink)",
+  "event-bear": "var(--down-ink)",
+  "event-neutral": "var(--text-2)",
 };
 
 function fmt(v: number): string {
@@ -157,13 +157,13 @@ export function PriceChart({
         const x = xFor(m.index);
         const y = yFor(v);
         if (m.kind === "buy") {
-          return <polygon key={`mk-${i}`} points={`${x},${y + 5} ${x - 5},${y + 14} ${x + 5},${y + 14}`} fill="#22c55e" />;
+          return <polygon key={`mk-${i}`} points={`${x},${y + 5} ${x - 5},${y + 14} ${x + 5},${y + 14}`} fill="var(--up-ink)" />;
         }
         if (m.kind === "sell") {
-          return <polygon key={`mk-${i}`} points={`${x},${y - 5} ${x - 5},${y - 14} ${x + 5},${y - 14}`} fill="#f87171" />;
+          return <polygon key={`mk-${i}`} points={`${x},${y - 5} ${x - 5},${y - 14} ${x + 5},${y - 14}`} fill="var(--down-ink)" />;
         }
         // stop / target auto-fills: hollow markers
-        const c = m.kind === "target" ? "#4f87f7" : "#e0a23b";
+        const c = m.kind === "target" ? "var(--accent)" : "var(--accent)";
         return <polygon key={`mk-${i}`} points={`${x},${y - 5} ${x - 5},${y - 14} ${x + 5},${y - 14}`} fill="none" stroke={c} strokeWidth={1.5} />;
       })}
 

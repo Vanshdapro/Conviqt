@@ -7,16 +7,16 @@
 
 import type { FigureKey } from "@/lib/learn/types";
 
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#6b7f9e";
-const LINE = "rgba(232,237,248,0.14)";
-const FILL = "rgba(232,237,248,0.04)";
-const GOOD = "#22c55e";
-const BAD = "#ef4444";
-const WARN = "#f59e0b";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const LINE = "var(--bg-sunken)";
+const FILL = "var(--bg-sunken)";
+const GOOD = "var(--accent)";
+const BAD = "var(--down-ink)";
+const WARN = "var(--text-2)";
+const SANS = "var(--font-ui)";
+const MONO = "var(--font-ui)";
 
 type FC = (a: string) => React.ReactNode;
 
@@ -102,7 +102,7 @@ const incomeStatement: FC = (a) => {
         return (
           <g key={i}>
             {T(40, y + 4, r[0] as string, { size: 13.5, fill: r[2] as string, weight: isResult || isRev ? 650 : 500 })}
-            <rect x={330} y={y - 12} width={(r[1] as number) * 0.7} height={18} rx={3} fill={isResult ? `${r[2]}22` : FILL} stroke={r[2] as string} strokeWidth={1.25} />
+            <rect x={330} y={y - 12} width={(r[1] as number) * 0.7} height={18} rx={3} fill={isResult ? `color-mix(in srgb, ${r[2]} 13%, transparent)` : FILL} stroke={r[2] as string} strokeWidth={1.25} />
           </g>
         );
       })}
@@ -155,7 +155,7 @@ const cashFlow: FC = (a) => {
         );
       })}
       {T(400, 290, "Net change in cash", { anchor: "middle", size: 13, fill: MUTED })}
-      <rect x={250} y={305} width={300} height={20} rx={4} fill={`${a}22`} stroke={a} strokeWidth={1.5} />
+      <rect x={250} y={305} width={300} height={20} rx={4} fill={`color-mix(in srgb, ${a} 13%, transparent)`} stroke={a} strokeWidth={1.5} />
       {T(400, 319, "ties back to the balance sheet", { anchor: "middle", size: 11.5, fill: a, mono: true })}
     </g>
   );
@@ -169,7 +169,7 @@ const accruals: FC = () => {
       {T(40, 50, "When profit rises but cash doesn't", { size: 15, fill: INK, weight: 650 })}
       <path d={ni} fill="none" stroke={GOOD} strokeWidth={2.5} />
       <path d={fcf} fill="none" stroke={WARN} strokeWidth={2.5} strokeDasharray="2 5" />
-      <path d={`${ni} L760,250 C360,250 200,260 60,255 Z`} fill={`${BAD}14`} stroke="none" />
+      <path d={`${ni} L760,250 C360,250 200,260 60,255 Z`} fill={`color-mix(in srgb, ${BAD} 8%, transparent)`} stroke="none" />
       {T(700, 80, "Net income", { anchor: "end", size: 12.5, fill: GOOD, weight: 650 })}
       {T(700, 240, "Free cash flow", { anchor: "end", size: 12.5, fill: WARN, weight: 650 })}
       {T(430, 175, "widening gap", { anchor: "middle", size: 12, fill: BAD, weight: 650 })}
@@ -252,7 +252,7 @@ const margins: FC = (a) => {
         return (
           <g key={i}>
             {T(40, y + 5, b[0] as string, { size: 13, fill: b[2] as string, weight: 600 })}
-            <rect x={210} y={y - 14} width={b[1] as number * 0.78} height={26} rx={4} fill={`${b[2]}1f`} stroke={b[2] as string} strokeWidth={1.5} />
+            <rect x={210} y={y - 14} width={b[1] as number * 0.78} height={26} rx={4} fill={`color-mix(in srgb, ${b[2]} 12%, transparent)`} stroke={b[2] as string} strokeWidth={1.5} />
             {T(218 + (b[1] as number) * 0.78, y + 5, `${Math.round((b[1] as number) / 7)}%`, { size: 12, fill: b[2] as string, mono: true, weight: 650 })}
           </g>
         );
@@ -266,7 +266,7 @@ const roicSpread: FC = (a) => (
   <g>
     {T(400, 50, "Value is created only above the cost of capital", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
     {T(230, 110, "ROIC", { anchor: "middle", size: 13, fill: GOOD, weight: 650 })}
-    <rect x={150} y={125} width={160} height={150} rx={6} fill={`${GOOD}1f`} stroke={GOOD} strokeWidth={1.5} />
+    <rect x={150} y={125} width={160} height={150} rx={6} fill={`color-mix(in srgb, ${GOOD} 12%, transparent)`} stroke={GOOD} strokeWidth={1.5} />
     {T(230, 205, "18%", { anchor: "middle", size: 26, fill: GOOD, weight: 700, mono: true })}
     {T(560, 110, "WACC", { anchor: "middle", size: 13, fill: MUTED, weight: 650 })}
     <rect x={480} y={200} width={160} height={75} rx={6} fill={FILL} stroke={MUTED} strokeWidth={1.5} />
@@ -287,13 +287,13 @@ const dcfBridge: FC = (a) => {
         const x = 70 + i * 70;
         return (
           <g key={i}>
-            <rect x={x} y={260 - h} width={46} height={h} rx={3} fill={`${a}26`} stroke={a} strokeWidth={1.25} />
+            <rect x={x} y={260 - h} width={46} height={h} rx={3} fill={`color-mix(in srgb, ${a} 15%, transparent)`} stroke={a} strokeWidth={1.25} />
             {T(x + 23, 278, `Y${i + 1}`, { anchor: "middle", size: 11, fill: FAINT, mono: true })}
           </g>
         );
       })}
       {T(245, 300, "discounted yearly cash flows", { anchor: "middle", size: 11, fill: FAINT })}
-      <rect x={470} y={110} width={90} height={150} rx={4} fill={`${WARN}1f`} stroke={WARN} strokeWidth={1.5} />
+      <rect x={470} y={110} width={90} height={150} rx={4} fill={`color-mix(in srgb, ${WARN} 12%, transparent)`} stroke={WARN} strokeWidth={1.5} />
       {T(515, 295, "terminal value", { anchor: "middle", size: 11, fill: WARN, mono: true })}
       {T(515, 100, "the long tail", { anchor: "middle", size: 11, fill: FAINT })}
       {Arrow(575, 185, 625, 185, a)}
@@ -331,9 +331,9 @@ const multiples: FC = (a) => (
 const marginOfSafety: FC = (a) => (
   <g>
     {T(400, 50, "Buy well below your estimate of value", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
-    <rect x={250} y={85} width={120} height={210} rx={6} fill={`${GOOD}14`} stroke={GOOD} strokeWidth={1.5} />
+    <rect x={250} y={85} width={120} height={210} rx={6} fill={`color-mix(in srgb, ${GOOD} 8%, transparent)`} stroke={GOOD} strokeWidth={1.5} />
     {T(310, 78, "Intrinsic value", { anchor: "middle", size: 12, fill: GOOD, weight: 650 })}
-    <rect x={250} y={205} width={120} height={90} rx={6} fill={`${a}26`} stroke={a} strokeWidth={1.5} />
+    <rect x={250} y={205} width={120} height={90} rx={6} fill={`color-mix(in srgb, ${a} 15%, transparent)`} stroke={a} strokeWidth={1.5} />
     {T(310, 255, "Price", { anchor: "middle", size: 13, fill: a, weight: 650 })}
     <line x1={385} y1={205} x2={520} y2={205} stroke={GOOD} strokeWidth={1.25} strokeDasharray="4 4" />
     <line x1={385} y1={85} x2={520} y2={85} stroke={GOOD} strokeWidth={1.25} strokeDasharray="4 4" />
@@ -359,7 +359,7 @@ const moat: FC = (a) => {
   return (
     <g>
       {T(400, 45, "Five things that actually protect high returns", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
-      <circle cx={cx} cy={cy} r={52} fill={`${a}1f`} stroke={a} strokeWidth={1.75} />
+      <circle cx={cx} cy={cy} r={52} fill={`color-mix(in srgb, ${a} 12%, transparent)`} stroke={a} strokeWidth={1.75} />
       {T(cx, cy - 4, "MOAT", { anchor: "middle", size: 14, fill: a, weight: 700, mono: true })}
       {T(cx, cy + 16, "durable edge", { anchor: "middle", size: 10.5, fill: FAINT })}
       {sources.map((s, i) => (
@@ -403,7 +403,7 @@ const disagreement: FC = (a) => {
         const x = 90 + i * 105;
         return (
           <g key={i}>
-            <rect x={x} y={100} width={84} height={48} rx={6} fill={`${v[1]}1f`} stroke={v[1] as string} strokeWidth={1.5} />
+            <rect x={x} y={100} width={84} height={48} rx={6} fill={`color-mix(in srgb, ${v[1]} 12%, transparent)`} stroke={v[1] as string} strokeWidth={1.5} />
             {T(x + 42, 130, v[0] as string, { anchor: "middle", size: 13, fill: v[1] as string, weight: 700, mono: true })}
             {T(x + 42, 92, `Lens ${i + 1}`, { anchor: "middle", size: 10.5, fill: FAINT })}
           </g>
@@ -450,13 +450,13 @@ const creditCycle: FC = (a) => (
 const barbell: FC = (a) => (
   <g>
     {T(400, 50, "Safe on one end, convex bets on the other — nothing fragile in between", { anchor: "middle", size: 14, fill: INK, weight: 650 })}
-    <rect x={70} y={150} width={180} height={120} rx={8} fill={`${GOOD}14`} stroke={GOOD} strokeWidth={1.5} />
+    <rect x={70} y={150} width={180} height={120} rx={8} fill={`color-mix(in srgb, ${GOOD} 8%, transparent)`} stroke={GOOD} strokeWidth={1.5} />
     {T(160, 200, "~85%", { anchor: "middle", size: 22, fill: GOOD, weight: 700, mono: true })}
     {T(160, 228, "maximally safe", { anchor: "middle", size: 12 })}
     <rect x={330} y={185} width={140} height={55} rx={8} fill="none" stroke={BAD} strokeWidth={1.5} strokeDasharray="4 5" />
     {T(400, 212, "the fragile", { anchor: "middle", size: 12, fill: BAD })}
     {T(400, 230, "middle: avoid", { anchor: "middle", size: 12, fill: BAD })}
-    <rect x={550} y={150} width={180} height={120} rx={8} fill={`${a}1f`} stroke={a} strokeWidth={1.5} />
+    <rect x={550} y={150} width={180} height={120} rx={8} fill={`color-mix(in srgb, ${a} 12%, transparent)`} stroke={a} strokeWidth={1.5} />
     {T(640, 200, "~15%", { anchor: "middle", size: 22, fill: a, weight: 700, mono: true })}
     {T(640, 228, "convex / capped loss", { anchor: "middle", size: 12 })}
     {T(400, 315, "Antifragile to tail events beats optimized for the average case.", { anchor: "middle", size: 12, fill: FAINT })}
@@ -490,7 +490,7 @@ const baseRate: FC = (a) => (
   <g>
     {T(400, 50, "Anchor on what usually happens, then adjust", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
     {T(190, 100, "Outside view", { anchor: "middle", size: 12.5, fill: a, weight: 650 })}
-    <rect x={70} y={120} width={240} height={120} rx={8} fill={`${a}14`} stroke={a} strokeWidth={1.5} />
+    <rect x={70} y={120} width={240} height={120} rx={8} fill={`color-mix(in srgb, ${a} 8%, transparent)`} stroke={a} strokeWidth={1.5} />
     {T(190, 155, "Reference class", { anchor: "middle", size: 12.5, fill: INK, weight: 600 })}
     {T(190, 182, "“Of 100 firms like this,", { anchor: "middle", size: 11.5, fill: MUTED })}
     {T(190, 200, "how many sustained it?”", { anchor: "middle", size: 11.5, fill: MUTED })}
@@ -564,7 +564,7 @@ const drawdown: FC = () => {
           <g key={i}>
             {T(40, y + 5, `Lose ${r[0]}`, { size: 13, fill: BAD, weight: 600 })}
             {T(190, y + 5, "needs", { size: 11.5, fill: FAINT })}
-            <rect x={250} y={y - 12} width={(r[2] as number) / 100 * 420} height={20} rx={4} fill={`${BAD}1f`} stroke={BAD} strokeWidth={1.25} />
+            <rect x={250} y={y - 12} width={(r[2] as number) / 100 * 420} height={20} rx={4} fill={`color-mix(in srgb, ${BAD} 12%, transparent)`} stroke={BAD} strokeWidth={1.25} />
             {T(258 + (r[2] as number) / 100 * 420, y + 4, r[1] as string, { size: 12.5, fill: BAD, weight: 650, mono: true })}
           </g>
         );
@@ -579,12 +579,12 @@ const correlation: FC = (a) => (
     {T(400, 45, "Count is not diversification — correlation is", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
     {T(200, 90, "30 correlated names", { anchor: "middle", size: 12, fill: BAD, weight: 600 })}
     {Array.from({ length: 12 }).map((_, i) => (
-      <rect key={i} x={90 + (i % 6) * 38} y={110 + Math.floor(i / 6) * 38} width={30} height={30} rx={5} fill={`${BAD}26`} stroke={BAD} strokeWidth={1} />
+      <rect key={i} x={90 + (i % 6) * 38} y={110 + Math.floor(i / 6) * 38} width={30} height={30} rx={5} fill={`color-mix(in srgb, ${BAD} 15%, transparent)`} stroke={BAD} strokeWidth={1} />
     ))}
     {T(200, 215, "= one bet, 30 times", { anchor: "middle", size: 11.5, fill: FAINT })}
     {T(600, 90, "Low-correlation mix", { anchor: "middle", size: 12, fill: GOOD, weight: 600 })}
-    {[GOOD, a, WARN, "#38bdf8", "#a78bfa", "#f472b6"].map((c, i) => (
-      <rect key={i} x={490 + (i % 3) * 70} y={110 + Math.floor(i / 3) * 50} width={56} height={40} rx={6} fill={`${c}26`} stroke={c} strokeWidth={1.25} />
+    {[GOOD, a, WARN, "var(--accent)", "var(--text-2)", "var(--down)"].map((c, i) => (
+      <rect key={i} x={490 + (i % 3) * 70} y={110 + Math.floor(i / 3) * 50} width={56} height={40} rx={6} fill={`color-mix(in srgb, ${c} 15%, transparent)`} stroke={c} strokeWidth={1.25} />
     ))}
     {T(600, 215, "= genuine diversification", { anchor: "middle", size: 11.5, fill: FAINT })}
     {T(400, 295, "In a crisis correlations converge toward 1 — build for the bad day.", { anchor: "middle", size: 12, fill: FAINT })}
@@ -610,10 +610,10 @@ const kelly: FC = (a) => (
 const expectedValue: FC = () => (
   <g>
     {T(40, 50, "A losing hit-rate can still be a winning bet", { size: 15, fill: INK, weight: 650 })}
-    <rect x={60} y={110} width={300} height={50} rx={6} fill={`${GOOD}1f`} stroke={GOOD} strokeWidth={1.5} />
+    <rect x={60} y={110} width={300} height={50} rx={6} fill={`color-mix(in srgb, ${GOOD} 12%, transparent)`} stroke={GOOD} strokeWidth={1.5} />
     {T(75, 140, "Win 40%  ×  +120%", { size: 13, fill: GOOD, weight: 600 })}
     {T(345, 140, "= +48", { anchor: "end", size: 13, fill: GOOD, weight: 650, mono: true })}
-    <rect x={60} y={175} width={180} height={50} rx={6} fill={`${BAD}1f`} stroke={BAD} strokeWidth={1.5} />
+    <rect x={60} y={175} width={180} height={50} rx={6} fill={`color-mix(in srgb, ${BAD} 12%, transparent)`} stroke={BAD} strokeWidth={1.5} />
     {T(75, 205, "Lose 60%  ×  −25%", { size: 13, fill: BAD, weight: 600 })}
     {T(225, 205, "= −15", { anchor: "end", size: 13, fill: BAD, weight: 650, mono: true })}
     {Arrow(400, 167, 470, 167, MUTED)}
@@ -655,7 +655,7 @@ const segment: FC = (a) => {
           acc += w;
           return (
             <g key={i}>
-              <rect x={x} y={125} width={w - 4} height={40} rx={5} fill={`${s[2]}26`} stroke={s[2] as string} strokeWidth={1.5} />
+              <rect x={x} y={125} width={w - 4} height={40} rx={5} fill={`color-mix(in srgb, ${s[2]} 15%, transparent)`} stroke={s[2] as string} strokeWidth={1.5} />
               {T(x + w / 2, 150, `${s[0]} ${s[1]}%`, { anchor: "middle", size: 12, fill: s[2] as string, weight: 650 })}
             </g>
           );
@@ -682,13 +682,13 @@ const goodwill: FC = (a) => (
     {T(400, 50, "Goodwill is the premium paid over what you bought", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
     <rect x={120} y={100} width={180} height={180} rx={8} fill={FILL} stroke={LINE} strokeWidth={1.5} />
     {T(210, 90, "Price paid", { anchor: "middle", size: 12, fill: MUTED })}
-    <rect x={120} y={200} width={180} height={80} rx={8} fill={`${a}1f`} stroke={a} strokeWidth={1.5} />
+    <rect x={120} y={200} width={180} height={80} rx={8} fill={`color-mix(in srgb, ${a} 12%, transparent)`} stroke={a} strokeWidth={1.5} />
     {T(210, 245, "Net assets", { anchor: "middle", size: 12.5, fill: a, weight: 600 })}
-    <rect x={120} y={100} width={180} height={100} rx={8} fill={`${WARN}1f`} stroke={WARN} strokeWidth={1.5} />
+    <rect x={120} y={100} width={180} height={100} rx={8} fill={`color-mix(in srgb, ${WARN} 12%, transparent)`} stroke={WARN} strokeWidth={1.5} />
     {T(210, 145, "Goodwill", { anchor: "middle", size: 13, fill: WARN, weight: 650 })}
     {T(210, 165, "(the premium)", { anchor: "middle", size: 10.5, fill: FAINT })}
     {Arrow(330, 190, 420, 190, MUTED)}
-    <rect x={440} y={140} width={300} height={100} rx={8} fill={`${BAD}14`} stroke={BAD} strokeWidth={1.5} strokeDasharray="4 5" />
+    <rect x={440} y={140} width={300} height={100} rx={8} fill={`color-mix(in srgb, ${BAD} 8%, transparent)`} stroke={BAD} strokeWidth={1.5} strokeDasharray="4 5" />
     {T(590, 175, "Impairment", { anchor: "middle", size: 13, fill: BAD, weight: 650 })}
     {T(590, 205, "if the deal disappoints, goodwill", { anchor: "middle", size: 11.5, fill: MUTED })}
     {T(590, 223, "gets written down later", { anchor: "middle", size: 11.5, fill: MUTED })}
@@ -723,7 +723,7 @@ const stockComp: FC = (a) => (
       return (
         <g key={i}>
           <rect x={x} y={120} width={120} height={120} rx={8} fill={FILL} stroke={LINE} strokeWidth={1.25} />
-          <rect x={x} y={120 + (120 - slice * 1.05)} width={120} height={slice * 1.05} rx={8} fill={`${a}26`} stroke={a} strokeWidth={1.25} />
+          <rect x={x} y={120 + (120 - slice * 1.05)} width={120} height={slice * 1.05} rx={8} fill={`color-mix(in srgb, ${a} 15%, transparent)`} stroke={a} strokeWidth={1.25} />
           {T(x + 60, 195, `${slice}%`, { anchor: "middle", size: 15, fill: a, weight: 700, mono: true })}
           {T(x + 60, 258, `Year ${i * 3}`, { anchor: "middle", size: 11, fill: FAINT, mono: true })}
         </g>
@@ -737,10 +737,10 @@ const unitEconomics: FC = (a) => (
   <g>
     {T(400, 50, "Does one customer earn back what they cost?", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
     {T(60, 110, "Cost to acquire (CAC)", { size: 12, fill: BAD, weight: 600 })}
-    <rect x={60} y={122} width={130} height={34} rx={5} fill={`${BAD}1f`} stroke={BAD} strokeWidth={1.5} />
+    <rect x={60} y={122} width={130} height={34} rx={5} fill={`color-mix(in srgb, ${BAD} 12%, transparent)`} stroke={BAD} strokeWidth={1.5} />
     {T(125, 144, "$300", { anchor: "middle", size: 13, fill: BAD, weight: 650, mono: true })}
     {T(60, 195, "Lifetime value (LTV)", { size: 12, fill: a, weight: 600 })}
-    <rect x={60} y={207} width={560} height={34} rx={5} fill={`${a}1f`} stroke={a} strokeWidth={1.5} />
+    <rect x={60} y={207} width={560} height={34} rx={5} fill={`color-mix(in srgb, ${a} 12%, transparent)`} stroke={a} strokeWidth={1.5} />
     {T(340, 229, "$1,050  =  margin × months retained", { anchor: "middle", size: 13, fill: a, weight: 650, mono: true })}
     {T(680, 145, "LTV/CAC", { anchor: "middle", size: 12, fill: GOOD, weight: 650 })}
     {T(680, 172, "3.5×", { anchor: "middle", size: 22, fill: GOOD, weight: 700, mono: true })}
@@ -753,7 +753,7 @@ const capitalAllocation: FC = (a) => {
   return (
     <g>
       {T(400, 45, "The CEO's real job: where does each dollar go?", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
-      <circle cx={400} cy={110} r={30} fill={`${a}1f`} stroke={a} strokeWidth={1.75} />
+      <circle cx={400} cy={110} r={30} fill={`color-mix(in srgb, ${a} 12%, transparent)`} stroke={a} strokeWidth={1.75} />
       {T(400, 108, "$1 of", { anchor: "middle", size: 10.5, fill: a, mono: true })}
       {T(400, 122, "FCF", { anchor: "middle", size: 11, fill: a, weight: 650, mono: true })}
       {opts.map((o, i) => {
@@ -786,7 +786,7 @@ const forensic: FC = () => {
         const y = 90 + i * 42;
         return (
           <g key={i}>
-            <rect x={50} y={y - 16} width={14} height={14} rx={3} fill={`${f[1]}33`} stroke={f[1] as string} strokeWidth={1.25} />
+            <rect x={50} y={y - 16} width={14} height={14} rx={3} fill={`color-mix(in srgb, ${f[1]} 20%, transparent)`} stroke={f[1] as string} strokeWidth={1.25} />
             {T(78, y - 4, f[0] as string, { size: 13, fill: INK })}
           </g>
         );
@@ -823,7 +823,7 @@ const sotp: FC = (a) => {
         const x = 110 + i * 150;
         return (
           <g key={i}>
-            <rect x={x} y={250 - h} width={110} height={h} rx={6} fill={`${p[2]}26`} stroke={p[2] as string} strokeWidth={1.5} />
+            <rect x={x} y={250 - h} width={110} height={h} rx={6} fill={`color-mix(in srgb, ${p[2]} 15%, transparent)`} stroke={p[2] as string} strokeWidth={1.5} />
             {T(x + 55, 268, p[0] as string, { anchor: "middle", size: 11, fill: INK })}
             {T(x + 55, 250 - h - 8, `${p[1]}`, { anchor: "middle", size: 12, fill: p[2] as string, weight: 650, mono: true })}
           </g>
@@ -860,7 +860,7 @@ const dividendDiscount: FC = (a) => (
       const h = 90 - i * 14;
       return (
         <g key={i}>
-          <rect x={x} y={240 - h} width={70} height={h} rx={4} fill={`${a}26`} stroke={a} strokeWidth={1.25} />
+          <rect x={x} y={240 - h} width={70} height={h} rx={4} fill={`color-mix(in srgb, ${a} 15%, transparent)`} stroke={a} strokeWidth={1.25} />
           {T(x + 35, 258, `D${i + 1}`, { anchor: "middle", size: 11, fill: FAINT, mono: true })}
         </g>
       );
@@ -960,7 +960,7 @@ const herding: FC = (a) => (
       const lone = i === 13;
       return (
         <g key={i}>
-          <circle cx={lone ? 650 : 110 + (i % 7) * 60} cy={lone ? 160 : 120 + Math.floor(i / 7) * 55} r={11} fill={lone ? `${a}26` : `${MUTED}26`} stroke={lone ? a : MUTED} strokeWidth={1.5} />
+          <circle cx={lone ? 650 : 110 + (i % 7) * 60} cy={lone ? 160 : 120 + Math.floor(i / 7) * 55} r={11} fill={lone ? `color-mix(in srgb, ${a} 15%, transparent)` : `color-mix(in srgb, ${MUTED} 15%, transparent)`} stroke={lone ? a : MUTED} strokeWidth={1.5} />
         </g>
       );
     })}
@@ -994,14 +994,14 @@ const orderBook: FC = (a) => {
       {T(200, 90, "BIDS (buyers)", { anchor: "middle", size: 12, fill: GOOD, weight: 650, mono: true })}
       {bids.map((b, i) => (
         <g key={i}>
-          <rect x={360 - (b[1] as number) * 1.8} y={108 + i * 34} width={(b[1] as number) * 1.8} height={26} rx={3} fill={`${GOOD}26`} />
+          <rect x={360 - (b[1] as number) * 1.8} y={108 + i * 34} width={(b[1] as number) * 1.8} height={26} rx={3} fill={`color-mix(in srgb, ${GOOD} 15%, transparent)`} />
           {T(80, 126 + i * 34, b[0] as string, { size: 12, fill: GOOD, mono: true })}
         </g>
       ))}
       {T(600, 90, "ASKS (sellers)", { anchor: "middle", size: 12, fill: BAD, weight: 650, mono: true })}
       {asks.map((b, i) => (
         <g key={i}>
-          <rect x={440} y={108 + i * 34} width={(b[1] as number) * 1.8} height={26} rx={3} fill={`${BAD}26`} />
+          <rect x={440} y={108 + i * 34} width={(b[1] as number) * 1.8} height={26} rx={3} fill={`color-mix(in srgb, ${BAD} 15%, transparent)`} />
           {T(720, 126 + i * 34, b[0] as string, { anchor: "end", size: 12, fill: BAD, mono: true })}
         </g>
       ))}
@@ -1127,7 +1127,7 @@ const fourRegimes: FC = (a) => {
       {T(400, 45, "Four regimes: growth and inflation, up or down", { anchor: "middle", size: 14.5, fill: INK, weight: 650 })}
       {cells.map((c, i) => (
         <g key={i}>
-          <rect x={c[2] as number} y={c[3] as number} width={320} height={110} rx={8} fill={`${c[4]}14`} stroke={c[4] as string} strokeWidth={1.5} />
+          <rect x={c[2] as number} y={c[3] as number} width={320} height={110} rx={8} fill={`color-mix(in srgb, ${c[4]} 8%, transparent)`} stroke={c[4] as string} strokeWidth={1.5} />
           {T((c[2] as number) + 160, (c[3] as number) + 42, c[0] as string, { anchor: "middle", size: 12.5, fill: c[4] as string, weight: 650 })}
           {T((c[2] as number) + 160, (c[3] as number) + 72, c[1] as string, { anchor: "middle", size: 11.5, fill: MUTED })}
         </g>
@@ -1138,7 +1138,7 @@ const fourRegimes: FC = (a) => {
 };
 
 const riskLadder: FC = (a) => {
-  const rungs = [["Cash / T-bills", 20, GOOD], ["Bonds", 40, "#38bdf8"], ["Broad index funds", 60, a], ["Individual stocks", 80, WARN], ["Options / leverage", 100, BAD]] as const;
+  const rungs = [["Cash / T-bills", 20, GOOD], ["Bonds", 40, "var(--accent)"], ["Broad index funds", 60, a], ["Individual stocks", 80, WARN], ["Options / leverage", 100, BAD]] as const;
   return (
     <g>
       {T(400, 50, "More expected return rides on more risk", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
@@ -1146,7 +1146,7 @@ const riskLadder: FC = (a) => {
         const y = 240 - i * 36;
         return (
           <g key={i}>
-            <rect x={120} y={y - 14} width={(r[1] as number) / 100 * 520} height={24} rx={4} fill={`${r[2]}26`} stroke={r[2] as string} strokeWidth={1.25} />
+            <rect x={120} y={y - 14} width={(r[1] as number) / 100 * 520} height={24} rx={4} fill={`color-mix(in srgb, ${r[2]} 15%, transparent)`} stroke={r[2] as string} strokeWidth={1.25} />
             {T(130, y + 3, r[0] as string, { size: 12.5, fill: INK })}
           </g>
         );
@@ -1161,7 +1161,7 @@ const riskLadder: FC = (a) => {
 const indexVsActive: FC = (a) => (
   <g>
     {T(400, 50, "Most active funds trail the index after fees", { anchor: "middle", size: 15, fill: INK, weight: 650 })}
-    <rect x={150} y={120} width={200} height={120} rx={8} fill={`${a}1f`} stroke={a} strokeWidth={1.5} />
+    <rect x={150} y={120} width={200} height={120} rx={8} fill={`color-mix(in srgb, ${a} 12%, transparent)`} stroke={a} strokeWidth={1.5} />
     {T(250, 165, "Index fund", { anchor: "middle", size: 13, fill: a, weight: 650 })}
     {T(250, 195, "~0.03% fee", { anchor: "middle", size: 12, fill: MUTED, mono: true })}
     {T(250, 220, "the market return", { anchor: "middle", size: 11, fill: FAINT })}
@@ -1239,8 +1239,8 @@ export function LessonFigure({ figure, accent }: { figure: FigureKey; accent: st
   return (
     <div
       style={{
-        background: "#071120",
-        border: "1px solid rgba(232,237,248,0.09)",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
         borderRadius: 8,
         padding: 16,
         marginBottom: 24,

@@ -4,20 +4,20 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, ArrowRightIcon, PenIcon, ShieldIcon, BoltIcon, ReplayIcon, CheckIcon } from "./icons";
 
-const SURFACE = "#071120";
-const SURFACE_SOFT = "rgba(232,237,248,0.035)";
-const BORDER = "rgba(232,237,248,0.09)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const BAD = "#f87171";
-const CREDIT = "#e0a23b";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const SURFACE_SOFT = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--up-ink)";
+const BAD = "var(--down-ink)";
+const CREDIT = "var(--accent)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 // Each section must clear this to count as a real answer (and to protect credits
 // from a half-written thesis getting metered).
@@ -170,7 +170,7 @@ export function ThesisRunner({
             <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 10 }}>
               {drill.title} · Committee review
             </div>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: v.color, fontFamily: SANS, fontSize: 18, fontWeight: 700, background: `${v.color}1a`, border: `1px solid ${v.color}55`, borderRadius: 100, padding: "6px 16px", marginBottom: 12 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: v.color, fontFamily: SANS, fontSize: 18, fontWeight: 700, background: `color-mix(in srgb, ${v.color} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${v.color} 33%, transparent)`, borderRadius: 100, padding: "6px 16px", marginBottom: 12 }}>
               {v.label}
             </span>
             <div>
@@ -201,7 +201,7 @@ export function ThesisRunner({
                   <span style={{ color: INK, fontFamily: SERIF, fontSize: 15, fontWeight: 600 }}>{s.label}</span>
                   <span style={{ color: sectionColor(s.score), fontFamily: MONO, fontSize: 13, fontWeight: 650 }}>{s.score}/10</span>
                 </div>
-                <div style={{ height: 5, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden", marginBottom: 7 }}>
+                <div style={{ height: 5, borderRadius: 999, background: "var(--bg-sunken)", overflow: "hidden", marginBottom: 7 }}>
                   <div style={{ width: `${Math.max(0, Math.min(100, s.score * 10))}%`, height: "100%", background: sectionColor(s.score), borderRadius: 999 }} />
                 </div>
                 <p style={{ color: MUTED, fontSize: 13.5, lineHeight: 1.55, margin: 0 }}>{s.critique}</p>
@@ -301,7 +301,7 @@ export function ThesisRunner({
     <div style={{ fontFamily: SANS }}>
       <style>{`
         .th-area { transition: border-color .15s ease; }
-        .th-area:focus { border-color: rgba(79,135,247,.5) !important; }
+        .th-area:focus { border-color: var(--accent) !important; }
       `}</style>
 
       <button onClick={onExit} style={backLink}><ArrowLeftIcon size={15} /> Exit drill</button>
@@ -330,12 +330,12 @@ export function ThesisRunner({
                 rows={4}
                 style={{
                   width: "100%", boxSizing: "border-box", resize: "vertical",
-                  background: "rgba(232,237,248,0.04)", border: `1px solid ${BORDER}`, borderRadius: 9,
+                  background: "var(--bg-sunken)", border: `1px solid ${BORDER}`, borderRadius: 9,
                   color: INK, fontFamily: SERIF, fontSize: 15, lineHeight: 1.6, padding: "12px 14px", outline: "none",
                 }}
               />
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
-                <span style={{ color: ok ? FAINT : "rgba(232,237,248,0.28)", fontFamily: MONO, fontSize: 10.5 }}>
+                <span style={{ color: ok ? FAINT : "var(--border-strong)", fontFamily: MONO, fontSize: 10.5 }}>
                   {val.trim().length} chars{ok ? "" : ` · ${MIN_SECTION_CHARS} min`}
                 </span>
               </div>
@@ -345,7 +345,7 @@ export function ThesisRunner({
       </div>
 
       {error && (
-        <div role="alert" style={{ marginTop: 16, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.26)", color: "#fca5a5", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div role="alert" style={{ marginTop: 16, background: "var(--down-weak)", border: "1px solid var(--down)", color: "var(--down-ink)", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span>{error}</span>
           {errorCta && (
             <Link href={errorCta.href} style={{ color: ACCENT, fontFamily: MONO, fontSize: 12.5, fontWeight: 650, textDecoration: "none", marginLeft: "auto" }}>
@@ -403,7 +403,7 @@ function ListPanel({ title, items, color, empty }: { title: string; items: strin
 function primaryBtn(color: string): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 8, minHeight: 46,
-    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "#04101f",
+    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "var(--on-accent)",
     padding: "0 22px", fontSize: 14.5, fontWeight: 700, fontFamily: SANS, cursor: "pointer",
   };
 }

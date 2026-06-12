@@ -5,66 +5,64 @@ import Link from "next/link";
 import {
   TRACKS,
   TOTAL_LESSONS,
-  ALL_LESSON_IDS,
   FREE_LESSON_IDS,
-  BUNDLE_RATE_PER_LESSON,
   findLesson,
-  lessonUnlockCost,
 } from "@/lib/learn/curriculum";
 import { levelForXp, xpIntoLevel } from "@/lib/learn/types";
 import type { LearnStats, LessonModule, CatalogLesson, Track } from "@/lib/learn/types";
 import { LessonView } from "./LessonView";
+import { PaywallSheet } from "@/components/PaywallSheet";
 import { ArrowRightIcon, CheckIcon, LockIcon, TrackIcon } from "./icons";
 
-const SURFACE = "#07121f";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const CREDIT = "#e0a23b";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+// Almanac tokens only (playbook 2.1) — the dark Learn palette died in Phase 8.
+const SURFACE = "var(--bg-surface)";
+const SUNKEN = "var(--bg-sunken)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const ACCENT_WEAK = "var(--accent-weak)";
+const ON_ACCENT = "var(--on-accent)";
+const LABEL = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 const MINS_BY_DIFFICULTY = { core: 3, advanced: 5, mastery: 7 } as const;
 
+// The Academy paywall copy — what the lock actually means here.
+const ACADEMY_PAYWALL_TITLE = "That lesson is part of Pro";
+const ACADEMY_PAYWALL_LEAD =
+  "The fundamentals track is free for everyone, always. Pro opens the other tracks — all lessons, practice drills, and the leaderboard.";
+
 type Active = { module: LessonModule; track: Track } | null;
-type Confirm =
-  | { kind: "one"; lesson: CatalogLesson; track: Track; cost: number }
-  | { kind: "all"; count: number; cost: number }
-  | null;
 
 export function LearnDashboard() {
   const [stats, setStats] = useState<LearnStats | null>(null);
-  const [credits, setCredits] = useState<number | null>(null);
+  const [pro, setPro] = useState(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<Active>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<Confirm>(null);
-  const [unlocking, setUnlocking] = useState(false);
+  const [paywall, setPaywall] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshCredits = useCallback(() => {
-    fetch("/api/credits")
+  useEffect(() => {
+    // Identity + plan only — the Academy gate is the subscription, never credits.
+    fetch("/api/profile")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d && typeof d.credits === "number") {
-          setCredits(d.credits);
+        if (d && typeof d.email === "string") {
           setAuthed(true);
+          setPro(typeof d.plan === "string" && d.plan !== "free");
         } else {
           setAuthed(false);
         }
       })
       .catch(() => setAuthed(false));
-  }, []);
 
-  useEffect(() => {
-    refreshCredits();
     fetch("/api/learn/progress")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -76,19 +74,14 @@ export function LearnDashboard() {
         }
       })
       .catch(() => setStats({ xp: 0, level: 1, streakDays: 0, completedLessonIds: [] }));
-  }, [refreshCredits]);
+  }, []);
 
   const completed = useMemo(() => new Set(stats?.completedLessonIds ?? []), [stats]);
+  // Free fundamentals for everyone; credit-era unlocks honored forever; Pro opens all.
   const hasAccess = useCallback(
-    (id: string) => FREE_LESSON_IDS.has(id) || unlocked.has(id),
-    [unlocked],
+    (id: string) => pro || FREE_LESSON_IDS.has(id) || unlocked.has(id),
+    [pro, unlocked],
   );
-
-  const lockedPayable = useMemo(
-    () => ALL_LESSON_IDS.filter((id) => !FREE_LESSON_IDS.has(id) && !unlocked.has(id)),
-    [unlocked],
-  );
-  const unlockAllCost = lockedPayable.length * BUNDLE_RATE_PER_LESSON;
 
   const fetchAndShow = useCallback(async (lesson: CatalogLesson, track: Track) => {
     setLoadingId(lesson.id);
@@ -99,7 +92,7 @@ export function LearnDashboard() {
         body: JSON.stringify({ lessonId: lesson.id }),
       });
       if (res.status === 401) { setAuthed(false); setError("Sign in to open lessons."); return; }
-      if (res.status === 402) { setConfirm({ kind: "one", lesson, track, cost: lessonUnlockCost(lesson.id) }); return; }
+      if (res.status === 402) { setPaywall(true); return; }
       if (!res.ok) { setError("Could not load that lesson. Try again in a moment."); return; }
       const data = (await res.json()) as { module: LessonModule };
       setActive({ module: data.module, track });
@@ -112,21 +105,21 @@ export function LearnDashboard() {
   }, []);
 
   function openLesson(lesson: CatalogLesson, track: Track) {
-    if (loadingId || unlocking) return;
+    if (loadingId) return;
     setError(null);
     if (!hasAccess(lesson.id)) {
-      setConfirm({ kind: "one", lesson, track, cost: lessonUnlockCost(lesson.id) });
+      setPaywall(true);
       return;
     }
     void fetchAndShow(lesson, track);
   }
 
   // Deep-link: /academy/learn?lesson=<id> ("Learn why →" links from Research
-  // answers). Waits for progress/unlock state so a paid-but-unlocked lesson
-  // opens directly instead of bouncing through the unlock confirm.
+  // answers and the Portfolio stat sheets). Waits for progress + plan state so
+  // an accessible lesson opens directly instead of bouncing off the paywall.
   const [deepLinked, setDeepLinked] = useState(false);
   useEffect(() => {
-    if (deepLinked || stats === null) return;
+    if (deepLinked || stats === null || authed === null) return;
     const id = new URLSearchParams(window.location.search).get("lesson");
     if (!id) {
       setDeepLinked(true);
@@ -135,46 +128,8 @@ export function LearnDashboard() {
     const found = findLesson(id);
     if (found) openLesson(found.lesson, found.track);
     setDeepLinked(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when progress lands
-  }, [deepLinked, stats]);
-
-  async function runUnlock() {
-    if (!confirm || unlocking) return;
-    setUnlocking(true);
-    setError(null);
-    const pending = confirm;
-    try {
-      const body = pending.kind === "all" ? { all: true } : { lessonId: pending.lesson.id };
-      const res = await fetch("/api/learn/unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.status === 401) { setAuthed(false); setError("Sign in to unlock lessons."); setConfirm(null); return; }
-      if (res.status === 402) {
-        setError("You've used your included unlocks for now. Pro opens the whole Academy.");
-        setConfirm(null);
-        refreshCredits();
-        return;
-      }
-      if (!res.ok) { setError("Could not complete that unlock. Try again in a moment."); setConfirm(null); refreshCredits(); return; }
-      const data = (await res.json()) as { remaining?: number };
-      if (typeof data.remaining === "number" && data.remaining >= 0) setCredits(data.remaining);
-      if (pending.kind === "all") {
-        setUnlocked(new Set(ALL_LESSON_IDS));
-        setConfirm(null);
-      } else {
-        setUnlocked((prev) => new Set(prev).add(pending.lesson.id));
-        setConfirm(null);
-        await fetchAndShow(pending.lesson, pending.track);
-      }
-    } catch {
-      setError("Connection dropped during unlock. Try again in a moment.");
-      setConfirm(null);
-    } finally {
-      setUnlocking(false);
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when progress + plan land
+  }, [deepLinked, stats, authed]);
 
   if (active) {
     return (
@@ -182,7 +137,6 @@ export function LearnDashboard() {
         module={active.module}
         trackId={active.track.id}
         trackName={active.track.name}
-        accent={active.track.accent}
         onBack={() => setActive(null)}
         onCompleted={(s) => setStats((prev) => ({ ...(prev ?? s), ...s }))}
       />
@@ -194,7 +148,7 @@ export function LearnDashboard() {
   const { into, needed } = xpIntoLevel(xp);
   const pct = Math.round((into / needed) * 100);
   const doneCount = completed.size;
-  const busy = loadingId !== null || unlocking;
+  const busy = loadingId !== null;
   const nextPair =
     TRACKS.flatMap((track) => track.lessons.map((lesson) => ({ track, lesson }))).find(
       ({ lesson }) => !completed.has(lesson.id),
@@ -203,11 +157,11 @@ export function LearnDashboard() {
   return (
     <div style={{ fontFamily: SANS }}>
       <style>{`
-        .learn-tile { transition: border-color .14s ease, background .14s ease; }
-        .learn-tile:hover:not(:disabled) { border-color: rgba(79,135,247,.3) !important; background: rgba(232,237,248,.04) !important; }
-        .learn-tile:focus-visible { outline: 2px solid rgba(79,135,247,.6); outline-offset: 2px; }
-        .learn-primary { transition: opacity .14s ease, transform .12s ease; }
-        .learn-primary:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+        .learn-tile { transition: border-color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out); }
+        .learn-tile:hover:not(:disabled) { border-color: var(--border-strong) !important; background: ${SUNKEN} !important; }
+        .learn-tile:focus-visible { outline: 2px solid ${ACCENT}; outline-offset: 2px; }
+        .learn-primary { transition: background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
+        .learn-primary:hover:not(:disabled) { background: var(--accent-hover) !important; transform: translateY(-1px); }
         @media (max-width: 820px) {
           .learn-hero { grid-template-columns: 1fr !important; }
           .learn-title { font-size: 36px !important; }
@@ -234,7 +188,7 @@ export function LearnDashboard() {
         }}
       >
         <div>
-          <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 18 }}>
+          <div style={{ color: ACCENT, fontFamily: LABEL, fontSize: 11, fontWeight: 650, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 18 }}>
             Conviqt Learn
           </div>
           <h1
@@ -265,10 +219,10 @@ export function LearnDashboard() {
                 alignItems: "center",
                 gap: 9,
                 minHeight: 42,
-                border: "1px solid rgba(79,135,247,0.55)",
-                borderRadius: 8,
+                border: "1px solid transparent",
+                borderRadius: "var(--radius-control)",
                 background: ACCENT,
-                color: "#04101f",
+                color: ON_ACCENT,
                 padding: "0 18px",
                 fontSize: 14,
                 fontWeight: 650,
@@ -282,67 +236,67 @@ export function LearnDashboard() {
           )}
         </div>
 
-        {/* Progress + unlock card */}
+        {/* Progress + plan card */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Progress card */}
           <div
             style={{
-              background: "rgba(232,237,248,0.03)",
+              background: SURFACE,
               border: `1px solid ${BORDER}`,
-              borderRadius: 10,
+              borderRadius: "var(--radius-card)",
+              boxShadow: "var(--shadow-card)",
               padding: "18px 18px 14px",
             }}
           >
-            <div style={{ color: ACCENT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 14 }}>
+            <div style={{ color: ACCENT, fontFamily: LABEL, fontSize: 10.5, fontWeight: 650, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 14 }}>
               Learn
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-              <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>Lessons completed</span>
-              <span style={{ color: INK, fontFamily: MONO, fontSize: 13, fontWeight: 650 }}>{doneCount} / {TOTAL_LESSONS}</span>
+              <span style={{ color: FAINT, fontFamily: LABEL, fontSize: 12 }}>Lessons completed</span>
+              <span style={{ color: INK, fontFamily: LABEL, fontSize: 13, fontWeight: 650, fontVariantNumeric: "tabular-nums" }}>{doneCount} / {TOTAL_LESSONS}</span>
             </div>
-            <div style={{ height: 4, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden", marginBottom: 14 }}>
-              <div style={{ width: `${TOTAL_LESSONS ? Math.round((doneCount / TOTAL_LESSONS) * 100) : 0}%`, height: "100%", background: ACCENT, borderRadius: 999, transition: "width .4s ease" }} />
+            <div style={{ height: 4, borderRadius: "var(--radius-pill)", background: SUNKEN, overflow: "hidden", marginBottom: 14 }}>
+              <div style={{ width: `${TOTAL_LESSONS ? Math.round((doneCount / TOTAL_LESSONS) * 100) : 0}%`, height: "100%", background: ACCENT, borderRadius: "var(--radius-pill)", transition: "width .4s ease" }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, paddingTop: 12, borderTop: `1px solid ${RULE}` }}>
               <div>
-                <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 }}>Level</div>
-                <div style={{ color: INK, fontFamily: MONO, fontSize: 18, fontWeight: 650 }}>{level}</div>
+                <div style={{ color: FAINT, fontFamily: LABEL, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>Level</div>
+                <div style={{ color: INK, fontFamily: LABEL, fontSize: 18, fontWeight: 650, fontVariantNumeric: "tabular-nums" }}>{level}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 }}>XP</div>
-                <div style={{ color: INK, fontFamily: MONO, fontSize: 18, fontWeight: 650 }}>{xp.toLocaleString()}</div>
+                <div style={{ color: FAINT, fontFamily: LABEL, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>XP</div>
+                <div style={{ color: INK, fontFamily: LABEL, fontSize: 18, fontWeight: 650, fontVariantNumeric: "tabular-nums" }}>{xp.toLocaleString()}</div>
               </div>
             </div>
-            <div style={{ height: 3, borderRadius: 999, background: "rgba(232,237,248,0.07)", overflow: "hidden", marginTop: 10 }}>
-              <div style={{ width: `${pct}%`, height: "100%", background: "rgba(79,135,247,0.5)", borderRadius: 999 }} />
+            <div style={{ height: 3, borderRadius: "var(--radius-pill)", background: SUNKEN, overflow: "hidden", marginTop: 10 }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: ACCENT_WEAK, borderRadius: "var(--radius-pill)" }} />
             </div>
           </div>
 
-          {/* Unlock whole academy */}
-          {authed !== false && lockedPayable.length > 0 && (
+          {/* Pro upsell — fundamentals are free; the rest comes with Pro. */}
+          {authed !== false && !pro && (
             <div
               style={{
-                background: "rgba(224,162,59,0.07)",
-                border: "1px solid rgba(224,162,59,0.22)",
-                borderRadius: 10,
+                background: ACCENT_WEAK,
+                border: `1px solid ${BORDER}`,
+                borderRadius: "var(--radius-card)",
                 padding: "16px 18px",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{ color: CREDIT, display: "inline-flex" }}>
+                <span style={{ color: ACCENT, display: "inline-flex" }}>
                   <LockIcon size={16} />
                 </span>
                 <div style={{ color: INK, fontFamily: SERIF, fontSize: 14.5, fontWeight: 600 }}>
-                  Unlock whole academy
+                  The full Academy comes with Pro
                 </div>
               </div>
               <p style={{ margin: "0 0 14px", color: MUTED, fontSize: 12.5, lineHeight: 1.5 }}>
-                Own all {lockedPayable.length} remaining {lockedPayable.length === 1 ? "lesson" : "lessons"} forever.
+                Fundamentals are free, always. Pro opens every track — all {TOTAL_LESSONS} lessons.
               </p>
-              <button
+              <Link
                 className="learn-primary"
-                onClick={() => setConfirm({ kind: "all", count: lockedPayable.length, cost: unlockAllCost })}
-                disabled={busy}
+                href="/pricing"
                 style={{
                   width: "100%",
                   display: "flex",
@@ -350,26 +304,26 @@ export function LearnDashboard() {
                   justifyContent: "center",
                   gap: 8,
                   minHeight: 36,
-                  border: "1px solid rgba(224,162,59,0.45)",
-                  borderRadius: 7,
-                  background: "rgba(224,162,59,0.14)",
-                  color: CREDIT,
+                  border: "1px solid transparent",
+                  borderRadius: "var(--radius-control)",
+                  background: ACCENT,
+                  color: ON_ACCENT,
                   padding: "0 14px",
                   fontSize: 13,
                   fontWeight: 650,
-                  fontFamily: MONO,
-                  cursor: busy ? "wait" : "pointer",
+                  fontFamily: SANS,
+                  textDecoration: "none",
                 }}
               >
-                Unlock all {lockedPayable.length}
-              </button>
+                Try Pro free for 7 days
+              </Link>
             </div>
           )}
 
           {/* Sign-in nudge */}
           {authed === false && (
-            <div style={{ background: "rgba(79,135,247,0.07)", border: `1px solid rgba(79,135,247,0.2)`, borderRadius: 10, padding: "14px 16px", color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
-              <Link href="/login" style={{ color: ACCENT, fontWeight: 650, textDecoration: "none" }}>Sign in</Link> to save your progress and unlock lessons.
+            <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: "var(--radius-card)", padding: "14px 16px", color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
+              <Link href="/login" style={{ color: "var(--link)", fontWeight: 650, textDecoration: "none" }}>Sign in</Link> to save your progress and keep lessons you open.
             </div>
           )}
 
@@ -381,10 +335,10 @@ export function LearnDashboard() {
           role="alert"
           style={{
             marginBottom: 28,
-            background: "rgba(239,68,68,0.08)",
-            border: "1px solid rgba(239,68,68,0.26)",
-            color: "#fca5a5",
-            borderRadius: 8,
+            background: "var(--down-weak)",
+            border: "1px solid var(--down)",
+            color: "var(--down-ink)",
+            borderRadius: "var(--radius-control)",
             padding: "12px 14px",
             fontSize: 14,
             display: "flex",
@@ -395,8 +349,8 @@ export function LearnDashboard() {
         >
           <span>{error}</span>
           {authed === false
-            ? <Link href="/login" style={{ color: "#fecaca", fontWeight: 650 }}>Sign in</Link>
-            : <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>See what Pro unlocks</Link>}
+            ? <Link href="/login" style={{ color: "var(--down-ink)", fontWeight: 650 }}>Sign in</Link>
+            : <Link href="/pricing" style={{ color: "var(--down-ink)", fontWeight: 650 }}>See what Pro unlocks</Link>}
         </div>
       )}
 
@@ -422,7 +376,7 @@ export function LearnDashboard() {
                   alignItems: "center",
                   gap: 9,
                   padding: "12px 12px 10px",
-                  borderBottom: `1px solid rgba(232,237,248,0.07)`,
+                  borderBottom: `1px solid ${RULE}`,
                   marginBottom: 6,
                 }}
               >
@@ -430,13 +384,13 @@ export function LearnDashboard() {
                   style={{
                     width: 28,
                     height: 28,
-                    borderRadius: 6,
+                    borderRadius: "var(--radius-control)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: track.accent,
-                    background: `${track.accent}12`,
-                    border: `1px solid ${track.accent}28`,
+                    color: ACCENT,
+                    background: ACCENT_WEAK,
+                    border: `1px solid ${BORDER}`,
                     flexShrink: 0,
                   }}
                 >
@@ -446,8 +400,8 @@ export function LearnDashboard() {
                   <div style={{ color: INK, fontFamily: SANS, fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                     {track.name}
                   </div>
-                  <div style={{ marginTop: 4, height: 2, borderRadius: 999, background: "rgba(232,237,248,0.07)", overflow: "hidden" }}>
-                    <div style={{ width: `${trackPct}%`, height: "100%", background: trackDone === track.lessons.length ? GOOD : track.accent, borderRadius: 999 }} />
+                  <div style={{ marginTop: 4, height: 2, borderRadius: "var(--radius-pill)", background: SUNKEN, overflow: "hidden" }}>
+                    <div style={{ width: `${trackPct}%`, height: "100%", background: ACCENT, borderRadius: "var(--radius-pill)" }} />
                   </div>
                 </div>
               </div>
@@ -471,9 +425,9 @@ export function LearnDashboard() {
                         flexDirection: "column",
                         gap: 8,
                         textAlign: "left",
-                        background: isDone ? "rgba(34,197,94,0.05)" : "rgba(232,237,248,0.025)",
-                        border: `1px solid ${isDone ? "rgba(34,197,94,0.18)" : !access ? "rgba(224,162,59,0.18)" : "rgba(232,237,248,0.07)"}`,
-                        borderRadius: 8,
+                        background: isDone ? ACCENT_WEAK : SURFACE,
+                        border: `1px solid ${BORDER}`,
+                        borderRadius: "var(--radius-control)",
                         padding: "10px 12px",
                         cursor: busy ? "wait" : "pointer",
                         opacity: busy && !isLoading ? 0.5 : 1,
@@ -484,18 +438,18 @@ export function LearnDashboard() {
                         {lesson.title}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: FAINT, fontFamily: MONO, fontSize: 10.5 }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: FAINT, fontFamily: LABEL, fontSize: 11 }}>
                           <ClockSvg />
                           {isLoading ? "Opening…" : `${mins} min`}
                         </span>
                         {isDone ? (
-                          <span style={{ color: GOOD, display: "inline-flex" }}><CheckIcon size={13} /></span>
+                          <span style={{ color: ACCENT, display: "inline-flex" }}><CheckIcon size={13} /></span>
                         ) : !access ? (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: CREDIT, fontFamily: MONO, fontSize: 10 }}>
-                            <LockIcon size={11} />unlock
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: FAINT, fontFamily: LABEL, fontSize: 10.5, fontWeight: 600 }}>
+                            <LockIcon size={11} />Pro
                           </span>
                         ) : (
-                          <span style={{ color: track.accent, fontFamily: MONO, fontSize: 10 }}>open</span>
+                          <span style={{ color: "var(--link)", fontFamily: LABEL, fontSize: 10.5, fontWeight: 600 }}>open</span>
                         )}
                       </div>
                     </button>
@@ -508,18 +462,15 @@ export function LearnDashboard() {
       </div>
 
       <footer style={{ marginTop: 52, paddingTop: 16, borderTop: `1px solid ${RULE}`, color: FAINT, fontSize: 12, lineHeight: 1.6 }}>
-        {TRACKS.length} tracks, {TOTAL_LESSONS} lessons. Pay once per lesson, keep it forever. Educational material only, not financial advice.
+        {TRACKS.length} tracks, {TOTAL_LESSONS} lessons. Fundamentals free for everyone; the rest comes with Pro. Educational material only, not financial advice.
       </footer>
 
-      {confirm && (
-        <UnlockConfirm
-          confirm={confirm}
-          credits={credits}
-          busy={unlocking}
-          onCancel={() => { if (!unlocking) setConfirm(null); }}
-          onConfirm={runUnlock}
-        />
-      )}
+      <PaywallSheet
+        open={paywall}
+        onClose={() => setPaywall(false)}
+        title={ACADEMY_PAYWALL_TITLE}
+        lead={ACADEMY_PAYWALL_LEAD}
+      />
     </div>
   );
 }
@@ -530,78 +481,5 @@ function ClockSvg() {
       <circle cx="12" cy="12" r="9" />
       <polyline points="12 7 12 12 15.5 15.5" />
     </svg>
-  );
-}
-
-function UnlockConfirm({
-  confirm, credits, busy, onCancel, onConfirm,
-}: {
-  confirm: NonNullable<Confirm>;
-  credits: number | null;
-  busy: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  const enough = credits === null || credits >= confirm.cost;
-  const title = confirm.kind === "all" ? "Unlock everything" : confirm.lesson.title;
-  const body =
-    confirm.kind === "all"
-      ? `Unlock all ${confirm.count} remaining lessons forever — yours to revisit anytime.`
-      : "Unlock this lesson forever. Once it's yours, it stays yours.";
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Unlock ${title}`}
-      onClick={onCancel}
-      style={{
-        position: "fixed", inset: 0, zIndex: 50,
-        background: "rgba(3,8,18,0.72)", backdropFilter: "blur(2px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 420,
-          background: "#07121f", border: `1px solid rgba(232,237,248,0.09)`,
-          borderRadius: 12, padding: 22, fontFamily: SANS,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
-          <span style={{ color: CREDIT, display: "inline-flex" }}><LockIcon size={20} /></span>
-          <div style={{ color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-            One-time unlock
-          </div>
-        </div>
-        <h3 style={{ color: INK, fontFamily: DISPLAY, fontSize: 22, fontWeight: 500, margin: "0 0 8px", letterSpacing: "-0.01em" }}>
-          {title}
-        </h3>
-        <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.55, margin: "0 0 18px" }}>{body}</p>
-        {!enough && (
-          <p style={{ color: "#fca5a5", fontSize: 13, lineHeight: 1.5, margin: "0 0 16px" }}>
-            You&apos;ve used your included unlocks for now.{" "}
-            <Link href="/pricing" style={{ color: "#fecaca", fontWeight: 650 }}>See what Pro unlocks</Link>.
-          </p>
-        )}
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button
-            onClick={onCancel}
-            disabled={busy}
-            style={{ minHeight: 40, border: `1px solid rgba(232,237,248,0.09)`, background: "transparent", color: MUTED, borderRadius: 8, padding: "0 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "default" : "pointer", fontFamily: SANS }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={busy || !enough}
-            style={{ minHeight: 40, border: `1px solid rgba(224,162,59,0.5)`, background: enough ? CREDIT : "rgba(224,162,59,0.2)", color: enough ? "#1c1206" : CREDIT, borderRadius: 8, padding: "0 18px", fontSize: 13.5, fontWeight: 700, cursor: busy || !enough ? "default" : "pointer", opacity: busy ? 0.7 : 1, fontFamily: SANS }}
-          >
-            {busy ? "Unlocking…" : `Unlock · ${confirm.cost} cr`}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

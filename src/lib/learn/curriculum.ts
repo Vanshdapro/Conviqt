@@ -2,10 +2,10 @@
 //
 // The catalog is assembled from hand-authored, in-repo content (see content/).
 // Opening a lesson is a plain data read: no Anthropic call, no per-click spend,
-// ever — like opening a page in a textbook. The only paid moment is the
-// one-time credit unlock (see unlock.ts).
+// ever — like opening a page in a textbook. Access is plan-based since Phase 8:
+// fundamentals free, the rest with Pro (see FREE_LESSON_IDS below).
 //
-// Lesson ids are permanent keys — they back both progress tracking and the
+// Lesson ids are permanent keys — they back progress tracking and the legacy
 // per-lesson unlock rows. Never renumber or rename an existing lesson id.
 
 import type { Track, CatalogLesson, LessonModule, RawTrack, StaticLesson } from "./types";
@@ -53,27 +53,17 @@ export const TRACKS: Track[] = RAW_TRACKS.map((t) => ({
   lessons: t.lessons.map(toCatalogLesson),
 }));
 
-// ── Free preview ──────────────────────────────────────────────────────────────
-// The first lesson of the first track is free forever — no unlock, no charge.
-// Everything else is a one-time credit unlock.
-export const FREE_LESSON_IDS: Set<string> = new Set(["fs-three-statements"]);
-
-// ── Pricing ───────────────────────────────────────────────────────────────────
-// Lesson unlock pricing (1 credit ≈ 1¢). A single lesson is a one-time 10-credit
-// unlock, then free forever; "Unlock everything" applies a ~20% bundle discount at
-// 8 credits per still-locked lesson. These live here (a client-safe module) so the
-// dashboard can render prices without importing the server-only unlock module.
-
-/** Credits charged to unlock one lesson (one-time, then free forever). */
-export const PER_LESSON_UNLOCK_COST = 10;
-
-/** Discounted per-lesson rate when unlocking the whole remaining catalog. */
-export const BUNDLE_RATE_PER_LESSON = 8;
-
-/** Cost in credits to unlock a given lesson (0 for the free preview lesson). */
-export function lessonUnlockCost(lessonId: string): number {
-  return FREE_LESSON_IDS.has(lessonId) ? 0 : PER_LESSON_UNLOCK_COST;
-}
+// ── Free tier ─────────────────────────────────────────────────────────────────
+// Playbook 2.4: "Academy fundamentals" are free for everyone — the whole
+// Markets & Investing Foundations track, plus the financial-statements opener
+// that has been the free preview since launch. Everything else is part of Pro
+// (Phase 8 retired the per-lesson credit unlock; the gate is the subscription).
+// Lessons bought one-by-one in the credit era stay unlocked forever — the
+// access check still honors learn_unlocks rows.
+export const FREE_LESSON_IDS: Set<string> = new Set([
+  "fs-three-statements",
+  ...(RAW_TRACKS.find((t) => t.id === "foundations")?.lessons.map((l) => l.id) ?? []),
+]);
 
 // ── Lookups ──────────────────────────────────────────────────────────────────
 

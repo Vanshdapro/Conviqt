@@ -4,21 +4,21 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { CoinsIcon, ArrowRightIcon, ShieldIcon, TargetIcon, TrophyIcon } from "./icons";
 
-const SURFACE = "#071120";
-const SURFACE_SOFT = "rgba(232,237,248,0.035)";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const BAD = "#f87171";
-const CREDIT = "#e0a23b";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const SURFACE_SOFT = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--up-ink)";
+const BAD = "var(--down-ink)";
+const CREDIT = "var(--accent)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 interface PaperPosition {
   id: string; ticker: string; qty: number;
@@ -404,7 +404,7 @@ export function PaperDesk({ signedIn }: { signedIn: boolean }) {
           )}
 
           {error && (
-            <div role="alert" style={{ marginTop: 16, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.26)", color: "#fca5a5", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div role="alert" style={{ marginTop: 16, background: "var(--down-weak)", border: "1px solid var(--down)", color: "var(--down-ink)", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span>{error}</span>
               {errorCta && <Link href={errorCta.href} style={{ color: ACCENT, fontFamily: MONO, fontSize: 12.5, fontWeight: 650, textDecoration: "none", marginLeft: "auto" }}>{errorCta.label} →</Link>}
             </div>
@@ -521,20 +521,20 @@ function Labeled({ label, children, style }: { label: string; children: React.Re
 }
 
 const inputStyle: React.CSSProperties = {
-  minHeight: 40, boxSizing: "border-box", background: "rgba(232,237,248,0.04)", border: `1px solid ${BORDER}`,
+  minHeight: 40, boxSizing: "border-box", background: "var(--bg-sunken)", border: `1px solid ${BORDER}`,
   borderRadius: 8, color: INK, fontFamily: MONO, fontSize: 15, padding: "0 12px", outline: "none",
 };
 function actionBtn(color: string): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 7, minHeight: 40,
-    border: `1px solid ${color}`, borderRadius: 8, background: `${color}22`, color,
+    border: `1px solid ${color}`, borderRadius: 8, background: `color-mix(in srgb, ${color} 13%, transparent)`, color,
     padding: "0 16px", fontFamily: SANS, fontSize: 13.5, fontWeight: 650, cursor: "pointer",
   };
 }
 function primaryBtn(color: string): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44,
-    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "#04101f",
+    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "var(--on-accent)",
     padding: "0 20px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer",
   };
 }

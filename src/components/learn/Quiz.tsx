@@ -6,17 +6,17 @@
 import { useState } from "react";
 import type { QuizQuestion } from "@/lib/learn/types";
 
-const ACCENT = "#4f87f7";
-const BULL = "#22c55e";
-const BEAR = "#ef4444";
-const HOLD = "#f59e0b";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const SURFACE = "#071120";
-const BORDER = "rgba(232,237,248,0.09)";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const ACCENT = "var(--accent)";
+const BULL = "var(--accent)";
+const BEAR = "var(--down-ink)";
+const HOLD = "var(--text-2)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const SURFACE = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const SERIF = "var(--font-ui)";
 
 export function Quiz({
   questions,
@@ -74,17 +74,17 @@ export function Quiz({
               let color = INK;
               if (submitted) {
                 if (isAnswer) {
-                  bg = "rgba(34,197,94,0.1)";
-                  border = "1px solid rgba(34,197,94,0.5)";
+                  bg = "var(--accent-weak)";
+                  border = "1px solid var(--accent)";
                   color = BULL;
                 } else if (isPicked) {
-                  bg = "rgba(239,68,68,0.09)";
-                  border = "1px solid rgba(239,68,68,0.45)";
+                  bg = "var(--down-weak)";
+                  border = "1px solid var(--down)";
                   color = BEAR;
                 }
               } else if (isPicked) {
-                bg = "rgba(79,135,247,0.12)";
-                border = "1px solid rgba(79,135,247,0.5)";
+                bg = "var(--accent-weak)";
+                border = "1px solid var(--accent)";
               }
               return (
                 <button
@@ -122,9 +122,9 @@ export function Quiz({
           disabled={!answeredAll}
           style={{
             marginTop: 6,
-            background: answeredAll ? ACCENT : "rgba(232,237,248,0.06)",
-            color: answeredAll ? "#04101f" : MUTED,
-            border: answeredAll ? "1px solid rgba(120,170,255,0.6)" : "1px solid rgba(232,237,248,0.1)",
+            background: answeredAll ? ACCENT : "var(--bg-sunken)",
+            color: answeredAll ? "var(--on-accent)" : MUTED,
+            border: answeredAll ? "1px solid var(--accent)" : "1px solid var(--bg-sunken)",
             borderRadius: 8,
             padding: "12px 28px",
             fontFamily: SANS,

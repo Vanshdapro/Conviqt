@@ -18,7 +18,7 @@ const TABS: { key: AcademyTab; label: string; href: string }[] = [
 
 export function AcademyTabs({ active }: { active: AcademyTab }) {
   return (
-    <div style={{ borderBottom: "1px solid var(--rule)", background: "rgba(5,13,26,0.6)" }}>
+    <div style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-page)" }}>
       <style>{`
         .subtabs {
           max-width: 1100px;
@@ -40,12 +40,12 @@ export function AcademyTabs({ active }: { active: AcademyTab }) {
             <Link
               key={key}
               href={href}
-              className="subtab mono"
+              className="subtab"
               style={{
-                fontSize: 12,
+                fontFamily: "var(--font-ui)", fontSize: 12, fontWeight: 600,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                color: on ? "var(--foreground)" : "var(--muted)",
+                color: on ? "var(--text)" : "var(--text-muted)",
                 textDecoration: "none",
                 padding: "16px 2px",
                 borderBottom: on ? "2px solid var(--accent)" : "2px solid transparent",

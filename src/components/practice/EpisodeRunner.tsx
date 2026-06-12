@@ -5,21 +5,21 @@ import { PriceChart, type ChartMarker } from "./PriceChart";
 import { Debrief, type EpisodeResult } from "./Debrief";
 import { ArrowRightIcon, ArrowLeftIcon, TrendingUpIcon, TrendingDownIcon, ShieldIcon, FlagIcon } from "./icons";
 
-const SURFACE = "#071120";
-const SURFACE_SOFT = "rgba(232,237,248,0.035)";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const BAD = "#f87171";
-const CREDIT = "#e0a23b";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const SURFACE_SOFT = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--up-ink)";
+const BAD = "var(--down-ink)";
+const CREDIT = "var(--accent)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 interface PlayEvent { atBar: number; headline: string; detail: string; tone: "bull" | "bear" | "neutral"; }
 interface PlayBar { t: string; close: number; halted?: boolean; }
@@ -273,7 +273,7 @@ export function EpisodeRunner({
       {/* progress dots */}
       <div style={{ display: "flex", gap: 4, marginBottom: 18 }}>
         {ep.bars.map((_, i) => (
-          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= cur ? ACCENT : "rgba(232,237,248,0.1)" }} />
+          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= cur ? ACCENT : "var(--bg-sunken)" }} />
         ))}
       </div>
 
@@ -290,7 +290,7 @@ export function EpisodeRunner({
 
       {/* auto-fill banner */}
       {fillsHere.map((f, i) => (
-        <div key={i} style={{ marginBottom: 14, background: f.kind === "target" ? "rgba(79,135,247,0.1)" : "rgba(224,162,59,0.1)", border: `1px solid ${f.kind === "target" ? "rgba(79,135,247,0.3)" : "rgba(224,162,59,0.3)"}`, borderRadius: 10, padding: "12px 16px", color: f.kind === "target" ? ACCENT : CREDIT, fontFamily: MONO, fontSize: 13 }}>
+        <div key={i} style={{ marginBottom: 14, background: f.kind === "target" ? "var(--accent-weak)" : "var(--accent-weak)", border: `1px solid ${f.kind === "target" ? "var(--accent)" : "var(--accent)"}`, borderRadius: 10, padding: "12px 16px", color: f.kind === "target" ? ACCENT : CREDIT, fontFamily: MONO, fontSize: 13 }}>
           {f.kind === "stop" && `Stop hit — sold ${f.shares} @ ${px(f.price)}.`}
           {f.kind === "target" && `Target hit — sold ${f.shares} @ ${px(f.price)}.`}
           {f.kind === "halt" && `Trading halted — position liquidated at ${px(f.price)}.`}
@@ -386,7 +386,7 @@ export function EpisodeRunner({
       )}
 
       {error && (
-        <div role="alert" style={{ marginBottom: 14, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.26)", color: "#fca5a5", borderRadius: 10, padding: "12px 14px", fontSize: 13.5 }}>
+        <div role="alert" style={{ marginBottom: 14, background: "var(--down-weak)", border: "1px solid var(--down)", color: "var(--down-ink)", borderRadius: 10, padding: "12px 14px", fontSize: 13.5 }}>
           {error}
         </div>
       )}
@@ -438,7 +438,7 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 }
 
 const inputStyle: React.CSSProperties = {
-  width: 110, minHeight: 40, background: "rgba(232,237,248,0.04)", border: `1px solid ${BORDER}`,
+  width: 110, minHeight: 40, background: "var(--bg-sunken)", border: `1px solid ${BORDER}`,
   borderRadius: 8, color: INK, fontFamily: MONO, fontSize: 15, padding: "0 12px", outline: "none",
 };
 const chipBtn: React.CSSProperties = {
@@ -448,14 +448,14 @@ const chipBtn: React.CSSProperties = {
 function actionBtn(color: string): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 7, minHeight: 40,
-    border: `1px solid ${color}`, borderRadius: 8, background: `${color}22`, color,
+    border: `1px solid ${color}`, borderRadius: 8, background: `color-mix(in srgb, ${color} 13%, transparent)`, color,
     padding: "0 16px", fontFamily: SANS, fontSize: 14, fontWeight: 650, cursor: "pointer",
   };
 }
 function primaryBtn(color: string): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 8, minHeight: 46,
-    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "#04101f",
+    border: `1px solid ${color}`, borderRadius: 9, background: color, color: "var(--on-accent)",
     padding: "0 22px", fontSize: 14.5, fontWeight: 700, fontFamily: SANS, cursor: "pointer",
   };
 }

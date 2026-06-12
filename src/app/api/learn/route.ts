@@ -1,23 +1,24 @@
 // POST /api/learn
 //
 // Returns one static Conviqt Learn lesson module — but only if the signed-in
-// user has access to it (the free preview lesson, or one they've unlocked).
+// user has access to it: the free fundamentals tier, a Pro subscription, or a
+// lesson they unlocked one-by-one back in the credit era (honored forever).
 //
 // Lessons are in-repo content (see lib/learn/content). Serving one is a plain
-// data read: no Anthropic call and no credit charge on this path. The only paid
-// moment is the one-time unlock (POST /api/learn/unlock).
+// data read: no Anthropic call and no charge on this path, ever.
 //
 // Body: { lessonId: string }
 // Flow:
 //   1. Verify the session (unauthenticated → 401).
 //   2. Resolve the lesson from the static curriculum (unknown id → 404).
-//   3. Unlocked (free or paid) → return the module.
-//      Locked → 402 with the credit cost so the client can offer to unlock.
+//   3. Free tier / Pro / legacy unlock → return the module.
+//      Otherwise → 402 ("locked") so the client can show what Pro opens.
 
 import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth";
 import { findLesson, getLessonModule } from "@/lib/learn/curriculum";
-import { isLessonUnlocked, lessonUnlockCost } from "@/lib/learn/unlock";
+import { isLessonUnlocked } from "@/lib/learn/unlock";
+import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,22 +44,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "unknown_lesson" }, { status: 404 });
     }
 
-    const unlocked = await isLessonUnlocked(user.email, lessonId);
-    if (!unlocked) {
-      return NextResponse.json(
-        { error: "locked", cost: lessonUnlockCost(lessonId) },
-        { status: 402 },
-      );
+    let allowed = await isLessonUnlocked(user.email, lessonId);
+    if (!allowed) {
+      const subscriber = await getSubscriberByEmail(user.email);
+      allowed = isPremium(subscriber);
+    }
+    if (!allowed) {
+      return NextResponse.json({ error: "locked" }, { status: 402 });
     }
 
     const module = getLessonModule(lessonId);
     if (!module) {
       // Should be impossible: findLesson matched but assembly failed.
-      console.error(`[learn] module assembly failed for unlocked lesson ${lessonId}`);
+      console.error(`[learn] module assembly failed for accessible lesson ${lessonId}`);
       return NextResponse.json({ error: "internal_error" }, { status: 500 });
     }
 
-    return NextResponse.json({ module, unlocked: true, cost: 0 });
+    return NextResponse.json({ module });
   } catch (err) {
     console.error("[learn] route error:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

@@ -3,18 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const SURFACE = "#07121f";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#6c82a3";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--accent)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 type LearnProgress = { xp: number; completedLessonIds?: string[] };
 type PracticeSnapshot = {
@@ -58,9 +58,9 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
       <style>{`
         .ac-card { transition: border-color .18s ease, background .18s ease, transform .18s ease; }
         .ac-card:hover { transform: translateY(-3px); }
-        .ac-card:focus-visible { outline: 2px solid rgba(79,135,247,.6); outline-offset: 3px; }
-        .ac-learn-card:hover { border-color: rgba(79,135,247,.35) !important; }
-        .ac-practice-card:hover { border-color: rgba(34,197,94,.35) !important; }
+        .ac-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+        .ac-learn-card:hover { border-color: var(--accent) !important; }
+        .ac-practice-card:hover { border-color: var(--accent) !important; }
         @media (max-width: 760px) {
           .ac-paths { grid-template-columns: 1fr !important; }
           .ac-title { font-size: 36px !important; line-height: 1.1 !important; }
@@ -138,14 +138,14 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
               move a slider, answer a few questions. Built for everyone from finance students to the merely curious.
             </p>
           </div>
-          <div style={{ marginTop: "auto", padding: "18px 24px", borderTop: `1px solid rgba(232,237,248,0.06)`, background: "rgba(232,237,248,0.018)" }}>
+          <div style={{ marginTop: "auto", padding: "18px 24px", borderTop: `1px solid var(--bg-sunken)`, background: "var(--bg-surface)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
               <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>Lessons completed</span>
               <span style={{ color: INK, fontFamily: MONO, fontSize: 12, fontWeight: 650 }}>
                 {lessonsDone} / {learnTotal} lessons
               </span>
             </div>
-            <div style={{ height: 3, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden", marginBottom: 16 }}>
+            <div style={{ height: 3, borderRadius: 999, background: "var(--bg-sunken)", overflow: "hidden", marginBottom: 16 }}>
               <div style={{ width: `${learnTotal ? Math.round((lessonsDone / learnTotal) * 100) : 0}%`, height: "100%", background: ACCENT, borderRadius: 999, transition: "width .4s ease" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -192,7 +192,7 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
               climb a boss-fight ladder toward a PM certification; write theses an AI grades section by section.
             </p>
           </div>
-          <div style={{ marginTop: "auto", padding: "18px 24px", borderTop: `1px solid rgba(232,237,248,0.06)`, background: "rgba(232,237,248,0.018)" }}>
+          <div style={{ marginTop: "auto", padding: "18px 24px", borderTop: `1px solid var(--bg-sunken)`, background: "var(--bg-surface)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <span style={{ color: FAINT, fontFamily: MONO, fontSize: 11, letterSpacing: "0.04em" }}>Rank — {rank}</span>
               <span style={{ color: INK, fontFamily: MONO, fontSize: 12, fontWeight: 650 }}>
@@ -213,7 +213,7 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
       {/* How it fits together */}
       <div
         style={{
-          background: "rgba(232,237,248,0.025)",
+          background: "var(--bg-surface)",
           border: `1px solid ${BORDER}`,
           borderRadius: 12,
           padding: "20px 24px",
@@ -248,20 +248,20 @@ function BookIllustration({ accent }: { accent: string }) {
   return (
     <svg width="96" height="68" viewBox="0 0 120 88" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
       <path d="M8 16 C8 16 54 9 54 16 L54 78 C54 78 8 72 8 72 Z"
-        fill={`${accent}0d`} stroke={`${accent}44`} strokeWidth="1.4" />
+        fill={`color-mix(in srgb, ${accent} 5%, transparent)`} stroke={`color-mix(in srgb, ${accent} 27%, transparent)`} strokeWidth="1.4" />
       <path d="M66 16 C66 16 112 9 112 16 L112 72 C112 72 66 78 66 78 Z"
-        fill={`${accent}0d`} stroke={`${accent}44`} strokeWidth="1.4" />
-      <path d="M54 14 L66 14 L66 80 L54 80 Z" fill={`${accent}20`} />
-      <line x1="16" y1="30" x2="48" y2="29" stroke={`${accent}28`} strokeWidth="1.6" />
-      <line x1="16" y1="40" x2="48" y2="39" stroke={`${accent}28`} strokeWidth="1.6" />
-      <line x1="16" y1="50" x2="48" y2="49" stroke={`${accent}28`} strokeWidth="1.6" />
-      <line x1="16" y1="60" x2="40" y2="59" stroke={`${accent}1a`} strokeWidth="1.6" />
-      <line x1="16" y1="70" x2="45" y2="69" stroke={`${accent}1a`} strokeWidth="1.6" />
-      <line x1="72" y1="30" x2="106" y2="29" stroke={`${accent}28`} strokeWidth="1.6" />
-      <line x1="72" y1="40" x2="106" y2="39" stroke={`${accent}28`} strokeWidth="1.6" />
-      <line x1="72" y1="50" x2="106" y2="49" stroke={`${accent}28`} strokeWidth="1.6" />
-      <line x1="72" y1="60" x2="96" y2="59" stroke={`${accent}1a`} strokeWidth="1.6" />
-      <line x1="72" y1="70" x2="102" y2="69" stroke={`${accent}1a`} strokeWidth="1.6" />
+        fill={`color-mix(in srgb, ${accent} 5%, transparent)`} stroke={`color-mix(in srgb, ${accent} 27%, transparent)`} strokeWidth="1.4" />
+      <path d="M54 14 L66 14 L66 80 L54 80 Z" fill={`color-mix(in srgb, ${accent} 13%, transparent)`} />
+      <line x1="16" y1="30" x2="48" y2="29" stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="1.6" />
+      <line x1="16" y1="40" x2="48" y2="39" stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="1.6" />
+      <line x1="16" y1="50" x2="48" y2="49" stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="1.6" />
+      <line x1="16" y1="60" x2="40" y2="59" stroke={`color-mix(in srgb, ${accent} 10%, transparent)`} strokeWidth="1.6" />
+      <line x1="16" y1="70" x2="45" y2="69" stroke={`color-mix(in srgb, ${accent} 10%, transparent)`} strokeWidth="1.6" />
+      <line x1="72" y1="30" x2="106" y2="29" stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="1.6" />
+      <line x1="72" y1="40" x2="106" y2="39" stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="1.6" />
+      <line x1="72" y1="50" x2="106" y2="49" stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="1.6" />
+      <line x1="72" y1="60" x2="96" y2="59" stroke={`color-mix(in srgb, ${accent} 10%, transparent)`} strokeWidth="1.6" />
+      <line x1="72" y1="70" x2="102" y2="69" stroke={`color-mix(in srgb, ${accent} 10%, transparent)`} strokeWidth="1.6" />
     </svg>
   );
 }
@@ -270,26 +270,26 @@ function DeskIllustration({ accent }: { accent: string }) {
   return (
     <svg width="110" height="68" viewBox="0 0 136 88" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
       {/* Monitor */}
-      <rect x="4" y="6" width="72" height="54" rx="4" stroke={`${accent}44`} strokeWidth="1.4" fill={`${accent}0a`} />
-      <line x1="40" y1="60" x2="40" y2="70" stroke={`${accent}30`} strokeWidth="1.4" />
-      <line x1="28" y1="70" x2="52" y2="70" stroke={`${accent}30`} strokeWidth="1.4" />
-      <text x="12" y="24" fill={`${accent}66`} fontSize="8" fontFamily="monospace">$_</text>
-      <line x1="12" y1="34" x2="66" y2="34" stroke={`${accent}18`} strokeWidth="1.3" />
-      <line x1="12" y1="42" x2="56" y2="42" stroke={`${accent}18`} strokeWidth="1.3" />
-      <line x1="12" y1="50" x2="60" y2="50" stroke={`${accent}18`} strokeWidth="1.3" />
+      <rect x="4" y="6" width="72" height="54" rx="4" stroke={`color-mix(in srgb, ${accent} 27%, transparent)`} strokeWidth="1.4" fill={`color-mix(in srgb, ${accent} 4%, transparent)`} />
+      <line x1="40" y1="60" x2="40" y2="70" stroke={`color-mix(in srgb, ${accent} 19%, transparent)`} strokeWidth="1.4" />
+      <line x1="28" y1="70" x2="52" y2="70" stroke={`color-mix(in srgb, ${accent} 19%, transparent)`} strokeWidth="1.4" />
+      <text x="12" y="24" fill={`color-mix(in srgb, ${accent} 40%, transparent)`} fontSize="8" fontFamily="monospace">$_</text>
+      <line x1="12" y1="34" x2="66" y2="34" stroke={`color-mix(in srgb, ${accent} 9%, transparent)`} strokeWidth="1.3" />
+      <line x1="12" y1="42" x2="56" y2="42" stroke={`color-mix(in srgb, ${accent} 9%, transparent)`} strokeWidth="1.3" />
+      <line x1="12" y1="50" x2="60" y2="50" stroke={`color-mix(in srgb, ${accent} 9%, transparent)`} strokeWidth="1.3" />
       {/* Keyboard */}
-      <rect x="84" y="46" width="48" height="30" rx="3" stroke={`${accent}38`} strokeWidth="1.4" fill={`${accent}08`} />
-      <rect x="88" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="96" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="104" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="112" y="50" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="88" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="96" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="104" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="112" y="58" width="6" height="5" rx="1" fill={`${accent}18`} stroke={`${accent}28`} strokeWidth="0.6" />
-      <rect x="91" y="66" width="22" height="5" rx="1" fill={`${accent}14`} stroke={`${accent}28`} strokeWidth="0.6" />
+      <rect x="84" y="46" width="48" height="30" rx="3" stroke={`color-mix(in srgb, ${accent} 22%, transparent)`} strokeWidth="1.4" fill={`color-mix(in srgb, ${accent} 3%, transparent)`} />
+      <rect x="88" y="50" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="96" y="50" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="104" y="50" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="112" y="50" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="88" y="58" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="96" y="58" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="104" y="58" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="112" y="58" width="6" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 9%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
+      <rect x="91" y="66" width="22" height="5" rx="1" fill={`color-mix(in srgb, ${accent} 8%, transparent)`} stroke={`color-mix(in srgb, ${accent} 16%, transparent)`} strokeWidth="0.6" />
       {/* Chart lines inside monitor - small candlestick-ish */}
-      <polyline points="14,26 22,16 30,20 42,11 54,18 64,13" stroke={`${accent}50`} strokeWidth="1.2" fill="none" />
+      <polyline points="14,26 22,16 30,20 42,11 54,18 64,13" stroke={`color-mix(in srgb, ${accent} 31%, transparent)`} strokeWidth="1.2" fill="none" />
     </svg>
   );
 }
@@ -306,7 +306,7 @@ function RankTrack({ pct, accent }: { pct: number; accent: string }) {
             flex: 1,
             height: 4,
             borderRadius: 2,
-            background: i < filled ? accent : "rgba(232,237,248,0.1)",
+            background: i < filled ? accent : "var(--bg-sunken)",
             transition: "background .3s ease",
           }}
         />
@@ -327,8 +327,8 @@ function ArcStep({
           width: 38,
           height: 38,
           borderRadius: 9,
-          background: faded ? "rgba(232,237,248,0.03)" : `${accent}12`,
-          border: `1px solid ${faded ? "rgba(232,237,248,0.07)" : `${accent}28`}`,
+          background: faded ? "var(--bg-surface)" : `color-mix(in srgb, ${accent} 7%, transparent)`,
+          border: `1px solid ${faded ? "var(--border)" : `color-mix(in srgb, ${accent} 16%, transparent)`}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

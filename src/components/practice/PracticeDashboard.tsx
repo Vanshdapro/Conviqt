@@ -7,20 +7,20 @@ import { ThesisRunner, type PlayThesisDrill } from "./ThesisRunner";
 import { PaperDesk } from "./PaperDesk";
 import { StarIcon, LockIcon, ChartIcon, PenIcon, TrophyIcon, ChevronRightIcon } from "./icons";
 
-const SURFACE = "#07121f";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const CREDIT = "#e0a23b";
-const VIOLET = "#a78bfa";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const SURFACE = "var(--bg-surface)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const GOOD = "var(--up-ink)";
+const CREDIT = "var(--accent)";
+const VIOLET = "var(--text-2)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 interface CardProgress { bestScore: number; bestStars: number; bestPnlPct: number | null; attempts: number; }
 interface DrillCard {
@@ -116,7 +116,7 @@ export function PracticeDashboard() {
         </p>
         <button
           onClick={() => { setLoading(true); fetchDashboard(); }}
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, border: `1px solid ${ACCENT}`, borderRadius: 9, background: ACCENT, color: "#04101f", padding: "0 20px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, border: `1px solid ${ACCENT}`, borderRadius: 9, background: ACCENT, color: "var(--on-accent)", padding: "0 20px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}
         >
           Retry
         </button>
@@ -136,8 +136,8 @@ export function PracticeDashboard() {
     <div style={{ fontFamily: SANS }}>
       <style>{`
         .pr-card { transition: border-color .16s ease, background .16s ease, transform .16s ease; text-align: left; }
-        .pr-card:not(:disabled):hover { transform: translateY(-2px); border-color: rgba(79,135,247,.3); background: rgba(232,237,248,.04); }
-        .pr-card:focus-visible { outline: 2px solid rgba(79,135,247,.6); outline-offset: 3px; }
+        .pr-card:not(:disabled):hover { transform: translateY(-2px); border-color: var(--accent); background: var(--bg-sunken); }
+        .pr-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
         @media (max-width: 760px) {
           .pr-cards { grid-template-columns: 1fr !important; }
           .pr-hero { font-size: 36px !important; }
@@ -181,8 +181,8 @@ export function PracticeDashboard() {
               width: 48,
               height: 48,
               borderRadius: 12,
-              background: "rgba(79,135,247,0.1)",
-              border: "1px solid rgba(79,135,247,0.22)",
+              background: "var(--accent-weak)",
+              border: "1px solid var(--accent)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -210,7 +210,7 @@ export function PracticeDashboard() {
                   : "Top rank reached"}
               </span>
             </div>
-            <div style={{ height: 6, borderRadius: 999, background: "rgba(232,237,248,0.08)", overflow: "hidden" }}>
+            <div style={{ height: 6, borderRadius: 999, background: "var(--bg-sunken)", overflow: "hidden" }}>
               <div style={{
                 width: `${rankPct}%`,
                 height: "100%",
@@ -242,7 +242,7 @@ export function PracticeDashboard() {
       </header>
 
       {cardErr && (
-        <div role="alert" style={{ marginBottom: 18, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.26)", color: "#fca5a5", borderRadius: 10, padding: "12px 14px", fontSize: 13.5 }}>
+        <div role="alert" style={{ marginBottom: 18, background: "var(--down-weak)", border: "1px solid var(--down)", color: "var(--down-ink)", borderRadius: 10, padding: "12px 14px", fontSize: 13.5 }}>
           {cardErr}
         </div>
       )}
@@ -261,8 +261,8 @@ export function PracticeDashboard() {
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
                   color: tier.unlocked ? ACCENT : FAINT,
-                  background: tier.unlocked ? "rgba(79,135,247,0.1)" : "rgba(232,237,248,0.04)",
-                  border: `1px solid ${tier.unlocked ? "rgba(79,135,247,0.28)" : "rgba(232,237,248,0.08)"}`,
+                  background: tier.unlocked ? "var(--accent-weak)" : "var(--bg-sunken)",
+                  border: `1px solid ${tier.unlocked ? "var(--accent)" : "var(--bg-sunken)"}`,
                   borderRadius: 4,
                   padding: "3px 8px",
                 }}>
@@ -338,7 +338,7 @@ function DrillCardView({
         flexDirection: "column",
         gap: 14,
         background: SURFACE,
-        border: `1px solid ${cleared ? "rgba(34,197,94,0.28)" : BORDER}`,
+        border: `1px solid ${cleared ? "var(--up)" : BORDER}`,
         borderRadius: 12,
         padding: "18px 20px",
         cursor: locked ? "default" : busy ? "wait" : "pointer",
@@ -352,8 +352,8 @@ function DrillCardView({
           display: "inline-flex", alignItems: "center", gap: 5,
           color: kindColor, fontFamily: MONO, fontSize: 10, letterSpacing: "0.1em",
           textTransform: "uppercase", fontWeight: 700,
-          background: `${kindColor}12`,
-          border: `1px solid ${kindColor}28`,
+          background: `color-mix(in srgb, ${kindColor} 7%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${kindColor} 16%, transparent)`,
           borderRadius: 4, padding: "3px 8px",
         }}>
           {isEpisode ? <ChartIcon size={12} /> : <PenIcon size={12} />}
@@ -362,7 +362,7 @@ function DrillCardView({
         {card.conceptTags.slice(0, 1).map((tag) => (
           <span key={tag} style={{
             color: diffColor, fontFamily: MONO, fontSize: 10, letterSpacing: "0.06em",
-            textTransform: "uppercase", border: `1px solid ${diffColor}38`, borderRadius: 4, padding: "3px 8px",
+            textTransform: "uppercase", border: `1px solid color-mix(in srgb, ${diffColor} 22%, transparent)`, borderRadius: 4, padding: "3px 8px",
           }}>
             {tag}
           </span>
@@ -422,7 +422,7 @@ function DrillCardView({
       {locked && (
         <span style={{
           position: "absolute", inset: 0, borderRadius: 12,
-          background: "rgba(5,13,26,0.4)",
+          background: "color-mix(in srgb, var(--text) 35%, transparent)",
           display: "flex", alignItems: "center", justifyContent: "center",
           color: FAINT,
         }}>

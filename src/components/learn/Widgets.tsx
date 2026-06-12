@@ -10,17 +10,17 @@
 import { useMemo, useState } from "react";
 import type { LessonWidget, WidgetType } from "@/lib/learn/types";
 
-const ACCENT = "#4f87f7";
-const BULL = "#22c55e";
-const HOLD = "#f59e0b";
-const BEAR = "#ef4444";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const CARD = "#071120";
-const BORDER = "1px solid rgba(232,237,248,0.09)";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+const ACCENT = "var(--accent)";
+const BULL = "var(--accent)";
+const HOLD = "var(--text-2)";
+const BEAR = "var(--down-ink)";
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const CARD = "var(--bg-surface)";
+const BORDER = "1px solid var(--border)";
+const MONO = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const SERIF = "var(--font-ui)";
 
 function fmtUSD(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -79,7 +79,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Stat({ label, value, accent = INK }: { label: string; value: string; accent?: string }) {
   return (
-    <div style={{ background: "rgba(232,237,248,0.03)", border: BORDER, borderRadius: 8, padding: "12px 14px" }}>
+    <div style={{ background: "var(--bg-surface)", border: BORDER, borderRadius: 8, padding: "12px 14px" }}>
       <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>
         {label}
       </div>
@@ -153,7 +153,7 @@ function AreaChart({ series, baseline }: { series: number[]; baseline: number[] 
         </linearGradient>
       </defs>
       <path d={area(series)} fill="url(#ciGrad)" />
-      <path d={line(baseline)} fill="none" stroke="rgba(232,237,248,0.35)" strokeWidth="2" strokeDasharray="4 4" />
+      <path d={line(baseline)} fill="none" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="4 4" />
       <path d={line(series)} fill="none" stroke={ACCENT} strokeWidth="2.5" />
     </svg>
   );
@@ -182,7 +182,7 @@ function BudgetSplitter({ p }: { p: Record<string, number> }) {
         <Slider label="Needs %" value={needs} min={0} max={100} step={1} onChange={setNeeds} format={(v) => `${v}%`} accent={ACCENT} />
         <Slider label="Wants %" value={wants} min={0} max={100} step={1} onChange={setWants} format={(v) => `${v}%`} accent={HOLD} />
         {over && (
-          <div style={{ color: "#f87171", fontSize: 12.5, marginTop: -6 }}>
+          <div style={{ color: "var(--down-ink)", fontSize: 12.5, marginTop: -6 }}>
             That&apos;s over 100% — nothing left to save. Pull something back.
           </div>
         )}
@@ -242,7 +242,7 @@ function DiversificationMeter({ p }: { p: Record<string, number> }) {
               style={{
                 aspectRatio: "1",
                 borderRadius: 7,
-                background: i < count ? color : "rgba(232,237,248,0.06)",
+                background: i < count ? color : "var(--bg-sunken)",
                 transition: "background 0.2s ease",
               }}
             />
@@ -382,7 +382,7 @@ function PositionSizingLab({ p }: { p: Record<string, number> }) {
           <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>
             Bet size vs your bankroll
           </div>
-          <div style={{ height: 22, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+          <div style={{ height: 22, borderRadius: 6, background: "var(--bg-sunken)", overflow: "hidden", border: BORDER }}>
             <div style={{ width: `${Math.min(100, fk * 100)}%`, height: "100%", background: barColor, transition: "width .25s ease" }} />
           </div>
           <p style={{ fontSize: 12, color: MUTED, marginTop: 10 }}>
@@ -436,7 +436,7 @@ function RecoveryBar({ label, pct, max, color, caption }: { label: string; pct: 
         <span style={{ fontSize: 11.5, color: MUTED }}>{label}</span>
         <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 650, color }}>{caption}</span>
       </div>
-      <div style={{ height: 20, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+      <div style={{ height: 20, borderRadius: 6, background: "var(--bg-sunken)", overflow: "hidden", border: BORDER }}>
         <div style={{ width: `${Math.min(100, (pct / max) * 100)}%`, height: "100%", background: color, transition: "width .25s ease" }} />
       </div>
     </div>
@@ -495,7 +495,7 @@ function ProbBar({ label, prob, value, color }: { label: string; prob: number; v
         <span style={{ fontSize: 11.5, color: MUTED }}>{label} · {(prob * 100).toFixed(0)}% of the time</span>
         <span style={{ fontFamily: MONO, fontSize: 12.5, fontWeight: 650, color }}>{value >= 0 ? "+" : ""}{value}%</span>
       </div>
-      <div style={{ height: 16, borderRadius: 5, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+      <div style={{ height: 16, borderRadius: 5, background: "var(--bg-sunken)", overflow: "hidden", border: BORDER }}>
         <div style={{ width: `${prob * 100}%`, height: "100%", background: color, opacity: 0.85, transition: "width .25s ease" }} />
       </div>
     </div>
@@ -642,7 +642,7 @@ function RuleOf40Lab({ p }: { p: Record<string, number> }) {
         <Stat label="Growth + margin" value={`${score >= 0 ? "+" : ""}${score.toFixed(0)}`} accent={color} />
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>Score vs the 40 line</div>
-          <div style={{ position: "relative", height: 26, borderRadius: 6, background: "rgba(232,237,248,0.06)", overflow: "hidden", border: BORDER }}>
+          <div style={{ position: "relative", height: 26, borderRadius: 6, background: "var(--bg-sunken)", overflow: "hidden", border: BORDER }}>
             <div style={{ width: `${clamp(score, 0, 80) / 80 * 100}%`, height: "100%", background: color, transition: "width .25s ease" }} />
             <div style={{ position: "absolute", top: 0, bottom: 0, left: `${40 / 80 * 100}%`, width: 2, background: INK, opacity: 0.7 }} />
           </div>
@@ -926,8 +926,8 @@ function OptionsPayoffLab({ p }: { p: Record<string, number> }) {
                 onClick={() => setIsPut(i === 1)}
                 style={{
                   flex: 1,
-                  background: active ? "rgba(79,135,247,0.16)" : "rgba(232,237,248,0.03)",
-                  border: active ? "1px solid rgba(79,135,247,0.6)" : BORDER,
+                  background: active ? "var(--accent-weak)" : "var(--bg-surface)",
+                  border: active ? "1px solid var(--accent)" : BORDER,
                   color: active ? ACCENT : MUTED,
                   borderRadius: 7, padding: "8px 0", fontFamily: MONO, fontSize: 12.5, fontWeight: 650, cursor: "pointer",
                 }}
@@ -1110,7 +1110,7 @@ function MiniLine({ series, color, format }: { series: number[]; color: string; 
   const line = series.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} role="img" aria-label="Trend">
-      <path d={`${line} L${x(n - 1).toFixed(1)},${H - pad} L${x(0).toFixed(1)},${H - pad} Z`} fill={`${color}1f`} />
+      <path d={`${line} L${x(n - 1).toFixed(1)},${H - pad} L${x(0).toFixed(1)},${H - pad} Z`} fill={`color-mix(in srgb, ${color} 12%, transparent)`} />
       <path d={line} fill="none" stroke={color} strokeWidth={2.5} />
       <text x={x(n - 1)} y={y(series[n - 1]) - 8} fontFamily={MONO} fontSize={12} fill={color} textAnchor="end" fontWeight={650}>{format(series[n - 1])}</text>
     </svg>
@@ -1145,7 +1145,7 @@ function PayoffChart({ pts, breakeven, lo, hi, premium }: { pts: { spot: number;
   const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.spot).toFixed(1)},${y(p.pl).toFixed(1)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} role="img" aria-label="Option payoff at expiry">
-      <line x1={pad} y1={zeroY} x2={W - pad} y2={zeroY} stroke="rgba(232,237,248,0.25)" strokeWidth={1.25} strokeDasharray="4 4" />
+      <line x1={pad} y1={zeroY} x2={W - pad} y2={zeroY} stroke="var(--border-strong)" strokeWidth={1.25} strokeDasharray="4 4" />
       <line x1={x(breakeven)} y1={pad} x2={x(breakeven)} y2={H - pad} stroke={ACCENT} strokeWidth={1} strokeDasharray="3 4" opacity={0.6} />
       <path d={line} fill="none" stroke={BULL} strokeWidth={2.75} />
       <text x={x(breakeven)} y={H - 2} fontFamily={MONO} fontSize={10.5} fill={ACCENT} textAnchor="middle">breakeven</text>
@@ -1166,8 +1166,8 @@ function ValueFunctionChart({ lambda, alpha }: { lambda: number; alpha: number }
   }
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} role="img" aria-label="Prospect-theory value function">
-      <line x1={pad} y1={H / 2} x2={W - pad} y2={H / 2} stroke="rgba(232,237,248,0.2)" strokeWidth={1.25} />
-      <line x1={W / 2} y1={pad} x2={W / 2} y2={H - pad} stroke="rgba(232,237,248,0.2)" strokeWidth={1.25} />
+      <line x1={pad} y1={H / 2} x2={W - pad} y2={H / 2} stroke="var(--border-strong)" strokeWidth={1.25} />
+      <line x1={W / 2} y1={pad} x2={W / 2} y2={H - pad} stroke="var(--border-strong)" strokeWidth={1.25} />
       <polyline points={pts.join(" ")} fill="none" stroke={ACCENT} strokeWidth={2.75} />
       <text x={W - pad} y={H / 2 - 8} fontFamily={MONO} fontSize={10.5} fill={BULL} textAnchor="end">gains →</text>
       <text x={pad} y={H / 2 + 18} fontFamily={MONO} fontSize={10.5} fill={BEAR}>← losses</text>

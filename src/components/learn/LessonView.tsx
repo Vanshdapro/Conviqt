@@ -8,32 +8,31 @@ import { LessonFigure } from "./Figures";
 import { Quiz } from "./Quiz";
 import { ArrowRightIcon, CheckIcon, TrackIcon } from "./icons";
 
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const GOOD = "#22c55e";
-const SURFACE = "#071120";
-const SURFACE_SOFT = "rgba(232,237,248,0.035)";
-const BORDER = "rgba(232,237,248,0.09)";
-const RULE = "rgba(232,237,248,0.075)";
-const MONO = "var(--font-mono), 'JetBrains Mono', monospace";
-const SANS = "var(--font-sans), system-ui, sans-serif";
-const DISPLAY = "var(--font-display), Georgia, 'Times New Roman', serif";
-const SERIF = "var(--font-serif), Georgia, serif";
+// Almanac tokens only (playbook 2.1) — the dark lesson palette died in Phase 8.
+const INK = "var(--text)";
+const MUTED = "var(--text-2)";
+const FAINT = "var(--text-muted)";
+const ACCENT = "var(--accent)";
+const ON_ACCENT = "var(--on-accent)";
+const SURFACE = "var(--bg-surface)";
+const SURFACE_SOFT = "var(--bg-sunken)";
+const BORDER = "var(--border)";
+const RULE = "var(--border)";
+const LABEL = "var(--font-ui)";
+const SANS = "var(--font-ui)";
+const DISPLAY = "var(--font-display)";
+const SERIF = "var(--font-ui)";
 
 export function LessonView({
   module,
   trackId,
   trackName,
-  accent = ACCENT,
   onBack,
   onCompleted,
 }: {
   module: LessonModule;
   trackId: string;
   trackName: string;
-  accent?: string;
   onBack: () => void;
   onCompleted: (stats: LearnStats) => void;
 }) {
@@ -58,15 +57,22 @@ export function LessonView({
     }
   }
 
-  const chatHref = `/chat?q=${encodeURIComponent(module.tryInChat.prompt)}`;
+  const researchHref = `/research?q=${encodeURIComponent(module.tryInChat.prompt)}`;
   const ticker = module.realWorldExample.ticker;
+  // The completion nudge sends the reader straight back to Research with the
+  // lesson's example ticker pre-filled (or a blank prompt if there isn't one).
+  const tryItHref = ticker
+    ? `/research?q=${encodeURIComponent(`analyze ${ticker}`)}`
+    : "/research";
 
   return (
     <article style={{ maxWidth: 860, margin: "0 auto", fontFamily: SANS }}>
       <style>{`
-        .lesson-action, .lesson-quiet, .lesson-card { transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+        .lesson-action, .lesson-quiet, .lesson-card { transition: border-color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
         .lesson-action:hover, .lesson-quiet:hover, .lesson-card:hover { transform: translateY(-1px); }
-        .lesson-action:focus-visible, .lesson-quiet:focus-visible, .lesson-card:focus-visible { outline: 2px solid rgba(79,135,247,.65); outline-offset: 3px; }
+        .lesson-action:hover { background: var(--accent-hover) !important; }
+        .lesson-quiet:hover { border-color: var(--border-strong) !important; }
+        .lesson-action:focus-visible, .lesson-quiet:focus-visible, .lesson-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
         @media (max-width: 720px) {
           .lesson-concepts { grid-template-columns: 1fr !important; }
           .lesson-bridge { align-items: stretch !important; }
@@ -88,10 +94,11 @@ export function LessonView({
           background: "transparent",
           border: `1px solid ${BORDER}`,
           color: MUTED,
-          borderRadius: 8,
+          borderRadius: "var(--radius-control)",
           padding: "8px 12px",
-          fontFamily: MONO,
-          fontSize: 12,
+          fontFamily: LABEL,
+          fontSize: 12.5,
+          fontWeight: 600,
           cursor: "pointer",
           marginBottom: 28,
         }}
@@ -108,18 +115,18 @@ export function LessonView({
             style={{
               width: 30,
               height: 30,
-              borderRadius: 8,
+              borderRadius: "var(--radius-control)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               border: `1px solid ${BORDER}`,
-              background: SURFACE_SOFT,
+              background: "var(--accent-weak)",
               color: ACCENT,
             }}
           >
             <TrackIcon trackId={trackId} size={15} />
           </span>
-          <span style={{ fontFamily: MONO, fontSize: 12 }}>{trackName}</span>
+          <span style={{ fontFamily: LABEL, fontSize: 12.5, fontWeight: 600 }}>{trackName}</span>
         </div>
         <h1
           style={{
@@ -139,7 +146,7 @@ export function LessonView({
         </p>
       </header>
 
-      {module.figure && <LessonFigure figure={module.figure} accent={accent} />}
+      {module.figure && <LessonFigure figure={module.figure} accent="var(--accent)" />}
 
       {module.conceptCards.length > 0 && (
         <section style={{ marginBottom: 26 }}>
@@ -152,11 +159,12 @@ export function LessonView({
                 style={{
                   background: SURFACE,
                   border: `1px solid ${BORDER}`,
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-card)",
+                  boxShadow: "var(--shadow-card)",
                   padding: 16,
                 }}
               >
-                <div style={{ color: FAINT, fontFamily: MONO, fontSize: 12, marginBottom: 10 }}>
+                <div style={{ color: FAINT, fontFamily: LABEL, fontSize: 12, fontVariantNumeric: "tabular-nums", marginBottom: 10 }}>
                   {String(index + 1).padStart(2, "0")}
                 </div>
                 <h3 style={{ color: INK, fontFamily: SERIF, fontSize: 16, lineHeight: 1.35, margin: "0 0 8px", fontWeight: 600 }}>
@@ -176,7 +184,7 @@ export function LessonView({
           style={{
             background: SURFACE_SOFT,
             border: `1px solid ${BORDER}`,
-            borderRadius: 8,
+            borderRadius: "var(--radius-card)",
             padding: 18,
             margin: "24px 0",
           }}
@@ -190,15 +198,16 @@ export function LessonView({
           </p>
           {ticker && (
             <Link
-              href={`/chat?q=${encodeURIComponent(`analyze ${ticker}`)}`}
+              href={`/research?q=${encodeURIComponent(`analyze ${ticker}`)}`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 marginTop: 14,
-                fontFamily: MONO,
-                fontSize: 12,
-                color: ACCENT,
+                fontFamily: LABEL,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--link)",
                 textDecoration: "none",
               }}
             >
@@ -237,27 +246,50 @@ export function LessonView({
       {result && (
         <div
           style={{
-            background: "rgba(34,197,94,0.07)",
-            border: "1px solid rgba(34,197,94,0.24)",
-            borderRadius: 8,
+            background: "var(--accent-weak)",
+            border: `1px solid ${BORDER}`,
+            borderRadius: "var(--radius-card)",
             padding: 18,
             margin: "20px 0",
             display: "flex",
             alignItems: "center",
             gap: 14,
+            flexWrap: "wrap",
           }}
         >
-          <span style={{ color: GOOD, display: "inline-flex", flexShrink: 0 }}>
+          <span style={{ color: ACCENT, display: "inline-flex", flexShrink: 0 }}>
             <CheckIcon size={22} />
           </span>
-          <div>
+          <div style={{ flex: 1, minWidth: 180 }}>
             <div style={{ color: INK, fontSize: 16, fontWeight: 650, marginBottom: 4 }}>
               {result.awardedXp > 0 ? `+${result.awardedXp} XP` : "Already completed"}
             </div>
             <p style={{ margin: 0, fontSize: 13.5, color: MUTED }}>
-              Score: {result.pct}%.
+              Score: {result.pct}%. Now take it out of the classroom.
             </p>
           </div>
+          {/* The nudge back to Research — a lesson should end in the product. */}
+          <Link
+            className="lesson-action"
+            href={tryItHref}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              minHeight: 40,
+              background: ACCENT,
+              color: ON_ACCENT,
+              borderRadius: "var(--radius-control)",
+              padding: "0 16px",
+              fontSize: 13.5,
+              fontWeight: 650,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Try it on a real stock
+            <ArrowRightIcon size={15} />
+          </Link>
         </div>
       )}
 
@@ -266,7 +298,8 @@ export function LessonView({
         style={{
           background: SURFACE,
           border: `1px solid ${BORDER}`,
-          borderRadius: 8,
+          borderRadius: "var(--radius-card)",
+          boxShadow: "var(--shadow-card)",
           padding: 18,
           margin: "24px 0",
           display: "flex",
@@ -278,19 +311,19 @@ export function LessonView({
       >
         <div>
           <div style={{ color: INK, fontFamily: SERIF, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Use this in research</div>
-          <p style={{ margin: 0, color: MUTED, fontSize: 13.5 }}>Open Chat with a prompt based on this lesson.</p>
+          <p style={{ margin: 0, color: MUTED, fontSize: 13.5 }}>Open Research with a prompt based on this lesson.</p>
         </div>
         <Link
           className="lesson-action"
-          href={chatHref}
+          href={researchHref}
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
             minHeight: 40,
             background: ACCENT,
-            color: "#04101f",
-            borderRadius: 8,
+            color: ON_ACCENT,
+            borderRadius: "var(--radius-control)",
             padding: "0 16px",
             fontSize: 13.5,
             fontWeight: 650,
@@ -309,7 +342,7 @@ export function LessonView({
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
             {module.takeaways.map((takeaway, index) => (
               <li key={`${takeaway}-${index}`} style={{ display: "flex", gap: 12, color: MUTED, fontSize: 14.5, lineHeight: 1.58 }}>
-                <span style={{ color: FAINT, fontFamily: MONO, fontSize: 12, minWidth: 22, lineHeight: 1.8 }}>
+                <span style={{ color: FAINT, fontFamily: LABEL, fontSize: 12, fontVariantNumeric: "tabular-nums", minWidth: 22, lineHeight: 1.8 }}>
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <span>{takeaway}</span>
@@ -333,9 +366,10 @@ function SectionTitle({
     <div
       style={{
         color: FAINT,
-        fontFamily: MONO,
-        fontSize: 10,
-        letterSpacing: "0.18em",
+        fontFamily: LABEL,
+        fontSize: 11,
+        fontWeight: 650,
+        letterSpacing: "0.16em",
         textTransform: "uppercase",
         marginBottom: compact ? 10 : 14,
       }}
