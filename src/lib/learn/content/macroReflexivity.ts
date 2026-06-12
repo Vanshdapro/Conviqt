@@ -8,7 +8,7 @@ export const macroReflexivity: RawTrack = {
   name: "Macro, Cycles & Reflexivity",
   tagline: "Markets are not machines that revert to fair value. They are feedback loops.",
   emoji: "",
-  accent: "#a78bfa",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "mr-rates-gravity",

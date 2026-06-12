@@ -10,7 +10,7 @@ export const foundations: RawTrack = {
   name: "Markets & Investing Foundations",
   tagline: "Start here: how investing actually works, before the jargon.",
   emoji: "",
-  accent: "#fbbf24",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "found-compounding",

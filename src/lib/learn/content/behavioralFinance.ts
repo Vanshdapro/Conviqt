@@ -9,7 +9,7 @@ export const behavioralFinance: RawTrack = {
   name: "Behavioral Finance & Psychology",
   tagline: "The biggest obstacle to good returns is the investor in the mirror.",
   emoji: "",
-  accent: "#fb7185",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "bf-loss-aversion",

@@ -1,30 +1,33 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   LEGACY VARIABLE BRIDGE — Phase 8.
+   The pre-rebrand pages (about, methodology, admin, dev) were written against
+   the old dark-navy variable names. Instead of rewriting every page, the old
+   names now RESOLVE to Almanac tokens (src/styles/tokens.css — imported after
+   this file, so shared names like --accent/--border take the token value).
+   No raw color values may appear here; everything references a token.
+   ============================================================================ */
+
 :root {
-  /* Base palette — deep space navy matching logo */
-  --background: #050d1a;
-  --foreground: #e8edf8;
-  --muted: #7a92b8;
-  --dim: #3d5278;
-  --border: #0e1628;
-  --rule: #111d33;
-  --surface: #060c18;
-  --surface-2: #0a1323;
-  --surface-3: #0f1d35;
+  --background: var(--bg-page);
+  --foreground: var(--text);
+  --muted: var(--text-muted);
+  --dim: var(--text-muted);
+  --rule: var(--border);
+  --surface: var(--bg-surface);
+  --surface-2: var(--bg-surface);
+  --surface-3: var(--bg-sunken);
 
-  /* Brand — electric blue from logo arrows */
-  --accent: #4f87f7;
-  --accent-dim: rgba(79, 135, 247, 0.08);
-  --accent-border: rgba(79, 135, 247, 0.22);
+  --accent-dim: var(--accent-weak);
+  --accent-border: var(--accent);
+  --navy: var(--accent);
+  --navy-light: var(--accent);
 
-  /* Logo navy for structural accents */
-  --navy: #1a3260;
-  --navy-light: #2a4d8f;
-
-  /* Market signals */
-  --bull: #22c55e;
-  --bear: #ef4444;
-  --hold: #f59e0b;
+  /* Market signals — data only (Almanac up/down inks; "hold" is espresso). */
+  --bull: var(--up-ink);
+  --bear: var(--down-ink);
+  --hold: var(--text-2);
 }
 
 @theme inline {
@@ -61,26 +64,29 @@ body {
   font-feature-settings: "cv11", "kern";
 }
 
+/* Legacy type utilities — all resolve to the Almanac pairing now (the layout
+   rebinds --font-sans/-serif/-display onto General Sans / Cabinet Grotesk). */
 .mono {
-  font-family: var(--font-mono), "JetBrains Mono", "SF Mono", monospace;
+  font-family: var(--font-ui);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
 .serif {
-  font-family: var(--font-serif), "Lora", Georgia, serif;
+  font-family: var(--font-ui);
   font-feature-settings: "kern", "liga", "calt";
 }
 
 .display {
-  font-family: var(--font-display), "DM Serif Display", Georgia, serif;
+  font-family: var(--font-display);
   font-feature-settings: "kern", "liga";
 }
 
 /* Section label — editorial caps style */
 .caps {
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-ui);
   font-size: 10px;
+  font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
@@ -130,13 +136,13 @@ body {
   .slide-up { animation: none; }
 }
 
-/* Pick card hover */
+/* Pick card hover — tone + hairline, never a glow (Almanac elevation rule) */
 .pick-card {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .pick-card:hover {
-  border-color: rgba(79, 135, 247, 0.22) !important;
-  box-shadow: 0 4px 32px rgba(5, 13, 26, 0.6);
+  border-color: var(--border-strong) !important;
+  box-shadow: var(--shadow-card);
 }
 
 /* Thin accent line — top border on institutional cards */
@@ -158,41 +164,35 @@ body {
 
 /* Hero search input placeholder */
 .hero-search-input::placeholder {
-  color: rgba(122, 146, 184, 0.45);
+  color: var(--text-muted);
   font-weight: 400;
 }
 
-/* Gradient text utility */
+/* LEGACY .gradient-text — gradients-as-art are banned (playbook 2.1). The class
+   survives so old markup doesn't break, but it renders plain espresso ink. */
 .gradient-text {
-  background: linear-gradient(135deg, #4f87f7 0%, #a0c0ff 50%, #e8edf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
 }
 
-/* Glow effects */
-.glow-accent {
-  box-shadow: 0 0 24px rgba(79, 135, 247, 0.35), 0 0 48px rgba(79, 135, 247, 0.12);
-}
+/* LEGACY glows — retired. Elevation is tone + 1px border (max --shadow-card). */
+.glow-accent,
 .glow-accent-sm {
-  box-shadow: 0 0 12px rgba(79, 135, 247, 0.25);
+  box-shadow: var(--shadow-card);
 }
 
-/* Glass card */
+/* Glass card — now a solid warm surface (no translucent dark blur). */
 .glass {
-  background: rgba(10, 19, 35, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(79, 135, 247, 0.12);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
 }
 
-/* Scroll reveal animations */
+/* Scroll reveal — tightened to the Almanac motion budget (≤220ms, small). */
 @keyframes fade-up-in {
-  from { opacity: 0; transform: translateY(32px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .reveal {
-  animation: fade-up-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fade-up-in 0.22s ease-out both;
 }
 
 /* Circuit line animation for methodology */

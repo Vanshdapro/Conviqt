@@ -75,15 +75,15 @@ const appJsonLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
 };
 
-const SERIF = "var(--font-serif), Georgia, serif";
+const SERIF = "var(--font-ui)";
 const DISPLAY = "var(--font-display), Georgia, serif";
-const INK = "#e8edf8";
-const DIM = "rgba(232,237,248,0.62)";
-const ACCENT = "rgba(140,200,255,0.9)";
+const INK = "var(--text)";
+const DIM = "var(--text-2)";
+const ACCENT = "var(--accent)";
 
 export default function AboutPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "#050d1a", color: INK }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-page)", color: INK }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
@@ -98,7 +98,7 @@ export default function AboutPage() {
           maxWidth: 760,
           margin: "0 auto",
           padding: "64px 24px 96px",
-          fontFamily: "var(--font-sans), system-ui, sans-serif",
+          fontFamily: "var(--font-ui)",
         }}
       >
         <p
@@ -191,7 +191,7 @@ export default function AboutPage() {
             <div
               key={f.q}
               style={{
-                borderTop: "1px solid rgba(232,237,248,0.1)",
+                borderTop: "1px solid var(--border)",
                 padding: "22px 0",
               }}
             >
@@ -207,7 +207,7 @@ export default function AboutPage() {
           style={{
             marginTop: 56,
             paddingTop: 32,
-            borderTop: "1px solid rgba(232,237,248,0.1)",
+            borderTop: "1px solid var(--border)",
             display: "flex",
             gap: 16,
             flexWrap: "wrap",
@@ -217,7 +217,7 @@ export default function AboutPage() {
             href="/"
             style={{
               background: ACCENT,
-              color: "#050d1a",
+              color: "var(--bg-page)",
               padding: "12px 22px",
               borderRadius: 8,
               fontWeight: 600,
@@ -230,7 +230,7 @@ export default function AboutPage() {
           <Link
             href="/pricing"
             style={{
-              border: "1px solid rgba(232,237,248,0.25)",
+              border: "1px solid var(--border-strong)",
               color: INK,
               padding: "12px 22px",
               borderRadius: 8,
@@ -251,7 +251,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div style={{ margin: "0 0 30px" }}>
       <h2 style={{ fontSize: 19, fontWeight: 600, margin: "0 0 8px", color: INK }}>{title}</h2>
-      <p style={{ fontSize: 16, lineHeight: 1.65, color: "rgba(232,237,248,0.72)", margin: 0 }}>
+      <p style={{ fontSize: 16, lineHeight: 1.65, color: "var(--text)", margin: 0 }}>
         {children}
       </p>
     </div>

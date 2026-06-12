@@ -8,7 +8,7 @@ export const positionSizing: RawTrack = {
   name: "Position Sizing & Portfolio Construction",
   tagline: "Almost no one loses money on bad picks. They lose it on bad sizing.",
   emoji: "",
-  accent: "#34d399",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "ps-sizing-beats-picking",

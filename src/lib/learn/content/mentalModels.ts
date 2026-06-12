@@ -8,7 +8,7 @@ export const mentalModels: RawTrack = {
   name: "Mental Models & Edge",
   tagline: "Where real edge comes from — and why most participants never have any.",
   emoji: "",
-  accent: "#818cf8",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "mm-variant-perception",

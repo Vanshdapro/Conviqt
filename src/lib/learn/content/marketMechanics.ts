@@ -9,7 +9,7 @@ export const marketMechanics: RawTrack = {
   name: "Market Mechanics & Instruments",
   tagline: "How trades, instruments, and the plumbing of markets actually work.",
   emoji: "",
-  accent: "#22d3ee",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "mkt-how-trades-execute",

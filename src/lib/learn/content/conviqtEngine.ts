@@ -10,7 +10,7 @@ export const conviqtEngine: RawTrack = {
   name: "The Conviqt Engine",
   tagline: "How an AI investment committee actually picks — and how to read it like a PM.",
   emoji: "",
-  accent: "#f472b6",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "ce-the-pipeline",

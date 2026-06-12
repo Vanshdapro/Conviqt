@@ -8,7 +8,7 @@ export const fundamentalAnalysis: RawTrack = {
   name: "Fundamental Analysis",
   tagline: "Statements are the raw material. Analysis is turning them into judgment.",
   emoji: "",
-  accent: "#2dd4bf",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "fa-margins",

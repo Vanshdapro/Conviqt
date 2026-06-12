@@ -97,14 +97,14 @@ set may appear anywhere in the UI, ever.
 /* INK — espresso-derived, NEVER pure black */
 --text         #2A1C15   espresso-black — headlines & body
 --text-2       #63372C   Espresso — secondary labels
---text-muted   #8A7866   captions, timestamps
+--text-muted   #7A6A5A   captions, timestamps
 /* ACCENT — teal (buttons, links, active nav, focus rings) */
---accent       #0E7C7B   --accent-hover #0A5F5D   --accent-weak #D6E7E5
+--accent       #0E7978   --accent-hover #0A5F5D   --accent-weak #D6E7E5
 --on-accent    #FBF7EC   cream text on teal fills (use ≥14px semibold)
 --link         #0A5C5A   darker teal for small text links (stays AA on paper)
 /* MARKET DATA — the only other hues; data only, never decoration */
 --up           #0FA3B1   Pacific Blue (gain)   --up-weak #D5EFF1   --up-ink #0A6F79
---down         #E3655B   Coral (loss)          --down-weak #F8DEDB --down-ink #C0473D
+--down         #E3655B   Coral (loss)          --down-weak #F8DEDB --down-ink #AF4138
 /* DRAMA — one dark moment, used sparingly */
 --espresso     #63372C   deep block for the footer (cream text on top)
 ```

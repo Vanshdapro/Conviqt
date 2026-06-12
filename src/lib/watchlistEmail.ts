@@ -22,18 +22,18 @@ export interface WatchlistAlertCard {
 }
 
 const BASE = "https://www.conviqt.com";
-const INK = "#e8edf8";
-const MUTED = "#8aa0c2";
-const FAINT = "#526684";
-const ACCENT = "#4f87f7";
-const CARD_BG = "#0c1524";
-const PAGE_BG = "#070b12";
-const RULE = "rgba(232,237,248,0.10)";
+const INK = "#2A1C15";
+const MUTED = "#63372C";
+const FAINT = "#7A6A5A";
+const ACCENT = "#0E7978";
+const CARD_BG = "#FCFAF5";
+const PAGE_BG = "#F5EFE1";
+const RULE = "#DED2B8";
 
 function verdictColor(v: string | null): string {
-  if (v === "BUY") return "#34d399";
-  if (v === "SELL") return "#f87171";
-  return "#f59e0b"; // HOLD / unknown
+  if (v === "BUY") return "#0A6F79";
+  if (v === "SELL") return "#AF4138";
+  return "#63372C"; // HOLD / unknown
 }
 
 function fmtDate(iso: string | null): string {
@@ -97,7 +97,7 @@ function cardHtml(card: WatchlistAlertCard): string {
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:${ACCENT};margin-bottom:12px;">${tag}</div>
         <div style="font-family:Georgia,serif;font-size:20px;line-height:1.3;color:${INK};margin-bottom:8px;">${headline(card)}</div>
         <div style="font-family:Georgia,serif;font-size:15px;line-height:1.55;color:${MUTED};margin-bottom:18px;">${subline(card)}</div>
-        <a href="${url}" style="display:inline-block;background:${ACCENT};color:#06101f;font-family:system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:0.02em;text-decoration:none;padding:11px 22px;border-radius:100px;">
+        <a href="${url}" style="display:inline-block;background:${ACCENT};color:#FCFAF5;font-family:system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:0.02em;text-decoration:none;padding:11px 22px;border-radius:100px;">
           ${card.kind === "earnings" ? "See the full read →" : "See where they split →"}
         </a>
       </td></tr>

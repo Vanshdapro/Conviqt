@@ -10,23 +10,23 @@ function verdictColors(v: Verdict) {
   if (v === "BUY")
     return {
       text: "var(--bull)",
-      bg: "rgba(16, 185, 129, 0.07)",
-      border: "rgba(16, 185, 129, 0.22)",
+      bg: "var(--up-weak)",
+      border: "var(--up)",
       dot: "var(--bull)",
       label: "BUY",
     };
   if (v === "SELL")
     return {
       text: "var(--bear)",
-      bg: "rgba(244, 63, 94, 0.07)",
-      border: "rgba(244, 63, 94, 0.22)",
+      bg: "var(--down-weak)",
+      border: "var(--down)",
       dot: "var(--bear)",
       label: "SELL",
     };
   return {
     text: "var(--hold)",
-    bg: "rgba(245, 158, 11, 0.07)",
-    border: "rgba(245, 158, 11, 0.22)",
+    bg: "var(--bg-sunken)",
+    border: "var(--border-strong)",
     dot: "var(--hold)",
     label: "HOLD",
   };

@@ -22,16 +22,16 @@ export const OG = {
   /* ink — espresso, never pure black */
   text: "#2A1C15",
   text2: "#63372C",
-  muted: "#8A7866",
+  muted: "#7A6A5A",
   /* accent — teal */
-  accent: "#0E7C7B",
+  accent: "#0E7978",
   accentHover: "#0A5F5D",
   accentWeak: "#D6E7E5",
   onAccent: "#FBF7EC",
   /* market data — gains/losses only */
   upInk: "#0A6F79",
   upWeak: "#D5EFF1",
-  downInk: "#C0473D",
+  downInk: "#AF4138",
   downWeak: "#F8DEDB",
 } as const;
 

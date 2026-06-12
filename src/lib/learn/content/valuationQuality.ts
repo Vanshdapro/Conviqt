@@ -8,7 +8,7 @@ export const valuationQuality: RawTrack = {
   name: "Valuation & Business Quality",
   tagline: "Price is what you pay; embedded expectations are what you're really betting against.",
   emoji: "",
-  accent: "#4f87f7",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "vq-multiples",

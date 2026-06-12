@@ -9,7 +9,7 @@ export const financialStatements: RawTrack = {
   name: "Financial Statements",
   tagline: "Before you value a business, you have to be able to read it.",
   emoji: "",
-  accent: "#38bdf8",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "fs-three-statements",

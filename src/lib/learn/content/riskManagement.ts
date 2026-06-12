@@ -7,7 +7,7 @@ export const riskManagement: RawTrack = {
   name: "Risk Management",
   tagline: "Survival first. You cannot compound from zero.",
   emoji: "",
-  accent: "#f59e0b",
+  accent: "var(--accent)",
   lessons: [
     {
       id: "rm-drawdown-math",
