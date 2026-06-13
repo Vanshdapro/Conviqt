@@ -63,7 +63,7 @@ function DiagPaths({ i }: { i: number }) {
         <text x="48" y="140" className={styles.dType}>
           Is NVDA worth owning?
         </text>
-        <rect x="208" y="124" width="2" height="22" className={`${styles.dInk} ${styles.caret}`} />
+        <rect x="250" y="123" width="2" height="22" className={`${styles.dInk} ${styles.caret}`} />
         <rect x="270" y="116" width="46" height="36" rx="10" className={styles.dBtn} />
         <text x="293" y="139" className={styles.dBtnText} textAnchor="middle">
           Ask

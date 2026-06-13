@@ -61,7 +61,10 @@
   animation: demoCursor 8.5s var(--ease-out) infinite;
 }
 .cursorShape {
-  fill: var(--text);
+  /* the screenshot underneath is always the LIGHT app, regardless of the
+     landing theme — so the pointer uses espresso (dark in both themes), never
+     --text (which flips to paper-white in dark mode and vanishes on the shot) */
+  fill: var(--espresso);
   stroke: var(--on-accent);
   stroke-width: 1.3;
   stroke-linejoin: round;
@@ -121,18 +124,17 @@
   left: 50%;
   bottom: clamp(10px, 2.4vw, 20px);
   transform: translateX(-50%);
-  max-width: min(86%, 360px);
+  max-width: min(88%, 340px);
   padding: 7px 14px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--text) 90%, transparent);
+  border-radius: var(--radius-card);
+  /* espresso is dark in BOTH themes (the screenshot is always the light app),
+     so cream text stays legible no matter the landing theme */
+  background: color-mix(in srgb, var(--espresso) 92%, transparent);
   color: var(--on-accent);
   font-size: clamp(11px, 1.3vw, 13px);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.32;
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   box-shadow: var(--shadow-card);
 }
 .capStatic { opacity: 1; }
