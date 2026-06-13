@@ -1,0 +1,383 @@
+/* ProcessTrail — Digilab-style numbered split-scroll process, Almanac-recolored.
+   Pinned-scrub on desktop; a clean static stack under reduced-motion / ≤860px.
+   Every colour is a global token (var(--accent)) or a color-mix tint of one.
+   Nothing here hardcodes a hex. */
+
+/* ── PINNED SHELL ──────────────────────────────────────────────────────────── */
+.root {
+  position: relative;
+  height: 300vh; /* 3 steps → 3 viewport-lengths of scroll */
+}
+.sticky {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(44px, 7vw, 88px) clamp(20px, 5vw, 56px);
+}
+
+.header {
+  margin-bottom: clamp(28px, 4vw, 52px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 72px);
+}
+
+/* ── LEFT COLUMN ───────────────────────────────────────────────────────────── */
+.left {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: clamp(18px, 2.4vw, 30px);
+  align-items: start;
+}
+
+/* dotted vertical rail with three stations + a teal fill that descends */
+.rail {
+  position: relative;
+  width: 14px;
+  align-self: stretch;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.railTrack {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  transform: translateX(-50%);
+  /* the dotted DNA line */
+  border-left: 2px dotted var(--border-strong);
+}
+.railFill {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: top;
+  transform: scaleY(0);
+  transition: transform 90ms linear;
+}
+.station {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+}
+.stationDot {
+  width: 11px;
+  height: 11px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-page);
+  border: 2px solid var(--border-strong);
+  transition: border-color var(--motion) var(--ease-out),
+    background var(--motion) var(--ease-out), box-shadow var(--motion) var(--ease-out);
+}
+.station.isOn .stationDot {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* the big inactive numerals sitting behind the active copy */
+.numerals {
+  position: absolute;
+  inset: 0 auto 0 calc(14px + clamp(18px, 2.4vw, 30px));
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.numeral {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--border-strong);
+  opacity: 0.55;
+  transition: color var(--motion) var(--ease-out), opacity var(--motion) var(--ease-out);
+}
+.numeral.isActive {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* crossfading copy stack — only the active step is shown (pinned mode) */
+.copyStack {
+  position: relative;
+  grid-column: 2;
+  min-height: 320px;
+  display: grid;
+}
+.copy {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.copy.isActive {
+  opacity: 1;
+}
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-card);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  margin-bottom: var(--space-4);
+}
+.copyTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0 0 var(--space-3);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.copyNum {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--accent-hover);
+}
+.copyBody {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-2);
+  max-width: 46ch;
+  margin: 0;
+}
+
+/* per-step inline diagram — hidden in the pinned layout (the shared right-column
+   SVG carries it there); only revealed in the static / mobile fallback */
+.copyDiagram {
+  display: none;
+}
+.copyDiagramSvg {
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 360 / 300;
+  margin-top: var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── RIGHT COLUMN — line-art diagram ───────────────────────────────────────── */
+.right {
+  display: flex;
+  justify-content: center;
+}
+.diagram {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 360 / 300;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.diagSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.diagState {
+  opacity: 0;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+.diagState.isActive {
+  /* first-paint / no-JS visible state for the first group; once the rAF loop
+     runs it drives opacity inline (overriding this) for the smooth crossfade */
+  opacity: 1;
+}
+
+/* line-art primitives — stroke teal, fill none (the "conceptual" look) */
+.dShape {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+}
+.dInk {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.dFill {
+  fill: var(--accent);
+  stroke: none;
+}
+.dDot {
+  fill: color-mix(in srgb, var(--accent) 55%, transparent);
+  stroke: none;
+}
+.dCheck {
+  fill: none;
+  stroke: var(--on-accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dPill {
+  fill: color-mix(in srgb, var(--accent) 10%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 30%, transparent);
+  stroke-width: 1.2;
+}
+.dPillText {
+  fill: var(--accent-hover);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+}
+.cursor {
+  animation: ptBlink 1.05s steps(1) infinite;
+}
+@keyframes ptBlink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── STATIC / MOBILE FALLBACK ──────────────────────────────────────────────────
+   Triggered three independent ways so it is always safe even with no JS:
+     · JS sets data-static="true" (reduced-motion OR <=860px, set in useEffect)
+     · the <=860px media query (no-JS + the layout reflow on small screens)
+     · prefers-reduced-motion (no-JS desktop reduced-motion)
+   In every case: drop the pin, un-pin + un-hide the copy, hide the rail/numerals
+   and the shared crossfade SVG, and reveal each step's OWN inline diagram. */
+
+.root[data-static="true"] { height: auto; }
+.root[data-static="true"] .sticky {
+  position: static;
+  min-height: 0;
+  overflow: visible;
+  display: block;
+}
+.root[data-static="true"] .grid,
+.root[data-static="true"] .left,
+.root[data-static="true"] .right,
+.root[data-static="true"] .copyStack {
+  display: block;
+  min-height: 0;
+}
+.root[data-static="true"] .rail,
+.root[data-static="true"] .numerals,
+.root[data-static="true"] .right {
+  display: none; /* the shared right column is replaced by per-step diagrams */
+}
+.root[data-static="true"] .copy {
+  position: static;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  margin-bottom: clamp(36px, 6vw, 56px);
+}
+.root[data-static="true"] .copy:last-child { margin-bottom: 0; }
+.root[data-static="true"] .copyDiagram { display: block; }
+.root[data-static="true"] .cursor { animation: none; }
+
+@media (max-width: 860px) {
+  .root { height: auto; }
+  .sticky {
+    position: static;
+    min-height: 0;
+    overflow: visible;
+    display: block;
+  }
+  .grid,
+  .left,
+  .right,
+  .copyStack {
+    display: block;
+    min-height: 0;
+  }
+  .rail,
+  .numerals,
+  .right {
+    display: none;
+  }
+  .copy {
+    position: static;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    margin-bottom: clamp(36px, 7vw, 56px);
+  }
+  .copy:last-child { margin-bottom: 0; }
+  .copyDiagram { display: block; }
+  .copyDiagramSvg { max-width: 100%; }
+  .cursor { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root { height: auto; }
+  .sticky {
+    position: static;
+    min-height: 0;
+    overflow: visible;
+    display: block;
+  }
+  .grid,
+  .left,
+  .right,
+  .copyStack {
+    display: block;
+    min-height: 0;
+  }
+  .rail,
+  .numerals,
+  .right {
+    display: none;
+  }
+  .copy {
+    position: static;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    margin-bottom: clamp(36px, 6vw, 56px);
+  }
+  .copy:last-child { margin-bottom: 0; }
+  .copyDiagram { display: block; }
+  .cursor { animation: none; }
+}

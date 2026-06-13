@@ -25,6 +25,7 @@ const clamp = (lo: number, hi: number, x: number) => Math.max(lo, Math.min(hi, x
 export function LandingMotion() {
   const threadRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -127,11 +128,20 @@ export function LandingMotion() {
       });
     }
 
-    // ── Scroll thread + parallax (one shared rAF scroll loop) ────────────────────
+    // ── Scroll tracker rail + parallax (one shared rAF scroll loop) ──────────────
+    // The rail is position:fixed (100vh). Its teal fill grows top→bottom with
+    // whole-document scroll progress; each [data-thread-node] section gets a
+    // station tick placed at the progress fraction where its top reaches mid-
+    // viewport, lit as the leading node arrives; a label rides the node calling
+    // out the current section. This is the founder's "line that gets further
+    // down as I scroll" — now fixed, on top, and impossible to occlude.
     const thread = threadRef.current;
     const fill = fillRef.current;
+    const label = labelRef.current;
     const parallaxEls = Array.from(land.querySelectorAll<HTMLElement>("[data-parallax]"));
-    let nodes: Array<{ el: HTMLElement; y: number }> = [];
+    let nodes: Array<{ el: HTMLElement; frac: number; label: string }> = [];
+    let railH = window.innerHeight;
+    let docScroll = 1;
 
     if (thread && !reduce) {
       const markers = Array.from(land.querySelectorAll<HTMLElement>("[data-thread-node]"));
@@ -141,12 +151,21 @@ export function LandingMotion() {
         thread.appendChild(d);
         return d;
       });
+      // The dots are created imperatively, so remove them on teardown — otherwise
+      // StrictMode's double-invoke and every HMR re-run would stack duplicates.
+      cleanups.push(() => dots.forEach((d) => d.remove()));
       const measure = () => {
-        const landTop = land.getBoundingClientRect().top + window.scrollY;
+        railH = window.innerHeight;
+        docScroll = Math.max(1, document.documentElement.scrollHeight - railH);
         nodes = markers.map((m, i) => {
-          const y = m.getBoundingClientRect().top + window.scrollY - landTop;
-          dots[i].style.top = `${y}px`;
-          return { el: dots[i], y };
+          const docTop = m.getBoundingClientRect().top + window.scrollY;
+          const frac = clamp(0, 1, (docTop - railH * 0.5) / docScroll);
+          dots[i].style.top = `${(frac * railH).toFixed(1)}px`;
+          return {
+            el: dots[i],
+            frac,
+            label: m.dataset.threadLabel || m.getAttribute("aria-label") || "",
+          };
         });
       };
       measure();
@@ -154,6 +173,8 @@ export function LandingMotion() {
       const ro = new ResizeObserver(() => measure());
       ro.observe(land);
       cleanups.push(() => ro.disconnect());
+      // expose so the scroll loop can trigger a re-measure on resize
+      (thread as HTMLElement & { _measure?: () => void })._measure = measure;
     }
 
     if (!reduce) {
@@ -162,12 +183,23 @@ export function LandingMotion() {
         ticking = false;
         const vh = window.innerHeight;
         const scrollY = window.scrollY;
-        const readLine = vh * 0.6; // the dot rides ~60% down the viewport
 
         if (fill && thread) {
-          const drawn = clamp(0, thread.clientHeight, scrollY + readLine);
-          fill.style.height = `${drawn}px`;
-          for (const n of nodes) n.el.classList.toggle("is-on", drawn >= n.y - 2);
+          const progress = clamp(0, 1, scrollY / docScroll);
+          const drawn = progress * railH;
+          fill.style.height = `${drawn.toFixed(1)}px`;
+          let current = "";
+          for (const n of nodes) {
+            const on = progress >= n.frac - 0.001;
+            n.el.classList.toggle("is-on", on);
+            if (on && n.label) current = n.label;
+          }
+          if (label) {
+            label.style.top = `${drawn.toFixed(1)}px`;
+            const slot = label.firstElementChild;
+            if (slot && slot.textContent !== current) slot.textContent = current;
+            label.classList.toggle("is-on", current !== "" && progress < 0.992);
+          }
         }
         for (const el of parallaxEls) {
           const r = el.getBoundingClientRect();
@@ -182,12 +214,16 @@ export function LandingMotion() {
           requestAnimationFrame(update);
         }
       };
+      const onResize = () => {
+        (thread as (HTMLElement & { _measure?: () => void }) | null)?._measure?.();
+        onScroll();
+      };
       update();
       window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", onScroll);
+      window.addEventListener("resize", onResize);
       cleanups.push(() => {
         window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", onScroll);
+        window.removeEventListener("resize", onResize);
       });
     }
 
@@ -200,6 +236,9 @@ export function LandingMotion() {
   return (
     <div ref={threadRef} className="cvq-thread" aria-hidden="true">
       <div ref={fillRef} className="cvq-thread-fill" />
+      <span ref={labelRef} className="cvq-thread-label">
+        <span />
+      </span>
     </div>
   );
 }

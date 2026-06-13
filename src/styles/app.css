@@ -2886,14 +2886,21 @@ html.lenis, html.lenis body { height: auto; }
   --rv-dur: 820ms;
 }
 
-/* ── Scroll thread — the line that draws down the page as you scroll ───────── */
+/* ── Scroll tracker — a FIXED left rail that visibly fills as you scroll ──────
+   Reworked 2026-06-13 (founder: the old line "just stays at a fixed point").
+   It was an absolute 1px line in the far-left gutter at z-index:-1, hidden
+   behind the opaque sunken/espresso bands — so it read as a static border and
+   froze under rAF throttling. Now it's a prominent FIXED rail (always on top of
+   section fills, always in view) whose teal fill grows top→bottom with document
+   scroll progress, a glowing node rides the leading edge, station ticks light as
+   it passes, and a small label calls out the section you're in. Desktop only. */
 .cvq-thread {
-  position: absolute;
+  position: fixed;
   top: 0;
-  left: max(16px, calc(50vw - 580px));   /* hugs the left edge of the content column */
-  width: 2px;
-  height: 100%;
-  z-index: -1;
+  left: clamp(12px, 2.4vw, 30px);
+  width: 3px;
+  height: 100vh;
+  z-index: 40;
   pointer-events: none;
 }
 .cvq-thread::before {                    /* the faint full-height track */
@@ -2901,51 +2908,224 @@ html.lenis, html.lenis body { height: auto; }
   position: absolute;
   inset: 0;
   left: 50%;
-  width: 1px;
+  width: 2px;
   transform: translateX(-50%);
-  background: color-mix(in srgb, var(--border-strong) 65%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--border-strong) 70%, transparent);
 }
 .cvq-thread-fill {                       /* the teal portion already "drawn" (height fed by JS) */
   position: absolute;
   top: 0;
   left: 50%;
-  width: 2px;
+  width: 3px;
   height: 0;
   transform: translateX(-50%);
-  background: var(--accent);
-  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--accent) 55%, transparent),
+    var(--accent)
+  );
+  border-radius: 3px;
 }
-.cvq-thread-fill::after {                /* glowing leading dot that travels down */
+.cvq-thread-fill::after {                /* glowing leading node that travels down */
   content: "";
   position: absolute;
-  bottom: -4px;
+  bottom: -5px;
   left: 50%;
-  width: 9px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   transform: translateX(-50%);
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent),
-              0 0 14px 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 20%, transparent),
+              0 0 18px 3px color-mix(in srgb, var(--accent) 50%, transparent);
 }
-.cvq-thread-node {                       /* a station on the thread, lit as the dot passes (top fed by JS) */
+.cvq-thread-node {                       /* a station on the rail, lit as the node passes (top fed by JS) */
   position: absolute;
   left: 50%;
-  width: 7px;
-  height: 7px;
-  margin-top: -3.5px;
-  transform: translateX(-50%) scale(0.7);
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  transform: translateX(-50%) scale(0.66);
   border-radius: 50%;
   background: var(--bg-page);
   border: 1.5px solid var(--border-strong);
-  transition: transform 380ms var(--rv-ease), background-color 380ms var(--rv-ease),
-              border-color 380ms var(--rv-ease), box-shadow 380ms var(--rv-ease);
+  transition: transform 360ms var(--rv-ease), background-color 360ms var(--rv-ease),
+              border-color 360ms var(--rv-ease), box-shadow 360ms var(--rv-ease);
 }
 .cvq-thread-node.is-on {
   transform: translateX(-50%) scale(1);
   background: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.cvq-thread-label {                      /* "you are here" readout that rides beside the node (top fed by JS) */
+  position: absolute;
+  left: 16px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  opacity: 0;
+  transition: opacity 300ms var(--rv-ease), top 120ms linear;
+}
+.cvq-thread-label::before {              /* tiny connector dash from rail to the label */
+  content: "";
+  width: 12px;
+  height: 1px;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.cvq-thread-label.is-on { opacity: 1; }
+@media (max-width: 1023px) { .cvq-thread { display: none; } }
+
+/* ── Convergence — four signal lines reunite into one verdict (the founder's
+   "lines from all directions that come together"). Pinned-sticky scrub. ────── */
+.cvq-cv {
+  position: relative;
+  height: 280vh;                         /* scroll runway for the draw → ignite scrub */
+}
+.cvq-cv-sticky {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 28px);
+  padding: clamp(40px, 6vw, 72px) clamp(20px, 5vw, 56px);
+  overflow: hidden;
+}
+.cvq-cv-head {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+.cvq-cv-head .cvq-land-lede { margin-left: auto; margin-right: auto; }
+.cvq-cv-stage {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  aspect-ratio: 1200 / 620;
+}
+.cvq-cv-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cvq-cv-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--border-strong) 60%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.cvq-cv-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 38%, transparent));
+}
+.cvq-cv-pulse {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 70%, transparent));
+}
+/* the verdict core, dim until the lines reunite, then ignited (JS feeds --ignite 0→1) */
+.cvq-cv-core { --ignite: 0; }
+.cvq-cv-core-halo {
+  fill: color-mix(in srgb, var(--accent) calc(14% * var(--ignite)), transparent);
+  opacity: var(--ignite);
+}
+.cvq-cv-core-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: calc(0.25 + 0.75 * var(--ignite));
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(calc(0.7 + 0.3 * var(--ignite)));
+}
+.cvq-cv-core-dot {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(calc(0.5 + 0.6 * var(--ignite)));
+  filter: drop-shadow(0 0 calc(10px * var(--ignite)) color-mix(in srgb, var(--accent) 75%, transparent));
+}
+.cvq-cv-core.is-on .cvq-cv-core-ring { animation: cvq-cv-spin 9s linear infinite; }
+@keyframes cvq-cv-spin { to { transform: rotate(360deg) scale(1); } }
+
+/* lane labels pinned to the four corners of the stage */
+.cvq-cv-labels { position: absolute; inset: 0; pointer-events: none; }
+.cvq-cv-label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 44%;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 460ms var(--rv-ease), transform 460ms var(--rv-ease);
+}
+.cvq-cv-label.is-in { opacity: 1; transform: none; }
+.cvq-cv-label b {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(15px, 1.6vw, 19px);
+  color: var(--text);
+}
+.cvq-cv-label i {
+  font-style: normal;
+  font-size: clamp(11px, 1.1vw, 13px);
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.cvq-cv-label--fundamentals { top: 1%; left: 0; text-align: left; }
+.cvq-cv-label--technicals   { top: 1%; right: 0; text-align: right; align-items: flex-end; }
+.cvq-cv-label--sentiment    { bottom: 1%; left: 0; text-align: left; }
+.cvq-cv-label--macro        { bottom: 1%; right: 0; text-align: right; align-items: flex-end; }
+
+/* the reunited verdict chip, revealed at the centre once ignited */
+.cvq-cv-verdict {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, calc(-50% + 14px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--text) 12%, transparent);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 480ms var(--rv-ease), transform 480ms var(--rv-ease);
+}
+.cvq-cv-verdict.is-in { opacity: 1; transform: translate(-50%, calc(-50% + 92px)); }
+.cvq-cv-verdict-q { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); }
+.cvq-cv-verdict-a {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-weak);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+/* static fallback (reduced-motion / mobile): unpinned, finished diagram */
+.cvq-cv--static { height: auto; }
+.cvq-cv--static .cvq-cv-sticky { position: static; min-height: 0; }
+@media (max-width: 860px) {
+  .cvq-cv-label i { display: none; }
+  .cvq-cv-label b { font-size: 13px; }
 }
 
 /* ── Pinned scroll-scrubbed feature sequence (Digilab DNA) ─────────────────── */
@@ -3164,4 +3344,6 @@ html.lenis, html.lenis body { height: auto; }
     transition: none !important;
   }
   .cvq-land [data-parallax], .cvq-land [data-magnetic] { transform: none !important; }
+  .cvq-cv-core.is-on .cvq-cv-core-ring { animation: none !important; }
+  .cvq-cv-label, .cvq-cv-verdict { transition: none !important; }
 }

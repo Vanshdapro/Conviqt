@@ -48,7 +48,7 @@ export function FounderNote() {
   const story = founderStory();
 
   return (
-    <section className="cvq-land-section" aria-labelledby="founder-h" data-thread-node>
+    <section className="cvq-land-section" aria-labelledby="founder-h" data-thread-node data-thread-label="Founder">
       <p className="cvq-land-eyebrow" data-reveal="up">From the founder</p>
       <div className="cvq-founder">
         <div className="cvq-founder-photo" data-fade data-parallax="0.05">

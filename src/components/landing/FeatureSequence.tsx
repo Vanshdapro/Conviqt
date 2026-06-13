@@ -84,6 +84,7 @@ export function FeatureSequence({ steps }: { steps: FeatureStep[] }) {
       ref={ref}
       className="cvq-seq"
       data-thread-node
+      data-thread-label="Inside"
       aria-label="What's inside"
       style={{ ["--steps" as string]: steps.length }}
     >

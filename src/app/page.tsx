@@ -4,6 +4,10 @@ import { WordmarkIntro } from "@/components/landing/WordmarkIntro";
 import { SmoothScroll } from "@/components/landing/SmoothScroll";
 import { LandingMotion } from "@/components/landing/LandingMotion";
 import { FeatureSequence, type FeatureStep } from "@/components/landing/FeatureSequence";
+import { ConvergeLines } from "@/components/landing/ConvergeLines";
+import { ProcessTrail } from "@/components/landing/ProcessTrail";
+import { SignalField } from "@/components/landing/SignalField";
+import { RisingThread } from "@/components/landing/RisingThread";
 import { PhoneFrame } from "@/components/landing/DeviceFrame";
 import { FounderNote } from "@/components/landing/FounderNote";
 import { ChangePill } from "@/components/ui";
@@ -197,7 +201,7 @@ export default async function Home() {
 
       <main>
         {/* ── 1 · Hero ────────────────────────────────────────────────────── */}
-        <section className="cvq-land-hero" data-thread-node>
+        <section className="cvq-land-hero" data-thread-node data-thread-label="Welcome">
           <div className="cvq-land-hero-copy">
             <h1 className="cvq-land-h1" data-intro>{HERO_H1}</h1>
             <p className="cvq-land-sub" data-intro>{HERO_SUB}</p>
@@ -231,8 +235,11 @@ export default async function Home() {
           <span>No download needed</span>
         </section>
 
+        {/* ── 2b · Convergence — four signal lines reunite into one verdict ─── */}
+        <ConvergeLines />
+
         {/* ── 3 · Skill grid ──────────────────────────────────────────────── */}
-        <section className="cvq-land-section" aria-labelledby="skills-h" data-thread-node>
+        <section className="cvq-land-section" aria-labelledby="skills-h" data-thread-node data-thread-label="Skills">
           <p className="cvq-land-eyebrow" data-reveal="up">Skills</p>
           <h2 id="skills-h" className="cvq-land-h2" data-reveal="clip">
             One tap. A real piece of research.
@@ -252,11 +259,14 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── 3b · Process trail — numbered Ask → Research → Verdict (Digilab) ── */}
+        <ProcessTrail />
+
         {/* ── 4 · Pinned scroll-scrubbed feature sequence ─────────────────── */}
         <FeatureSequence steps={FEATURE_STEPS} />
 
         {/* ── 5 · Track record (live data) ────────────────────────────────── */}
-        <section className="cvq-land-section cvq-land-track" id="track-record" aria-labelledby="track-h" data-thread-node>
+        <section className="cvq-land-section cvq-land-track" id="track-record" aria-labelledby="track-h" data-thread-node data-thread-label="Track record">
           <p className="cvq-land-eyebrow" data-reveal="up">Track record</p>
           <h2 id="track-h" className="cvq-land-h2" data-reveal="clip">
             We publish everything. Even the misses.
@@ -308,8 +318,11 @@ export default async function Home() {
           )}
         </section>
 
+        {/* ── 5b · Signal field — "always watching" data-field (Digilab) ───── */}
+        <SignalField />
+
         {/* ── 6 · Academy ─────────────────────────────────────────────────── */}
-        <section className="cvq-land-section cvq-land-academy" id="academy" aria-labelledby="academy-h" data-thread-node>
+        <section className="cvq-land-section cvq-land-academy" id="academy" aria-labelledby="academy-h" data-thread-node data-thread-label="Academy">
           <p className="cvq-land-eyebrow" data-reveal="up">Academy</p>
           <h2 id="academy-h" className="cvq-land-h2" data-reveal="clip">
             Learn what the numbers mean.
@@ -335,7 +348,7 @@ export default async function Home() {
         <FounderNote />
 
         {/* ── 8 · Pricing (playbook 2.4) ──────────────────────────────────── */}
-        <section className="cvq-land-section" id="pricing" aria-labelledby="pricing-h" data-thread-node>
+        <section className="cvq-land-section" id="pricing" aria-labelledby="pricing-h" data-thread-node data-thread-label="Pricing">
           <p className="cvq-land-eyebrow" data-reveal="up">Pricing</p>
           <h2 id="pricing-h" className="cvq-land-h2" data-reveal="clip">
             Start free. Upgrade when it earns it.
@@ -378,7 +391,7 @@ export default async function Home() {
         </section>
 
         {/* ── 9 · FAQ ─────────────────────────────────────────────────────── */}
-        <section className="cvq-land-section cvq-land-faq" aria-labelledby="faq-h" data-thread-node>
+        <section className="cvq-land-section cvq-land-faq" aria-labelledby="faq-h" data-thread-node data-thread-label="Questions">
           <p className="cvq-land-eyebrow" data-reveal="up">FAQ</p>
           <h2 id="faq-h" className="cvq-land-h2" data-reveal="clip">
             Fair questions.
@@ -393,8 +406,11 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── 9b · Rising thread — Noomo "spark becomes a fire" lead-in ────── */}
+        <RisingThread />
+
         {/* ── 10 · Finale — dark CTA + giant wordmark wipe ─────────────────── */}
-        <section className="cvq-finale" data-thread-node aria-labelledby="finale-h">
+        <section className="cvq-finale" data-thread-node data-thread-label="Get started" aria-labelledby="finale-h">
           <div className="cvq-finale-inner">
             <p className="cvq-finale-eyebrow" data-reveal="up">Get started</p>
             <h2 id="finale-h" className="cvq-finale-head" data-reveal="clip">

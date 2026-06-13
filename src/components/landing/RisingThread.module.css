@@ -1,0 +1,208 @@
+/* ============================================================================
+   RisingThread — the Noomo "spark becomes a fire" beat, recoloured to ALMANAC.
+   LOGGED-OUT LANDING ONLY. Warm-paper background, ONE teal accent, light only.
+   Every colour is a global token (var(--accent) / var(--text) / var(--bg-*))
+   or a color-mix() tint of one — nothing hardcoded. Self-contained module so
+   it touches no shared stylesheet.
+   ============================================================================ */
+
+/* Outer: tall enough to pin one viewport and scrub through it. */
+.section {
+  position: relative;
+  height: 200vh;
+  background: var(--bg-page);
+}
+
+/* Inner: pinned viewport, centred. */
+.sticky {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* A whisper of warmth top + bottom so the band reads as its own moment,
+     using only paper tones (a flat tonal step — the one permitted "gradient"). */
+  background:
+    linear-gradient(
+      var(--bg-page) 0%,
+      var(--bg-sunken) 38%,
+      var(--bg-sunken) 62%,
+      var(--bg-page) 100%
+    );
+}
+
+/* The drawn thread occupies the centre column; the SVG spans the viewport
+   height so the node can travel the full field. */
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Faint guide the bright thread is drawn over. */
+.guide {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* The luminous teal thread that draws as you scroll. */
+.thread {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+
+/* Glowing node riding the leading edge. */
+.node {
+  /* transform set inline (translate to the path point); keep transitions off
+     so the rAF loop drives it frame-accurate. */
+}
+
+.nodeHalo {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.nodeCore {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 60%, transparent));
+}
+
+/* Impact: expanding ring + resolving solid dot at the landing point. */
+.ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.burst {
+  fill: var(--accent);
+  opacity: 0;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+/* ── The three cross-fading display phrases ──────────────────────────────── */
+.phrases {
+  position: relative;
+  z-index: 1;
+  width: min(86vw, 760px);
+  /* Stack the three in the same cell so they cross-fade through one another. */
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0 var(--space-6);
+}
+
+.phrase {
+  grid-area: 1 / 1; /* overlap all three */
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-size: clamp(2rem, 5.4vw, 3.5rem); /* ~32 → 56px */
+  color: var(--text);
+  opacity: 0; /* driven by the rAF loop */
+  will-change: opacity, transform;
+  text-wrap: balance;
+}
+
+/* Visually-hidden but readable by SR / indexable. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   STATIC FALLBACK — applied by JS (.isStatic) under reduced-motion or ≤860px,
+   AND a CSS-only safety net via media queries so it is correct even pre-hydration.
+   Thread drawn full, node parked at the bottom, all three phrases stacked
+   and fully visible, no pinning, no motion.
+   ============================================================================ */
+.isStatic {
+  height: auto;
+}
+
+.isStatic .sticky {
+  position: relative;
+  min-height: auto;
+  padding: var(--space-16) var(--space-6);
+}
+
+.isStatic .svg {
+  position: relative;
+  inset: auto;
+  width: clamp(120px, 30vw, 220px);
+  height: clamp(360px, 60vh, 560px);
+  margin: 0 auto var(--space-10);
+}
+
+.isStatic .phrases {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.isStatic .phrase {
+  grid-area: auto;
+  opacity: 1;
+  transform: none;
+}
+
+/* CSS-only fallback (no JS / pre-hydration) on small screens or reduced-motion.
+   Mirrors .isStatic so SSR + no-JS users get the finished, readable state. */
+@media (max-width: 860px), (prefers-reduced-motion: reduce) {
+  .section {
+    height: auto;
+  }
+  .sticky {
+    position: relative;
+    min-height: auto;
+    padding: var(--space-16) var(--space-6);
+  }
+  .svg {
+    position: relative;
+    inset: auto;
+    width: clamp(120px, 30vw, 220px);
+    height: clamp(360px, 60vh, 560px);
+    margin: 0 auto var(--space-10);
+  }
+  .thread {
+    /* Drawn full when JS hasn't run. */
+    stroke-dashoffset: 0 !important;
+  }
+  .phrases {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+  .phrase {
+    grid-area: auto;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .ring {
+    display: none;
+  }
+  .burst {
+    opacity: 1;
+  }
+}
