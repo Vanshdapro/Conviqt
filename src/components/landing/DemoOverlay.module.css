@@ -1,0 +1,176 @@
+/* DemoOverlay — a scripted "recorded usage" layer over a real screenshot.
+   All motion is PAUSED by default and RUNS only while the enclosing
+   `.cvq-seq-step` carries `.is-active` (set by FeatureSequence). Token-only
+   colour; the REC dot is teal, never red (red/coral is market-data only). */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  font-family: var(--font-ui);
+}
+
+/* ── REC badge (top-right) ─────────────────────────────────────────────────── */
+.rec {
+  position: absolute;
+  top: clamp(8px, 1.6vw, 14px);
+  right: clamp(8px, 1.6vw, 14px);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-surface) 84%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  backdrop-filter: blur(2px);
+}
+.recDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: demoRec 1.6s ease-in-out infinite;
+}
+.recTime {
+  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+@keyframes demoRec {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+/* ── pointer ───────────────────────────────────────────────────────────────── */
+.cursor {
+  position: absolute;
+  left: var(--ax);
+  top: var(--ay);
+  width: 24px;
+  height: 24px;
+  transform-origin: top left;
+  opacity: 0;
+  filter: drop-shadow(0 1px 2px rgba(42, 28, 21, 0.35));
+  animation: demoCursor 8.5s var(--ease-out) infinite;
+}
+.cursorShape {
+  fill: var(--text);
+  stroke: var(--on-accent);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+@keyframes demoCursor {
+  0%   { left: var(--ax); top: var(--ay); opacity: 0; transform: scale(0.85); }
+  5%   { opacity: 1; transform: scale(1); }
+  9%   { transform: scale(0.84); }
+  12%  { left: var(--ax); top: var(--ay); transform: scale(1); }
+  44%  { left: var(--bx); top: var(--by); }
+  49%  { transform: scale(1); }
+  52%  { transform: scale(0.84); }
+  56%  { transform: scale(1); }
+  60%  { left: var(--bx); top: var(--by); }
+  90%  { left: var(--ax); top: var(--ay); opacity: 1; }
+  100% { left: var(--ax); top: var(--ay); opacity: 1; transform: scale(0.85); }
+}
+
+/* ── click ripples ─────────────────────────────────────────────────────────── */
+.rippleA,
+.rippleB {
+  position: absolute;
+  width: clamp(34px, 6vw, 56px);
+  height: clamp(34px, 6vw, 56px);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--accent);
+  opacity: 0;
+}
+.rippleA {
+  left: var(--ax);
+  top: var(--ay);
+  animation: demoRippleA 8.5s var(--ease-out) infinite;
+}
+.rippleB {
+  left: var(--bx);
+  top: var(--by);
+  animation: demoRippleB 8.5s var(--ease-out) infinite;
+}
+@keyframes demoRippleA {
+  0%, 6% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  9% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.5); }
+  20% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+@keyframes demoRippleB {
+  0%, 49% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  52% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.5); }
+  63% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+/* ── caption pill (bottom-center) ──────────────────────────────────────────── */
+.capStatic,
+.capA,
+.capB {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(10px, 2.4vw, 20px);
+  transform: translateX(-50%);
+  max-width: min(86%, 360px);
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text) 90%, transparent);
+  color: var(--on-accent);
+  font-size: clamp(11px, 1.3vw, 13px);
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-card);
+}
+.capStatic { opacity: 1; }
+.capA,
+.capB { opacity: 0; }
+.capA { animation: demoCapA 8.5s var(--ease-out) infinite; }
+.capB { animation: demoCapB 8.5s var(--ease-out) infinite; }
+@keyframes demoCapA {
+  0%, 2% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+  8% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  42% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  48% { opacity: 0; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; }
+}
+@keyframes demoCapB {
+  0%, 49% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+  55% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  88% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  94% { opacity: 0; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; }
+}
+
+/* ── active coupling ───────────────────────────────────────────────────────────
+   Default: everything that animates is paused (so the pointer sits hidden at A,
+   the ripples are invisible, the crossfade captions are hidden and capStatic
+   shows). Running only while the step is the active one. The active selector is
+   3 classes, so it always beats the 1-class paused rule below. */
+.demoAnim { animation-play-state: paused; }
+:global(.cvq-seq-step.is-active) .demoAnim { animation-play-state: running; }
+:global(.cvq-seq-step.is-active) .capStatic { opacity: 0; }
+
+/* ── reduced motion: no pointer, no loop — just the static caption ─────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .rippleA,
+  .rippleB,
+  .capA,
+  .capB { display: none; }
+  .recDot { animation: none; }
+  .capStatic { opacity: 1 !important; }
+}

@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from "react";
 import { BrowserFrame } from "./DeviceFrame";
+import type { DemoScript } from "./DemoOverlay";
 
 export type FeatureStep = {
   eyebrow: string;
@@ -22,6 +23,39 @@ export type FeatureStep = {
 };
 
 const clamp = (lo: number, hi: number, x: number) => Math.max(lo, Math.min(hi, x));
+
+// Per-screen "recorded usage" scripts, keyed by the step's eyebrow. Hotspots are
+// percentages over the real screenshot; the overlay plays only while its step is
+// the active one. Captions are plain-English, no machinery vocabulary.
+const DEMOS: Record<string, DemoScript> = {
+  Dashboard: {
+    ax: "50%",
+    ay: "74%",
+    bx: "30%",
+    by: "30%",
+    capA: "Today’s picks — wins and losses, all public",
+    capB: "Refreshed before the open and after the close",
+    capStatic: "A daily read on the market — picks, trends and events",
+  },
+  Headlines: {
+    ax: "55%",
+    ay: "43%",
+    bx: "55%",
+    by: "61%",
+    capA: "Tap any headline…",
+    capB: "…and see which stocks it touches, and how",
+    capStatic: "Every headline, decoded for what it means",
+  },
+  Portfolio: {
+    ax: "44%",
+    ay: "55%",
+    bx: "79%",
+    by: "82%",
+    capA: "Add what you own — by ticker or CSV",
+    capB: "One tap: an AI Health Check on your risk",
+    capStatic: "Know what you own — Beta, Volatility, Drawdown, Sharpe",
+  },
+};
 
 export function FeatureSequence({ steps }: { steps: FeatureStep[] }) {
   const ref = useRef<HTMLElement>(null);
@@ -98,7 +132,14 @@ export function FeatureSequence({ steps }: { steps: FeatureStep[] }) {
                 <p className="cvq-seq-body">{s.body}</p>
               </div>
               <div className="cvq-seq-stage">
-                <BrowserFrame src={s.src} alt={s.alt} width={s.width} height={s.height} url={s.url} />
+                <BrowserFrame
+                  src={s.src}
+                  alt={s.alt}
+                  width={s.width}
+                  height={s.height}
+                  url={s.url}
+                  demo={DEMOS[s.eyebrow]}
+                />
               </div>
             </article>
           ))}

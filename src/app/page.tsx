@@ -119,31 +119,28 @@ function selectShowcase(views: PickView[], count = 6): PickView[] {
 
 function PickCard({ v }: { v: PickView }) {
   const thesis = thesisLine(v.pick);
+  const tone = v.returnPct === null ? "na" : v.returnPct >= 0 ? "up" : "down";
   return (
-    <article className="cvq-card cvq-land-pick" data-reveal="up">
-      <div className="cvq-land-pick-top">
-        <div>
-          <span className="cvq-ticker-sym">
-            {v.pick.ticker}
-          </span>
-          <span className="cvq-land-pick-company">{v.pick.company_name}</span>
-        </div>
+    <article className={`cvq-pick cvq-pick--${tone}`}>
+      <div className="cvq-pick-head">
+        <span className="cvq-pick-ticker">{v.pick.ticker}</span>
         <span className={`cvq-chip ${v.open ? "cvq-dash-chip-open" : "cvq-dash-chip-closed"}`}>
           {v.open ? "Open" : "Closed"}
         </span>
       </div>
-      <div className="cvq-land-pick-nums">
-        <span>
+      <span className="cvq-pick-company">{v.pick.company_name}</span>
+      <div className="cvq-pick-nums">
+        <span className="cvq-pick-entry">
           Entry ${v.pick.entry_price.toFixed(2)} · {v.pick.entry_date}
         </span>
         {v.returnPct !== null ? (
           <ChangePill change={v.returnPct} />
         ) : (
-          <span className="cvq-land-pick-na">price unavailable</span>
+          <span className="cvq-pick-na">price unavailable</span>
         )}
       </div>
-      {thesis && <p className="cvq-land-pick-thesis">{thesis}</p>}
-      {v.priceAsOfNote && <p className="cvq-land-pick-asof">{v.priceAsOfNote}</p>}
+      {thesis && <p className="cvq-pick-thesis">{thesis}</p>}
+      {v.priceAsOfNote && <p className="cvq-pick-asof">{v.priceAsOfNote}</p>}
     </article>
   );
 }
@@ -248,12 +245,23 @@ export default async function Home() {
             Skills turn the questions you&rsquo;d actually ask into deep research — no prompt
             engineering, no jargon.
           </p>
-          <div className="cvq-land-skillgrid" data-reveal-group>
-            {gridSkills.map((s) => (
-              <Link key={s.id} href={`/research?skill=${s.id}`} className="cvq-card cvq-card--interactive cvq-land-skill" data-reveal="up">
-                <span className="cvq-land-skill-cat">{s.category}</span>
-                <span className="cvq-land-skill-name">{s.name}</span>
-                <span className="cvq-land-skill-line">{s.oneLiner}</span>
+          <div className="cvq-skills" data-reveal="up" aria-label="Skills">
+            {gridSkills.map((s, i) => (
+              <Link key={s.id} href={`/research?skill=${s.id}`} className="cvq-skill">
+                <span className="cvq-skill-head">
+                  <span className="cvq-skill-idx" aria-hidden="true">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="cvq-skill-cat">{s.category}</span>
+                </span>
+                <span className="cvq-skill-name">{s.name}</span>
+                <span className="cvq-skill-line">{s.oneLiner}</span>
+                <span className="cvq-skill-run" aria-hidden="true">
+                  Run skill
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </span>
               </Link>
             ))}
           </div>
@@ -304,7 +312,7 @@ export default async function Home() {
                   <span data-countup={String(stats.open)}>{stats.open}</span> open)
                 </p>
               )}
-              <div className="cvq-land-picks" data-reveal-group>
+              <div className="cvq-picks" data-reveal="up">
                 {showcase.map((v) => (
                   <PickCard key={v.pick.id ?? `${v.pick.ticker}-${v.pick.entry_date}`} v={v} />
                 ))}
@@ -328,20 +336,62 @@ export default async function Home() {
             Learn what the numbers mean.
           </h2>
           <p className="cvq-land-lede" data-reveal="up">
-            {TRACKS.length} tracks, {TOTAL_LESSONS} bite-size lessons — woven into the app, so every
-            stat you meet links to the lesson that explains it. You&rsquo;re not just following
-            calls; you&rsquo;re learning to make your own.
+            Most apps just hand you a verdict. Conviqt teaches you to read it — every track and
+            lesson woven into the app, so the moment you meet a number you can tap straight to the
+            lesson behind it. You&rsquo;re not just following calls; you&rsquo;re learning to make
+            your own.
           </p>
-          <div className="cvq-land-trackchips" aria-label="Some of the tracks" data-reveal-group>
-            {TRACKS.slice(0, 6).map((t) => (
-              <span key={t.id} className="cvq-chip" data-reveal="up">
-                {t.name}
-              </span>
-            ))}
+
+          <div className="cvq-acad" data-reveal="up">
+            <div className="cvq-acad-pitch">
+              <div className="cvq-acad-stats" aria-label="The Academy at a glance">
+                <div className="cvq-acad-stat">
+                  <span className="cvq-acad-statnum" data-countup={String(TRACKS.length)}>
+                    {TRACKS.length}
+                  </span>
+                  <span className="cvq-acad-statlbl">Tracks</span>
+                </div>
+                <div className="cvq-acad-stat">
+                  <span className="cvq-acad-statnum" data-countup={String(TOTAL_LESSONS)}>
+                    {TOTAL_LESSONS}
+                  </span>
+                  <span className="cvq-acad-statlbl">Lessons</span>
+                </div>
+                <div className="cvq-acad-stat">
+                  <span className="cvq-acad-statnum">Free</span>
+                  <span className="cvq-acad-statlbl">Fundamentals</span>
+                </div>
+              </div>
+
+              <div className="cvq-acad-weave">
+                <span className="cvq-acad-weave-cap">Woven into every answer</span>
+                <p className="cvq-acad-weave-line">
+                  See a term like <b>Sharpe</b>, <b>Beta</b> or <b>Drawdown</b>? Tap it — and read
+                  the two-minute lesson that explains exactly what it means for you.
+                </p>
+                <Link href="/academy" className="cvq-acad-weave-link">
+                  Learn what it means
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </Link>
+              </div>
+
+              <Link href="/academy" className="cvq-btn cvq-btn--secondary cvq-land-academy-cta" data-magnetic>
+                Explore the Academy
+              </Link>
+            </div>
+
+            <ul className="cvq-acad-tracks" aria-label="Academy tracks">
+              {TRACKS.slice(0, 6).map((t) => (
+                <li key={t.id} className="cvq-acad-track">
+                  <span className="cvq-acad-track-name">{t.name}</span>
+                  <span className="cvq-acad-track-tag">{t.tagline}</span>
+                  <span className="cvq-acad-track-count">{t.lessons.length} lessons</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <Link href="/academy" className="cvq-btn cvq-btn--secondary cvq-land-academy-cta" data-reveal="up">
-            Explore the Academy
-          </Link>
         </section>
 
         {/* ── 7 · Founder note ────────────────────────────────────────────── */}

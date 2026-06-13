@@ -1925,16 +1925,24 @@
 }
 .cvq-browser-url {
   flex: 1;
-  max-width: 320px;
+  max-width: 340px;
   margin: 0 auto;
-  padding: 3px var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px var(--space-3);
   border-radius: var(--radius-pill);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   font-size: 11px;
   color: var(--text-muted);
-  text-align: center;
 }
+.cvq-browser-lock,
+.cvq-browser-reload { width: 11px; height: 11px; flex: none; opacity: 0.7; }
+.cvq-browser-urltext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* positioning context for the optional recorded-usage DemoOverlay */
+.cvq-browser-screenwrap { position: relative; line-height: 0; }
 .cvq-browser-screen { display: block; width: 100%; height: auto; }
 
 /* ── Sections ──────────────────────────────────────────────────────────────── */
@@ -1985,34 +1993,103 @@
   text-align: center;
 }
 
-/* ── Skill grid ────────────────────────────────────────────────────────────── */
-.cvq-land-skillgrid {
+/* ── Skill ledger — an editorial index of one-tap research, not a card grid ──
+   Hairline-ruled cells (almanac contents page), flat, no soft-card shadows.
+   Motion is on intent: a teal rule draws across the top + a "Run skill" cue
+   slides up on hover/focus. Gaps reveal the container's hairline colour. */
+.cvq-skills {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
-@media (max-width: 900px) { .cvq-land-skillgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .cvq-land-skillgrid { grid-template-columns: 1fr; } }
-.cvq-land-skill {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  text-decoration: none;
+@media (max-width: 900px) { .cvq-skills { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cvq-skills { grid-template-columns: 1fr; } }
+
+.cvq-skill {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--space-3);
+  min-height: 178px;
+  padding: clamp(20px, 2.1vw, 28px);
+  background: var(--bg-page);
   color: var(--text);
+  text-decoration: none;
+  transition: background var(--motion) var(--ease-out);
 }
-.cvq-land-skill-cat {
-  font-size: 11px;
+.cvq-skill:hover,
+.cvq-skill:focus-visible { background: var(--bg-surface); outline: none; }
+.cvq-skill:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+/* a teal rule that draws across the top edge on hover/focus */
+.cvq-skill::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 260ms var(--ease-out);
+}
+.cvq-skill:hover::after,
+.cvq-skill:focus-visible::after { transform: scaleX(1); }
+
+.cvq-skill-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.cvq-skill-idx {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  transition: color var(--motion) var(--ease-out);
+}
+.cvq-skill:hover .cvq-skill-idx,
+.cvq-skill:focus-visible .cvq-skill-idx { color: var(--accent); }
+.cvq-skill-cat {
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
-.cvq-land-skill-name {
+.cvq-skill-name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 20px;
+  font-size: clamp(19px, 2vw, 22px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
-.cvq-land-skill-line { font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.cvq-skill-line { font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.cvq-skill-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent-hover);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--motion) var(--ease-out), transform var(--motion) var(--ease-out);
+}
+.cvq-skill-run svg { transition: transform var(--motion) var(--ease-out); }
+.cvq-skill:hover .cvq-skill-run,
+.cvq-skill:focus-visible .cvq-skill-run { opacity: 1; transform: none; }
+.cvq-skill:hover .cvq-skill-run svg,
+.cvq-skill:focus-visible .cvq-skill-run svg { transform: translateX(3px); }
+@media (hover: none) { .cvq-skill-run { opacity: 1; transform: none; } }
 
 /* ── Feature rows ──────────────────────────────────────────────────────────── */
 .cvq-land-row {
@@ -2046,39 +2123,73 @@
   color: var(--text);
   margin: 0 0 var(--space-5);
 }
-.cvq-land-picks {
+/* Picks ledger — an open record of every call, wins AND misses. Hairline-ruled
+   to rhyme with the skill ledger; a win/loss tick on each card's top edge makes
+   the "even the misses" promise scannable. --up/--down are the market-data
+   colours and this IS market data, so they're allowed here. */
+.cvq-picks {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
-@media (max-width: 900px) { .cvq-land-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .cvq-land-picks { grid-template-columns: 1fr; } }
-.cvq-land-pick { display: flex; flex-direction: column; gap: var(--space-3); }
-.cvq-land-pick-top {
+@media (max-width: 900px) { .cvq-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cvq-picks { grid-template-columns: 1fr; } }
+.cvq-pick {
+  position: relative;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: clamp(18px, 1.9vw, 26px);
+  background: var(--bg-page);
+  transition: background var(--motion) var(--ease-out);
+}
+.cvq-pick:hover { background: var(--bg-surface); }
+/* win/loss tick on the top edge — the ledger tells the truth at a glance */
+.cvq-pick::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--border-strong);
+  opacity: 0.7;
+  transition: opacity var(--motion) var(--ease-out);
+}
+.cvq-pick:hover::before { opacity: 1; }
+.cvq-pick--up::before { background: var(--up); }
+.cvq-pick--down::before { background: var(--down); }
+.cvq-pick-head {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
 }
-.cvq-land-pick-company {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
+.cvq-pick-ticker {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
-.cvq-land-pick-nums {
+.cvq-pick-company { font-size: 12px; color: var(--text-muted); }
+.cvq-pick-nums {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-2);
+  margin-top: var(--space-1);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
-.cvq-land-pick-na { font-size: 12px; color: var(--text-muted); }
-.cvq-land-pick-thesis { font-size: 13px; line-height: 1.55; color: var(--text-2); margin: 0; }
-.cvq-land-pick-asof { font-size: 11px; color: var(--text-muted); margin: 0; }
+.cvq-pick-na { font-size: 12px; color: var(--text-muted); }
+.cvq-pick-thesis { font-size: 13px; line-height: 1.55; color: var(--text-2); margin: var(--space-1) 0 0; }
+.cvq-pick-asof { font-size: 11px; color: var(--text-muted); margin: 0; }
 .cvq-land-track-note {
   font-size: 13px;
   color: var(--text-muted);
@@ -2090,15 +2201,145 @@
 .cvq-land-track-error a { color: var(--link); text-decoration: underline; }
 .cvq-land-track-error p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-2); }
 
-/* ── Academy ───────────────────────────────────────────────────────────────── */
+/* ── Academy — advertise the "learn what the numbers mean" differentiator ───── */
 .cvq-land-academy { border-top: 1px solid var(--border); }
-.cvq-land-trackchips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
+.cvq-land-academy-cta { align-self: flex-start; margin-top: var(--space-1); }
+
+.cvq-acad {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 64px);
+  align-items: start;
+  margin-top: var(--space-8);
 }
-.cvq-land-academy-cta { align-self: flex-start; }
+@media (max-width: 860px) { .cvq-acad { grid-template-columns: 1fr; gap: var(--space-8); } }
+.cvq-acad-pitch { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* count-up stat trio — hairline-ruled to rhyme with the ledgers */
+.cvq-acad-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.cvq-acad-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: clamp(16px, 2vw, 22px);
+  background: var(--bg-page);
+}
+.cvq-acad-statnum {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.cvq-acad-statlbl {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* the signature: every term in an answer deep-links to the lesson behind it */
+.cvq-acad-weave {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: clamp(18px, 2.2vw, 26px);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-surface));
+}
+.cvq-acad-weave-cap {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+.cvq-acad-weave-line {
+  margin: 0;
+  font-size: clamp(16px, 1.8vw, 19px);
+  line-height: 1.45;
+  color: var(--text);
+}
+.cvq-acad-weave-line b {
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: inset 0 -0.42em 0 color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.cvq-acad-weave-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-weak);
+  color: var(--link);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--motion) var(--ease-out);
+}
+.cvq-acad-weave-link svg { transition: transform var(--motion) var(--ease-out); }
+.cvq-acad-weave-link:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.cvq-acad-weave-link:hover svg { transform: translateX(3px); }
+
+/* the curriculum, as a ledger of tracks (name + tagline + lesson count) */
+.cvq-acad-tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+.cvq-acad-track {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name count" "tag count";
+  align-items: center;
+  column-gap: var(--space-3);
+  padding: clamp(13px, 1.5vw, 17px) clamp(16px, 2vw, 22px);
+  border-top: 1px solid var(--border);
+  transition: background var(--motion) var(--ease-out);
+}
+.cvq-acad-track:first-child { border-top: none; }
+.cvq-acad-track:hover { background: var(--bg-page); }
+.cvq-acad-track-name {
+  grid-area: name;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+.cvq-acad-track-tag {
+  grid-area: tag;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.cvq-acad-track-count {
+  grid-area: count;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-hover);
+  white-space: nowrap;
+}
 
 /* ── Founder note ──────────────────────────────────────────────────────────── */
 .cvq-founder {
@@ -3233,8 +3474,13 @@ html.lenis, html.lenis body { height: auto; }
   position: relative;
   background: var(--espresso);
   color: var(--on-accent);
-  padding: clamp(72px, 13vw, 168px) clamp(20px, 5vw, 56px) 0;
-  overflow: hidden;
+  /* bottom padding gives the giant wordmark's descenders (the Q tail) room so
+     the horizontal overflow clip never slices the glyphs vertically */
+  padding: clamp(72px, 13vw, 168px) clamp(20px, 5vw, 56px) clamp(14px, 2.4vw, 32px);
+  /* clip horizontally only — the wordmark bleeds off the left/right edges by
+     design, but its full height (caps + the Q tail) must stay visible */
+  overflow-x: clip;
+  overflow-y: visible;
   text-align: center;
 }
 .cvq-finale-inner { max-width: 900px; margin: 0 auto; }
@@ -3268,7 +3514,8 @@ html.lenis, html.lenis body { height: auto; }
 /* the giant wordmark — sits at the bottom, its baseline bleeding into the footer */
 .cvq-bigmark {
   margin-top: clamp(40px, 9vw, 110px);
-  line-height: 0.74;
+  /* a real line box so neither the cap tops nor the Q's tail get clipped */
+  line-height: 1;
   user-select: none;
   pointer-events: none;
 }
@@ -3276,10 +3523,14 @@ html.lenis, html.lenis body { height: auto; }
   display: block;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(72px, 21vw, 320px);
+  font-size: clamp(64px, 20vw, 300px);
+  /* full ascender→descender room inside the element box (was 0.74 + a negative
+     margin, which sliced the bottom of every letter and hid the Q's tail) */
+  line-height: 1.04;
   letter-spacing: -0.04em;
   color: var(--on-accent);
-  margin-bottom: -0.12em;          /* clip the lower edge for the bleed-into-footer look */
+  margin-bottom: 0;
+  padding-bottom: 0.04em;
 }
 .cvq-bigmark-word b { font-weight: 800; color: var(--accent); }
 /* the footer sits flush under the finale — both espresso, one dark close */

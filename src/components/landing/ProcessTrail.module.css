@@ -1,7 +1,8 @@
-/* ProcessTrail — Digilab-style numbered split-scroll process, Almanac-recolored.
+/* The flow — Digilab-style numbered split-scroll, Almanac-recolored.
    Pinned-scrub on desktop; a clean static stack under reduced-motion / ≤860px.
    Every colour is a global token (var(--accent)) or a color-mix tint of one.
-   Nothing here hardcodes a hex. */
+   Nothing here hardcodes a hex. The big numeral lives INSIDE each crossfading
+   copy block, so numerals can never stack or bleed through the text. */
 
 /* ── PINNED SHELL ──────────────────────────────────────────────────────────── */
 .root {
@@ -37,8 +38,8 @@
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
-  column-gap: clamp(18px, 2.4vw, 30px);
-  align-items: start;
+  column-gap: clamp(20px, 2.6vw, 34px);
+  align-items: stretch;
 }
 
 /* dotted vertical rail with three stations + a teal fill that descends */
@@ -46,7 +47,7 @@
   position: relative;
   width: 14px;
   align-self: stretch;
-  min-height: 320px;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -59,7 +60,6 @@
   bottom: 0;
   width: 0;
   transform: translateX(-50%);
-  /* the dotted DNA line */
   border-left: 2px dotted var(--border-strong);
 }
 .railFill {
@@ -96,61 +96,33 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
-/* the big inactive numerals sitting behind the active copy */
-.numerals {
-  position: absolute;
-  inset: 0 auto 0 calc(14px + clamp(18px, 2.4vw, 30px));
-  margin: 0;
-  padding: 6px 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  pointer-events: none;
-}
-.numeral {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(40px, 6vw, 64px);
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--border-strong);
-  opacity: 0.55;
-  transition: color var(--motion) var(--ease-out), opacity var(--motion) var(--ease-out);
-}
-.numeral.isActive {
-  color: var(--accent);
-  opacity: 1;
-}
-
 /* crossfading copy stack — only the active step is shown (pinned mode) */
 .copyStack {
   position: relative;
   grid-column: 2;
-  min-height: 320px;
+  min-height: 360px;
   display: grid;
 }
 .copy {
   grid-area: 1 / 1;
+  align-self: center;
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(18px);
   pointer-events: none;
   will-change: opacity, transform;
 }
 .copy.isActive {
   opacity: 1;
 }
-.glyph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-card);
+.copyNum {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(40px, 5.2vw, 68px);
+  line-height: 1;
+  letter-spacing: -0.03em;
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 .copyTitle {
   font-family: var(--font-display);
@@ -160,15 +132,6 @@
   letter-spacing: -0.01em;
   color: var(--text);
   margin: 0 0 var(--space-3);
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-}
-.copyNum {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--accent-hover);
 }
 .copyBody {
   font-size: 16px;
@@ -179,7 +142,7 @@
 }
 
 /* per-step inline diagram — hidden in the pinned layout (the shared right-column
-   SVG carries it there); only revealed in the static / mobile fallback */
+   stage carries it there); only revealed in the static / mobile fallback */
 .copyDiagram {
   display: none;
 }
@@ -194,15 +157,15 @@
   box-shadow: var(--shadow-card);
 }
 
-/* ── RIGHT COLUMN — line-art diagram ───────────────────────────────────────── */
+/* ── RIGHT COLUMN — line-art stage ─────────────────────────────────────────── */
 .right {
   display: flex;
   justify-content: center;
 }
-.diagram {
+.stage {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
   aspect-ratio: 360 / 300;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -210,41 +173,87 @@
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
-.diagSvg {
+.stageSvg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-.diagState {
+.stageState {
   opacity: 0;
   transform-origin: center;
   will-change: opacity, transform;
 }
-.diagState.isActive {
+.stageState.isActive {
   /* first-paint / no-JS visible state for the first group; once the rAF loop
      runs it drives opacity inline (overriding this) for the smooth crossfade */
   opacity: 1;
 }
 
-/* line-art primitives — stroke teal, fill none (the "conceptual" look) */
+/* ── line-art primitives (stroke teal, fill none — the "conceptual" look) ───── */
+.dLabel {
+  fill: var(--text-muted);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+.dField {
+  fill: var(--bg-page);
+  stroke: var(--accent);
+  stroke-width: 1.6;
+}
+.dType {
+  fill: var(--text);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 18px;
+}
+.dInk {
+  fill: var(--accent);
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.dBtn {
+  fill: var(--accent);
+  stroke: none;
+}
+.dBtnText {
+  fill: var(--on-accent);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 14px;
+}
+.dChip {
+  fill: color-mix(in srgb, var(--accent) 8%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 28%, transparent);
+  stroke-width: 1.2;
+}
+.dChipText {
+  fill: var(--accent-hover);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 11px;
+}
+.dDot {
+  fill: color-mix(in srgb, var(--accent) 60%, transparent);
+  stroke: none;
+}
+.dTick {
+  fill: var(--text-muted);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
 .dShape {
   fill: none;
   stroke: var(--accent);
   stroke-width: 1.6;
 }
-.dInk {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
 .dFill {
   fill: var(--accent);
-  stroke: none;
-}
-.dDot {
-  fill: color-mix(in srgb, var(--accent) 55%, transparent);
   stroke: none;
 }
 .dCheck {
@@ -253,6 +262,14 @@
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.dBar {
+  fill: color-mix(in srgb, var(--accent) 65%, transparent);
+  stroke: none;
+}
+.dBarFaint {
+  fill: color-mix(in srgb, var(--text-muted) 34%, transparent);
+  stroke: none;
 }
 .dPill {
   fill: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -265,7 +282,7 @@
   font-weight: 600;
   font-size: 15px;
 }
-.cursor {
+.caret {
   animation: ptBlink 1.05s steps(1) infinite;
 }
 @keyframes ptBlink {
@@ -278,14 +295,33 @@
     opacity: 0;
   }
 }
+.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ptPulse 2.6s var(--ease-out) infinite;
+}
+@keyframes ptPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
 
 /* ── STATIC / MOBILE FALLBACK ──────────────────────────────────────────────────
    Triggered three independent ways so it is always safe even with no JS:
      · JS sets data-static="true" (reduced-motion OR <=860px, set in useEffect)
      · the <=860px media query (no-JS + the layout reflow on small screens)
      · prefers-reduced-motion (no-JS desktop reduced-motion)
-   In every case: drop the pin, un-pin + un-hide the copy, hide the rail/numerals
-   and the shared crossfade SVG, and reveal each step's OWN inline diagram. */
+   In every case: drop the pin, un-pin + un-hide the copy, hide the rail and the
+   shared stage, and reveal each step's OWN inline diagram. */
 
 .root[data-static="true"] { height: auto; }
 .root[data-static="true"] .sticky {
@@ -302,9 +338,8 @@
   min-height: 0;
 }
 .root[data-static="true"] .rail,
-.root[data-static="true"] .numerals,
 .root[data-static="true"] .right {
-  display: none; /* the shared right column is replaced by per-step diagrams */
+  display: none;
 }
 .root[data-static="true"] .copy {
   position: static;
@@ -315,7 +350,7 @@
 }
 .root[data-static="true"] .copy:last-child { margin-bottom: 0; }
 .root[data-static="true"] .copyDiagram { display: block; }
-.root[data-static="true"] .cursor { animation: none; }
+.root[data-static="true"] .caret { animation: none; }
 
 @media (max-width: 860px) {
   .root { height: auto; }
@@ -333,7 +368,6 @@
     min-height: 0;
   }
   .rail,
-  .numerals,
   .right {
     display: none;
   }
@@ -347,7 +381,7 @@
   .copy:last-child { margin-bottom: 0; }
   .copyDiagram { display: block; }
   .copyDiagramSvg { max-width: 100%; }
-  .cursor { animation: none; }
+  .caret { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -366,7 +400,6 @@
     min-height: 0;
   }
   .rail,
-  .numerals,
   .right {
     display: none;
   }
@@ -379,5 +412,6 @@
   }
   .copy:last-child { margin-bottom: 0; }
   .copyDiagram { display: block; }
-  .cursor { animation: none; }
+  .caret { animation: none; }
+  .pulse { animation: none; }
 }
