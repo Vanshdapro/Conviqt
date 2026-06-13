@@ -2112,16 +2112,38 @@
 }
 
 /* ── Track record ──────────────────────────────────────────────────────────── */
-.cvq-land-track-stats {
+/* reputability strip — how the record works; no performance numbers surfaced */
+.cvq-track-trust {
+  list-style: none;
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+@media (max-width: 640px) { .cvq-track-trust { grid-template-columns: 1fr; } }
+.cvq-track-trust li {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: 15px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+  flex-direction: column;
+  gap: 4px;
+  padding: clamp(14px, 1.8vw, 20px) clamp(16px, 2vw, 24px);
+  background: var(--bg-page);
+}
+.cvq-track-trust strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
   color: var(--text);
-  margin: 0 0 var(--space-5);
+}
+.cvq-track-trust span {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 /* Picks ledger — an open record of every call, wins AND misses. Hairline-ruled
    to rhyme with the skill ledger; a win/loss tick on each card's top edge makes
@@ -2148,19 +2170,18 @@
   transition: background var(--motion) var(--ease-out);
 }
 .cvq-pick:hover { background: var(--bg-surface); }
-/* win/loss tick on the top edge — the ledger tells the truth at a glance */
+/* a uniform teal tick on the top edge — a branded accent, NOT a win/loss
+   signal (per-pick performance is intentionally not surfaced on the landing) */
 .cvq-pick::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
   height: 3px;
-  background: var(--border-strong);
-  opacity: 0.7;
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  opacity: 0.8;
   transition: opacity var(--motion) var(--ease-out);
 }
 .cvq-pick:hover::before { opacity: 1; }
-.cvq-pick--up::before { background: var(--up); }
-.cvq-pick--down::before { background: var(--down); }
 .cvq-pick-head {
   display: flex;
   align-items: center;
@@ -2176,20 +2197,13 @@
   color: var(--text);
 }
 .cvq-pick-company { font-size: 12px; color: var(--text-muted); }
-.cvq-pick-nums {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.cvq-pick-entry {
   margin-top: var(--space-1);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
-.cvq-pick-na { font-size: 12px; color: var(--text-muted); }
 .cvq-pick-thesis { font-size: 13px; line-height: 1.55; color: var(--text-2); margin: var(--space-1) 0 0; }
-.cvq-pick-asof { font-size: 11px; color: var(--text-muted); margin: 0; }
 .cvq-land-track-note {
   font-size: 13px;
   color: var(--text-muted);

@@ -10,8 +10,7 @@ import { SignalField } from "@/components/landing/SignalField";
 import { RisingThread } from "@/components/landing/RisingThread";
 import { PhoneFrame } from "@/components/landing/DeviceFrame";
 import { FounderNote } from "@/components/landing/FounderNote";
-import { ChangePill } from "@/components/ui";
-import { loadPicks, pickStats, thesisLine, type PickView } from "@/lib/picksView";
+import { loadPicks, thesisLine, type PickView } from "@/lib/picksView";
 import { SKILLS } from "@/lib/skills";
 import { TRACKS, TOTAL_LESSONS } from "@/lib/learn/curriculum";
 
@@ -104,24 +103,18 @@ const FAQ: Array<{ q: string; a: string }> = [
 
 // ── Track record helpers ─────────────────────────────────────────────────────
 
-// The section's whole point is "losses visible": take the most recent picks,
-// and if none of those happens to be a loser while the history has one, swap
-// the most recent loss in. All real picks, never curated to look good.
+// Show the most recent calls, as-published. We deliberately DON'T surface
+// per-pick or aggregate returns on the landing yet — the record's credibility
+// here is that every call is public, dated, and permanent (the full history,
+// with performance, lives one tap away on the Dashboard).
 function selectShowcase(views: PickView[], count = 6): PickView[] {
-  const shown = views.slice(0, count);
-  const hasLoss = shown.some((v) => v.returnPct !== null && v.returnPct < 0);
-  if (!hasLoss) {
-    const loser = views.find((v) => v.returnPct !== null && v.returnPct < 0);
-    if (loser && !shown.includes(loser)) shown[shown.length - 1] = loser;
-  }
-  return shown;
+  return views.slice(0, count);
 }
 
 function PickCard({ v }: { v: PickView }) {
   const thesis = thesisLine(v.pick);
-  const tone = v.returnPct === null ? "na" : v.returnPct >= 0 ? "up" : "down";
   return (
-    <article className={`cvq-pick cvq-pick--${tone}`}>
+    <article className="cvq-pick">
       <div className="cvq-pick-head">
         <span className="cvq-pick-ticker">{v.pick.ticker}</span>
         <span className={`cvq-chip ${v.open ? "cvq-dash-chip-open" : "cvq-dash-chip-closed"}`}>
@@ -129,18 +122,10 @@ function PickCard({ v }: { v: PickView }) {
         </span>
       </div>
       <span className="cvq-pick-company">{v.pick.company_name}</span>
-      <div className="cvq-pick-nums">
-        <span className="cvq-pick-entry">
-          Entry ${v.pick.entry_price.toFixed(2)} · {v.pick.entry_date}
-        </span>
-        {v.returnPct !== null ? (
-          <ChangePill change={v.returnPct} />
-        ) : (
-          <span className="cvq-pick-na">price unavailable</span>
-        )}
-      </div>
+      <span className="cvq-pick-entry">
+        Entry ${v.pick.entry_price.toFixed(2)} · {v.pick.entry_date}
+      </span>
       {thesis && <p className="cvq-pick-thesis">{thesis}</p>}
-      {v.priceAsOfNote && <p className="cvq-pick-asof">{v.priceAsOfNote}</p>}
     </article>
   );
 }
@@ -154,7 +139,6 @@ export default async function Home() {
     console.error("[landing] picks load failed:", err);
     return null; // error state, not an empty track record
   });
-  const stats = views ? pickStats(views) : null;
   const showcase = views ? selectShowcase(views) : [];
 
   const gridSkills = GRID_SKILL_IDS.map((id) => SKILLS.find((s) => s.id === id)).filter(
@@ -277,11 +261,12 @@ export default async function Home() {
         <section className="cvq-land-section cvq-land-track" id="track-record" aria-labelledby="track-h" data-thread-node data-thread-label="Track record">
           <p className="cvq-land-eyebrow" data-reveal="up">Track record</p>
           <h2 id="track-h" className="cvq-land-h2" data-reveal="clip">
-            We publish everything. Even the misses.
+            Every call, on the record.
           </h2>
           <p className="cvq-land-lede" data-reveal="up">
-            Every pick goes on the record with its entry price and stays there — wins and losses
-            alike. No quiet deletions, ever.
+            The moment we make a pick it goes public — the ticker, the entry price, the date, and
+            the reasoning behind it — and it stays there for good. Nothing is quietly edited or
+            deleted. The full history is always one tap away.
           </p>
 
           {views === null ? (
@@ -301,25 +286,28 @@ export default async function Home() {
             </div>
           ) : (
             <>
-              {stats && (
-                <p className="cvq-land-track-stats" data-reveal="up">
-                  Win rate{" "}
-                  <span data-countup={String(stats.winRate)} data-count-suffix="%">
-                    {stats.winRate}%
-                  </span>{" "}
-                  · Average return <ChangePill change={stats.avgReturn} /> ·{" "}
-                  <span data-countup={String(stats.total)}>{stats.total}</span> picks (
-                  <span data-countup={String(stats.open)}>{stats.open}</span> open)
-                </p>
-              )}
+              <ul className="cvq-track-trust" data-reveal="up" aria-label="How the record works">
+                <li>
+                  <strong>Public</strong>
+                  <span>Every call is visible to everyone, the day we make it.</span>
+                </li>
+                <li>
+                  <strong>Time-stamped</strong>
+                  <span>The entry price and date are locked in — no rewriting history.</span>
+                </li>
+                <li>
+                  <strong>Permanent</strong>
+                  <span>Calls stay up for good. Never quietly edited, never deleted.</span>
+                </li>
+              </ul>
               <div className="cvq-picks" data-reveal="up">
                 {showcase.map((v) => (
                   <PickCard key={v.pick.id ?? `${v.pick.ticker}-${v.pick.entry_date}`} v={v} />
                 ))}
               </div>
               <p className="cvq-land-track-note">
-                Live prices where a source answers; otherwise the last verified check, dated. Past
-                results never guarantee future returns.{" "}
+                Each call stays public for good — the complete history, wins and losses alike, is
+                one tap away. Past results never guarantee future returns.{" "}
                 <Link href="/dashboard">See the full history →</Link>
               </p>
             </>
