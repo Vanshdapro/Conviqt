@@ -9,3 +9,4 @@ export { Skeleton, SkeletonText, SkeletonLoader } from "./SkeletonLoader";
 export { EmptyState } from "./EmptyState";
 export { ModeToggle, type ModeOption } from "./ModeToggle";
 export { Sheet } from "./Sheet";
+export { ThemeToggle } from "./ThemeToggle";

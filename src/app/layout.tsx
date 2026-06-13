@@ -5,7 +5,13 @@ import "../styles/tokens.css";
 import "../styles/app.css";
 import { fontVars } from "@/lib/fonts";
 import { AppFrame } from "@/components/shell/AppShell";
+import { ThemeToggle } from "@/components/ui";
 import Analytics from "@/components/analytics/Analytics";
+
+// No-flash theme bootstrap: applies the saved choice to <html> BEFORE first
+// paint so a dark-mode user never sees a white flash. Light is the default —
+// absence of the attribute resolves to the light tokens in tokens.css.
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('conviqt-theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`;
 
 const SITE_URL = "https://www.conviqt.com";
 const SITE_NAME = "Conviqt";
@@ -192,8 +198,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased ${fontVars}`} style={FONT_VARS}>
+    <html
+      lang="en"
+      className={`h-full antialiased ${fontVars}`}
+      style={FONT_VARS}
+      // The no-flash script (THEME_INIT) sets data-theme on <html> before React
+      // hydrates, so the server (always light) and client markup differ by one
+      // attribute here. This is the intended theme pattern — suppress the warning
+      // for this element only (does not cascade to children).
+      suppressHydrationWarning
+    >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -201,6 +217,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col relative">
         <AppFrame>{children}</AppFrame>
+        <ThemeToggle />
         <Analytics />
         {ADS_TAG_ENABLED && (
           <>

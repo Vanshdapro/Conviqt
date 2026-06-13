@@ -2799,3 +2799,61 @@
   transition: border-color 160ms ease-out;
 }
 .cvq-yourstock:hover { border-color: var(--border-strong); }
+
+/* ── Theme toggle — the small light/dark switch (mounted once, all routes) ──
+   On-brand: warm surface + 1px hairline, never a glow. Fixed bottom-right so
+   it lives on every surface regardless of which header that page renders. */
+.cvq-theme-toggle {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-out),
+              color var(--motion-fast) var(--ease-out),
+              background var(--motion-fast) var(--ease-out);
+}
+.cvq-theme-toggle:hover { border-color: var(--border-strong); color: var(--text); }
+.cvq-theme-toggle:active { background: var(--bg-sunken); }
+.cvq-theme-toggle svg { width: 18px; height: 18px; display: block; }
+
+@media (max-width: 768px) {
+  /* clear the bottom tab bar on the logged-in surfaces */
+  .cvq-theme-toggle--shell {
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  }
+}
+
+/* SELL verdict reads as a neutral dark-ink pill in light mode (--espresso as
+   text). On the dark field that ink would vanish, and --espresso is the footer
+   block tone there — so re-skin this one pill to neutral light ink on dark. */
+:root[data-theme="dark"] .cvq-verdict--sell {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+
+/* Smooth the moment of switching on the big surfaces (Almanac motion budget). */
+body,
+.app-frame,
+.cvq-sidebar,
+.cvq-topbar,
+.cvq-tabbar,
+.cvq-card {
+  transition: background-color var(--motion) var(--ease-out),
+              border-color var(--motion) var(--ease-out),
+              color var(--motion) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  body, .app-frame, .cvq-sidebar, .cvq-topbar, .cvq-tabbar, .cvq-card,
+  .cvq-theme-toggle { transition: none; }
+}
