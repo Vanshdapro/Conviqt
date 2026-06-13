@@ -1,17 +1,63 @@
 "use client";
 
 // LOGGED-OUT LANDING ONLY — the WebGL interactive background (founder-approved
-// exception to the no-3D/no-WebGL brand ban, scoped to `.cvq-land`). Recoloured
-// Noomo/Digilab DNA: a flowing 3D point-terrain in teal on warm paper that
-// recedes into depth fog, parallaxes toward the cursor, and morphs as you
-// scroll — the "fly over a living data surface" feel.
+// exception to the no-3D/no-WebGL brand ban, scoped to `.cvq-land`). Digilab-style
+// silky dot-wave, recoloured to ALMANAC teal on warm paper: a smooth undulating
+// sheet of soft round points that flows with time, parallaxes toward the cursor,
+// and drifts as you scroll — crests brighten, the far field fades into the paper.
 //
-// three.js is dynamically imported inside the effect so it never touches the
-// initial bundle or SSR. Degrades to a single static frame under
-// prefers-reduced-motion, and pauses when the tab is hidden. Colours are read
-// from the ALMANAC CSS vars at runtime so the field can never drift off-brand.
+// Driven entirely on the GPU (a ShaderMaterial computes the wave in the vertex
+// shader) so it's buttery at 25k points, with no per-frame CPU loop. Points are
+// position-jittered + far-faded to kill the grid moiré that makes a regular point
+// field look noisy. three.js is dynamically imported (off the initial bundle/SSR);
+// one static frame under prefers-reduced-motion; pauses when the tab is hidden.
 
 import { useEffect, useRef } from "react";
+
+const VERT = /* glsl */ `
+  uniform float uTime;
+  uniform float uScroll;
+  uniform float uSize;
+  uniform float uPixelRatio;
+  attribute float aRnd;
+  varying float vH;
+  varying float vFade;
+  varying float vRnd;
+  void main() {
+    vec3 p = position;
+    float z = p.z + uScroll;
+    // one smooth low-frequency swell + a gentle cross-swell = silky rolling hills
+    float y = sin(p.x * 0.16 + uTime) * 1.2
+            + sin(z * 0.14 + uTime * 0.8) * 1.05
+            + sin((p.x + z) * 0.07 + uTime * 0.45) * 0.5;
+    p.y = y;
+    vH = y;
+    vRnd = aRnd;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    float dist = -mv.z;
+    vFade = smoothstep(40.0, 8.0, dist);            // fade the noisy far field into paper
+    gl_PointSize = min(uSize * uPixelRatio * (210.0 / dist) * (0.7 + aRnd * 0.6), 22.0);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const FRAG = /* glsl */ `
+  precision mediump float;
+  uniform vec3 uColor;
+  uniform vec3 uColorHi;
+  varying float vH;
+  varying float vFade;
+  varying float vRnd;
+  void main() {
+    vec2 c = gl_PointCoord - 0.5;
+    float d = dot(c, c);
+    if (d > 0.25) discard;                          // round dot
+    float soft = smoothstep(0.25, 0.06, d);         // crisp but soft edge
+    vec3 col = mix(uColor, uColorHi, smoothstep(-1.2, 1.6, vH));  // crests brighten
+    float a = soft * vFade * (0.5 + vRnd * 0.34);   // subtle per-point twinkle
+    gl_FragColor = vec4(col, a);
+  }
+`;
 
 export function Landing3DBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,11 +73,11 @@ export function Landing3DBackground() {
       if (disposed) return;
 
       const cs = getComputedStyle(document.documentElement);
-      const hex = (name: string, fallback: string) =>
+      const color = (name: string, fallback: string) =>
         new THREE.Color((cs.getPropertyValue(name).trim() || fallback) as string);
-      const paper = hex("--bg-page", "#F5EFE1");
-      const teal = hex("--accent", "#0E7978");
-      const tealDeep = hex("--accent-hover", "#0A5F5D");
+      const paper = color("--bg-page", "#F5EFE1");
+      const teal = color("--accent", "#0E7978");
+      const tealHi = teal.clone().lerp(new THREE.Color("#7FE6DA"), 0.6); // luminous teal crest (not washed cream)
 
       let renderer: import("three").WebGLRenderer;
       try {
@@ -40,105 +86,76 @@ export function Landing3DBackground() {
         return; // no WebGL → leave the paper background as-is
       }
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      const pr = Math.min(2, window.devicePixelRatio || 1);
+      renderer.setPixelRatio(pr);
 
       let w = window.innerWidth;
       let h = window.innerHeight;
       renderer.setSize(w, h, false);
 
       const scene = new THREE.Scene();
-      scene.fog = new THREE.Fog(paper.getHex(), 9, 30);
+      scene.fog = new THREE.Fog(paper.getHex(), 16, 44);
 
-      const camera = new THREE.PerspectiveCamera(52, w / h, 0.1, 100);
-      camera.position.set(0, 4.4, 11);
-      camera.lookAt(0, -0.6, 0);
+      const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 120);
+      camera.position.set(0, 4.3, 11);
+      camera.lookAt(0, -0.8, 0);
 
-      // ── Point terrain ────────────────────────────────────────────────────────
-      const GRID = 150;          // 150 × 150 = 22.5k points
-      const SEP = 0.42;
+      // ── Point sheet ────────────────────────────────────────────────────────────
+      const GRID = 160;          // 160 × 160 = 25.6k points (GPU-cheap)
+      const SEP = 0.46;
       const COUNT = GRID * GRID;
       const positions = new Float32Array(COUNT * 3);
-      const colors = new Float32Array(COUNT * 3);
-      const baseX = new Float32Array(COUNT);
-      const baseZ = new Float32Array(COUNT);
+      const rnd = new Float32Array(COUNT);
       const span = (GRID * SEP) / 2;
-      let p = 0;
+      let i = 0;
       for (let xi = 0; xi < GRID; xi++) {
         for (let zi = 0; zi < GRID; zi++) {
-          const x = xi * SEP - span;
-          const z = zi * SEP - span;
-          baseX[p] = x;
-          baseZ[p] = z;
-          positions[p * 3] = x;
-          positions[p * 3 + 1] = 0;
-          positions[p * 3 + 2] = z;
-          // subtle teal→deep-teal gradient across the field for life
-          const t = (xi + zi) / (GRID * 2);
-          const c = teal.clone().lerp(tealDeep, t);
-          colors[p * 3] = c.r;
-          colors[p * 3 + 1] = c.g;
-          colors[p * 3 + 2] = c.b;
-          p++;
+          // mild jitter breaks the regular grid → no interference moiré, dots stay distinct
+          positions[i * 3] = xi * SEP - span + (Math.random() - 0.5) * SEP * 0.4;
+          positions[i * 3 + 1] = 0;
+          positions[i * 3 + 2] = zi * SEP - span + (Math.random() - 0.5) * SEP * 0.4;
+          rnd[i] = Math.random();
+          i++;
         }
       }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      geo.setAttribute("aRnd", new THREE.BufferAttribute(rnd, 1));
 
-      // soft round sprite so points read as premium dots, not square pixels
-      const dot = (() => {
-        const c = document.createElement("canvas");
-        c.width = c.height = 64;
-        const g = c.getContext("2d")!;
-        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-        grad.addColorStop(0, "rgba(255,255,255,1)");
-        grad.addColorStop(0.45, "rgba(255,255,255,0.55)");
-        grad.addColorStop(1, "rgba(255,255,255,0)");
-        g.fillStyle = grad;
-        g.fillRect(0, 0, 64, 64);
-        return new THREE.CanvasTexture(c);
-      })();
-
-      const mat = new THREE.PointsMaterial({
-        size: 0.5,
-        map: dot,
-        vertexColors: true,
+      const uniforms = {
+        uTime: { value: 0 },
+        uScroll: { value: 0 },
+        uSize: { value: 0.55 },
+        uPixelRatio: { value: pr },
+        uColor: { value: teal },
+        uColorHi: { value: tealHi },
+        uFog: { value: paper },
+      };
+      const mat = new THREE.ShaderMaterial({
+        uniforms,
+        vertexShader: VERT,
+        fragmentShader: FRAG,
         transparent: true,
-        opacity: 0.62,
-        sizeAttenuation: true,
         depthWrite: false,
+        depthTest: false,
       });
       const points = new THREE.Points(geo, mat);
       scene.add(points);
 
-      // ── Interaction state ──────────────────────────────────────────────────────
-      const pos = geo.attributes.position.array as Float32Array;
+      // ── Interaction ────────────────────────────────────────────────────────────
       const mouse = { x: 0, y: 0 };
       let camX = 0;
-      let camY = 4.4;
+      let camY = 4.3;
       let scroll = window.scrollY;
 
-      const wave = (time: number) => {
-        const sFlow = scroll * 0.006; // scrolling flows the terrain toward you
-        for (let k = 0; k < COUNT; k++) {
-          const x = baseX[k];
-          const z = baseZ[k] + sFlow;
-          pos[k * 3 + 1] =
-            Math.sin(x * 0.3 + time) * 0.45 +
-            Math.cos(z * 0.4 + time * 0.85) * 0.4 +
-            Math.sin((x + z) * 0.2 + time * 0.5) * 0.28;
-        }
-        geo.attributes.position.needsUpdate = true;
-      };
-
-      const draw = (time: number) => {
-        wave(time);
-        // ease camera toward cursor for a 3D parallax tilt
-        camX += (mouse.x * 1.6 - camX) * 0.045;
-        camY += (4.4 - mouse.y * 1.1 - camY) * 0.045;
+      const render = (timeMs: number) => {
+        uniforms.uTime.value = timeMs * 0.0006;
+        uniforms.uScroll.value = scroll * 0.004;
+        camX += (mouse.x * 1.8 - camX) * 0.04;
+        camY += (4.3 - mouse.y * 1.1 - camY) * 0.04;
         camera.position.x = camX;
         camera.position.y = camY;
-        camera.lookAt(0, -0.6, 0);
+        camera.lookAt(0, -0.8, 0);
         renderer.render(scene, camera);
       };
 
@@ -146,11 +163,10 @@ export function Landing3DBackground() {
       let running = true;
       const loop = (t: number) => {
         if (!running) return;
-        draw(t * 0.001);
+        render(t);
         raf = requestAnimationFrame(loop);
       };
-
-      draw(0); // always paint a first frame (covers tabs that load render-throttled)
+      render(0); // always paint a first frame (covers tabs that load render-throttled)
       if (!reduce) raf = requestAnimationFrame(loop);
 
       // ── Listeners ────────────────────────────────────────────────────────────
@@ -167,7 +183,7 @@ export function Landing3DBackground() {
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h, false);
-        if (reduce) draw(0);
+        if (reduce) render(0);
       };
       const onVis = () => {
         running = !document.hidden && !reduce;
@@ -188,7 +204,6 @@ export function Landing3DBackground() {
         document.removeEventListener("visibilitychange", onVis);
         geo.dispose();
         mat.dispose();
-        dot.dispose();
         renderer.dispose();
       };
     })();
