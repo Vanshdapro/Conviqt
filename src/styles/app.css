@@ -2084,8 +2084,10 @@
   color: var(--text-muted);
   margin: var(--space-5) 0 0;
 }
+/* Inline links in body copy carry an underline so they don't rely on hue
+   alone (WCAG link-in-text-block). */
 .cvq-land-track-note a,
-.cvq-land-track-error a { color: var(--link); }
+.cvq-land-track-error a { color: var(--link); text-decoration: underline; }
 .cvq-land-track-error p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-2); }
 
 /* ── Academy ───────────────────────────────────────────────────────────────── */
@@ -2257,7 +2259,8 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--on-accent) 60%, transparent);
+  /* 72% cream on espresso = 5.45:1, clears WCAG AA for this 12px label */
+  color: color-mix(in srgb, var(--on-accent) 72%, transparent);
   margin: 0 0 var(--space-3);
 }
 .cvq-land-footer-cols div { display: flex; flex-direction: column; gap: var(--space-2); }
@@ -2280,7 +2283,8 @@
   max-width: 1160px;
   margin: var(--space-3) auto 0;
   font-size: 12px;
-  color: color-mix(in srgb, var(--on-accent) 55%, transparent);
+  /* 72% cream on espresso = 5.45:1, clears WCAG AA for this 12px copy */
+  color: color-mix(in srgb, var(--on-accent) 72%, transparent);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
