@@ -2886,15 +2886,6 @@ html.lenis, html.lenis body { height: auto; }
   --rv-dur: 820ms;
 }
 
-/* ── Interactive line-field background (recoloured Noomo/Digilab DNA) ──────── */
-.cvq-amb {
-  position: fixed;
-  inset: 0;
-  z-index: -1;                 /* above .cvq-land's paper bg, behind all content */
-  pointer-events: none;
-  display: block;
-}
-
 /* ── Scroll thread — the line that draws down the page as you scroll ───────── */
 .cvq-thread {
   position: absolute;
@@ -3164,7 +3155,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* reduced-motion: erase the whole choreography, show everything at rest */
 @media (prefers-reduced-motion: reduce) {
-  .cvq-amb, .cvq-thread { display: none; }
+  .cvq-thread { display: none; }
   .cvq-land [data-reveal], .cvq-land [data-fade], .cvq-land [data-intro] {
     opacity: 1 !important;
     transform: none !important;

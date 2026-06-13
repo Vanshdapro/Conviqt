@@ -191,8 +191,6 @@ export function LandingMotion() {
       });
     }
 
-    // (The interactive background now lives in <Landing3DBackground/> — WebGL.)
-
     return () => {
       land.classList.remove("cvq-motion");
       for (const fn of cleanups) fn();

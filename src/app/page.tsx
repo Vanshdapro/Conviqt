@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { WordmarkIntro } from "@/components/landing/WordmarkIntro";
 import { SmoothScroll } from "@/components/landing/SmoothScroll";
-import { Landing3DBackground } from "@/components/landing/Landing3DBackground";
 import { LandingMotion } from "@/components/landing/LandingMotion";
 import { FeatureSequence, type FeatureStep } from "@/components/landing/FeatureSequence";
 import { PhoneFrame } from "@/components/landing/DeviceFrame";
@@ -175,7 +174,6 @@ export default async function Home() {
     <div className="cvq-land">
       <WordmarkIntro />
       <SmoothScroll />
-      <Landing3DBackground />
       <LandingMotion />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
