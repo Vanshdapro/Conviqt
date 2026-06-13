@@ -77,7 +77,7 @@ function selectShowcase(views: PickView[], count = 6): PickView[] {
 function PickCard({ v }: { v: PickView }) {
   const thesis = thesisLine(v.pick);
   return (
-    <article className="cvq-card cvq-land-pick">
+    <article className="cvq-card cvq-land-pick" data-reveal="up">
       <div className="cvq-land-pick-top">
         <div>
           <span className="cvq-ticker-sym">
@@ -307,12 +307,17 @@ export default async function Home() {
           ) : (
             <>
               {stats && (
-                <p className="cvq-land-track-stats">
-                  Win rate {stats.winRate}% · Average return <ChangePill change={stats.avgReturn} /> ·{" "}
-                  {stats.total} picks ({stats.open} open)
+                <p className="cvq-land-track-stats" data-reveal="up">
+                  Win rate{" "}
+                  <span data-countup={String(stats.winRate)} data-count-suffix="%">
+                    {stats.winRate}%
+                  </span>{" "}
+                  · Average return <ChangePill change={stats.avgReturn} /> ·{" "}
+                  <span data-countup={String(stats.total)}>{stats.total}</span> picks (
+                  <span data-countup={String(stats.open)}>{stats.open}</span> open)
                 </p>
               )}
-              <div className="cvq-land-picks">
+              <div className="cvq-land-picks" data-reveal-group>
                 {showcase.map((v) => (
                   <PickCard key={v.pick.id ?? `${v.pick.ticker}-${v.pick.entry_date}`} v={v} />
                 ))}
@@ -327,24 +332,24 @@ export default async function Home() {
         </section>
 
         {/* ── 6 · Academy ─────────────────────────────────────────────────── */}
-        <section className="cvq-land-section cvq-land-academy" id="academy" aria-labelledby="academy-h">
-          <p className="cvq-land-eyebrow">Academy</p>
-          <h2 id="academy-h" className="cvq-land-h2">
+        <section className="cvq-land-section cvq-land-academy" id="academy" aria-labelledby="academy-h" data-thread-node>
+          <p className="cvq-land-eyebrow" data-reveal="up">Academy</p>
+          <h2 id="academy-h" className="cvq-land-h2" data-reveal="clip">
             Learn what the numbers mean.
           </h2>
-          <p className="cvq-land-lede">
+          <p className="cvq-land-lede" data-reveal="up">
             {TRACKS.length} tracks, {TOTAL_LESSONS} bite-size lessons — woven into the app, so every
             stat you meet links to the lesson that explains it. You&rsquo;re not just following
             calls; you&rsquo;re learning to make your own.
           </p>
-          <div className="cvq-land-trackchips" aria-label="Some of the tracks">
+          <div className="cvq-land-trackchips" aria-label="Some of the tracks" data-reveal-group>
             {TRACKS.slice(0, 6).map((t) => (
-              <span key={t.id} className="cvq-chip">
+              <span key={t.id} className="cvq-chip" data-reveal="up">
                 {t.name}
               </span>
             ))}
           </div>
-          <Link href="/academy" className="cvq-btn cvq-btn--secondary cvq-land-academy-cta">
+          <Link href="/academy" className="cvq-btn cvq-btn--secondary cvq-land-academy-cta" data-reveal="up">
             Explore the Academy
           </Link>
         </section>
@@ -353,13 +358,13 @@ export default async function Home() {
         <FounderNote />
 
         {/* ── 8 · Pricing (playbook 2.4) ──────────────────────────────────── */}
-        <section className="cvq-land-section" id="pricing" aria-labelledby="pricing-h">
-          <p className="cvq-land-eyebrow">Pricing</p>
-          <h2 id="pricing-h" className="cvq-land-h2">
+        <section className="cvq-land-section" id="pricing" aria-labelledby="pricing-h" data-thread-node>
+          <p className="cvq-land-eyebrow" data-reveal="up">Pricing</p>
+          <h2 id="pricing-h" className="cvq-land-h2" data-reveal="clip">
             Start free. Upgrade when it earns it.
           </h2>
-          <div className="cvq-land-pricing">
-            <div className="cvq-card cvq-card--pad-lg cvq-land-plan">
+          <div className="cvq-land-pricing" data-reveal-group>
+            <div className="cvq-card cvq-card--pad-lg cvq-land-plan" data-reveal="up">
               <h3>Free</h3>
               <p className="cvq-land-plan-price">
                 <span>$0</span>
@@ -374,7 +379,7 @@ export default async function Home() {
                 Start free
               </Link>
             </div>
-            <div className="cvq-card cvq-card--pad-lg cvq-land-plan cvq-land-plan--pro">
+            <div className="cvq-card cvq-card--pad-lg cvq-land-plan cvq-land-plan--pro" data-reveal="up">
               <h3>Pro</h3>
               <p className="cvq-land-plan-price">
                 <span>$16</span>
@@ -392,18 +397,18 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-          <p className="cvq-land-fineprint">Prices in USD. Cancel anytime.</p>
+          <p className="cvq-land-fineprint" data-reveal="up">Prices in USD. Cancel anytime.</p>
         </section>
 
         {/* ── 9 · FAQ ─────────────────────────────────────────────────────── */}
-        <section className="cvq-land-section cvq-land-faq" aria-labelledby="faq-h">
-          <p className="cvq-land-eyebrow">FAQ</p>
-          <h2 id="faq-h" className="cvq-land-h2">
+        <section className="cvq-land-section cvq-land-faq" aria-labelledby="faq-h" data-thread-node>
+          <p className="cvq-land-eyebrow" data-reveal="up">FAQ</p>
+          <h2 id="faq-h" className="cvq-land-h2" data-reveal="clip">
             Fair questions.
           </h2>
-          <div className="cvq-land-faqlist">
+          <div className="cvq-land-faqlist" data-reveal-group>
             {FAQ.map(({ q, a }) => (
-              <details key={q} className="cvq-land-faqitem">
+              <details key={q} className="cvq-land-faqitem" data-reveal="up">
                 <summary>{q}</summary>
                 <p>{a}</p>
               </details>

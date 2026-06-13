@@ -48,10 +48,10 @@ export function FounderNote() {
   const story = founderStory();
 
   return (
-    <section className="cvq-land-section" aria-labelledby="founder-h">
-      <p className="cvq-land-eyebrow">From the founder</p>
+    <section className="cvq-land-section" aria-labelledby="founder-h" data-thread-node>
+      <p className="cvq-land-eyebrow" data-reveal="up">From the founder</p>
       <div className="cvq-founder">
-        <div className="cvq-founder-photo">
+        <div className="cvq-founder-photo" data-fade data-parallax="0.05">
           {photo ? (
             <Image
               src={photo}
@@ -67,7 +67,7 @@ export function FounderNote() {
             </div>
           )}
         </div>
-        <div className="cvq-founder-text">
+        <div className="cvq-founder-text" data-reveal="right">
           <h2 id="founder-h" className="cvq-land-h2">
             Why I built this
           </h2>
