@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "../agents/audience";
 import { renderBaselineBrief, renderProfileBrief, renderVehicleBrief } from "./engine";
 import type {
@@ -181,7 +181,7 @@ export async function runAllocatorJudge(
   audience?: ExperienceLevel | null
 ): Promise<AllocatorJudgeRunResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const aud = audienceDirective(audience);
   const sourceCount = factSheet.sources.length;
 

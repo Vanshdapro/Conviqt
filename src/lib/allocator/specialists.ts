@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { renderBaselineBrief, renderProfileBrief, renderVehicleBrief } from "./engine";
 import type {
   AllocatorFactSheet,
@@ -104,7 +104,7 @@ async function runOne(
   validTickers: Set<string>
 ): Promise<SpecialistRunResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const response = await anthropic.messages.create({
     model: MODELS.specialist,

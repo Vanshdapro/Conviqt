@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { resolveSector, supportedSectorLabels } from "./sectors";
 
 // Cheap intent classifier. Decides whether a user message is asking to:
@@ -204,7 +204,7 @@ export async function classifyIntent(
     return { intent: forced, costUSD: 0, durationMs: Date.now() - t0 };
   }
 
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const response = await anthropic.messages.create({
     model: MODELS.router,
     max_tokens: 256,

@@ -1,5 +1,5 @@
 import { getAlphaStore } from "./alphaStore";
-import { getAnthropic, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "./anthropic";
+import { getOpenAI, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "./openai";
 import { runSweep } from "./agents/sweep";
 import { runPicker } from "./agents/picker";
 import { runMacroRegime } from "./agents/regime";
@@ -42,7 +42,7 @@ export function nextRunDate(from: Date = new Date()): string {
 // Fetch current price for a ticker via a single web_search call.
 // Returns { price, costUSD } or null if the search failed.
 async function fetchCurrentPrice(ticker: string): Promise<{ price: number; costUSD: number } | null> {
-  const client = getAnthropic();
+  const client = getOpenAI();
   try {
     const response = await client.messages.create({
       model: MODELS.sweep,
@@ -58,7 +58,7 @@ async function fetchCurrentPrice(ticker: string): Promise<{ price: number; costU
     // Parse the price from the last text block
     for (const block of response.content.reverse()) {
       if (block.type === "text") {
-        const match = block.text.match(/\{"price"\s*:\s*([\d.]+|null)\}/);
+        const match = block.text?.match(/\{"price"\s*:\s*([\d.]+|null)\}/);
         if (match) {
           const val = match[1];
           if (val === "null") return { price: 0, costUSD };

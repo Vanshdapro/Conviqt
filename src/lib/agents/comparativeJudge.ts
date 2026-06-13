@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "./audience";
 import {
   CompareDimension,
@@ -144,7 +144,7 @@ export async function runComparativeJudge(
   audience?: ExperienceLevel | null
 ): Promise<ComparativeJudgeResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const aud = audienceDirective(audience);
 
   const response = await anthropic.messages.create({

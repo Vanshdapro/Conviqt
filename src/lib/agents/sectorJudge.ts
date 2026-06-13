@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "./audience";
 import {
   FactSheet,
@@ -119,7 +119,7 @@ export async function runSectorTickerScorecard(
   factSheet: FactSheet
 ): Promise<SectorScorecardResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const sourceLegend = factSheet.sources
     .map((s, i) => `#${i} — ${s.publisher}: ${s.title.slice(0, 80)}`)
@@ -308,7 +308,7 @@ export async function runSectorJudge(
   audience?: ExperienceLevel | null
 ): Promise<SectorJudgeResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const aud = audienceDirective(audience);
 
   const briefs = constituents.map(constituentBrief).join("\n");

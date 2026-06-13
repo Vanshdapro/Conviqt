@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import {
   AgentName,
   AgentOutput,
@@ -169,7 +169,7 @@ ${renderFacts(laneFacts, factSheet.sources)}
 
 ${factSheet.narrative ? `NARRATIVE CONTEXT:\n${factSheet.narrative}\n\n` : ""}${focusBlock}Issue your verdict now using the report_verdict tool. Cite the source indexes for every number you reference.`;
 
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const response = await anthropic.messages.create({
     model: MODELS.specialist,
     // 300 tokens is enough for a 2-3 sentence structured verdict.

@@ -1,8 +1,8 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 import { normalizeUrl } from "../url-normalize";
 import { quote as mdQuote, PROVIDER_LABELS, type Quote } from "../marketdata";
 import type { Source } from "../agents/types";
@@ -190,7 +190,7 @@ export async function runPortfolioSweep(
 ): Promise<PortfolioSweepResult> {
   const t0 = Date.now();
   const asOf = opts.asOf ?? new Date().toISOString();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   // Price the whole basket through the marketdata layer FIRST, in parallel
   // with nothing — it's cached and free, and the model call below no longer

@@ -1,9 +1,9 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   WEB_SEARCH_TOOL,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 import { normalizeUrl } from "../url-normalize";
 import type { AlphaPickSource, MacroRegime, RegimeStance } from "../alphaTypes";
 
@@ -140,7 +140,7 @@ function cleanList(arr: unknown, max: number): string[] {
 export async function runMacroRegime(): Promise<MacroRegime> {
   const t0 = Date.now();
   const asOf = new Date().toISOString();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const response = await anthropic.messages.create({
     model: MODELS.regime,

@@ -1,9 +1,9 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   WEB_SEARCH_TOOL,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 import { normalizeUrl } from "../url-normalize";
 import {
   quote as mdQuote,
@@ -480,7 +480,7 @@ async function attemptSweep(
 ): Promise<SweepResult> {
   const t0 = Date.now();
   const asOf = opts.asOf;
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const focusBlock = opts.focus
     ? `\n\nUser focus for this analysis: ${opts.focus.slice(0, 240)}\n` +

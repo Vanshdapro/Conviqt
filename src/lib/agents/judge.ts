@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "./audience";
 import {
   AgentName,
@@ -140,7 +140,7 @@ export async function runJudge(
   options: { focus?: string; audience?: ExperienceLevel | null } = {}
 ): Promise<JudgeRunResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const briefing = agents
     .map(

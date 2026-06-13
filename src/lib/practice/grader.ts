@@ -11,7 +11,7 @@
 // verdict are derived deterministically in code so they can never contradict the
 // section scores. Metered at thesis = 20 credits, refunded on failure upstream.
 
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import type {
   ThesisSpec,
   ThesisSubmission,
@@ -154,7 +154,7 @@ export async function gradeThesis(
   submission: ThesisSubmission,
 ): Promise<GradeResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const userMessage = `DRILL: ${drillTitle}
 

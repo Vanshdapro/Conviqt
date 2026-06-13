@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { normalizeUrl } from "../url-normalize";
 import type { Source } from "../agents/types";
 import type {
@@ -160,7 +160,7 @@ export async function runAllocatorSweep(
 ): Promise<AllocatorSweepResult> {
   const t0 = Date.now();
   const asOf = opts.asOf ?? new Date().toISOString();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const universe = baseline.candidateUniverse;
   const byTicker = new Map<string, CandidateVehicle>();

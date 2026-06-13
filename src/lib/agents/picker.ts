@@ -1,9 +1,9 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   WEB_SEARCH_TOOL,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 import { VALID_TICKER_RE } from "./router";
 import { pickerRecentTickers, pickerRecordTickers } from "../cache";
 import type { MacroRegime } from "../alphaTypes";
@@ -139,7 +139,7 @@ Lean your scouting INTO this regime. Prefer setups in favored sectors. A name in
 
 export async function runPicker(regime?: MacroRegime): Promise<PickerResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const recent = pickerRecentTickers();
   const recentBlock =

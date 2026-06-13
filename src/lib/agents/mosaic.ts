@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import {
   extractCanonicalUrls,
   resolveCitedSources,
@@ -169,7 +169,7 @@ export async function runMosaicScan(
 ): Promise<MosaicScan> {
   const t0 = Date.now();
   const asOf = opts.asOf ?? new Date().toISOString();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const response = await anthropic.messages.create({
     model: MODELS.mosaic,

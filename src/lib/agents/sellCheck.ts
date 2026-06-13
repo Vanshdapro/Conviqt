@@ -1,8 +1,8 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 
 // One search per sell check keeps cost at ~$0.012 per active pick.
 // Using the shared WEB_SEARCH_TOOL (max_uses:2) would double that for no gain.
@@ -71,7 +71,7 @@ export interface SellCheckResult {
 }
 
 export async function runSellCheck(pick: AlphaPick): Promise<SellCheckResult> {
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const response = await anthropic.messages.create({
     model: MODELS.specialist, // Haiku

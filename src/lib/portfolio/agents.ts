@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { renderMetricsBrief } from "./metrics";
 import type {
   PortfolioFactSheet,
@@ -91,7 +91,7 @@ async function runOne(
   sourceCount: number
 ): Promise<RiskAgentRunResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const userMessage = `PORTFOLIO METRICS (deterministic — exact):
 ${metricsBrief}

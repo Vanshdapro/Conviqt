@@ -11,7 +11,7 @@
 
 import fs from "fs";
 import path from "path";
-import { getAnthropic, MODELS, estimateCallCostUSD } from "./anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "./openai";
 import { normalizeUrl } from "./url-normalize";
 import { isSupabaseConfigured } from "./watchlist";
 
@@ -236,7 +236,7 @@ export interface FetchEarningsResult {
 export async function fetchEarningsDate(ticker: string): Promise<FetchEarningsResult> {
   const asOf = new Date().toISOString();
   const today = asOf.slice(0, 10);
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const system = `You find the next scheduled earnings (quarterly results) date for a US-listed ticker.
 Today is ${today}. Use the web_search tool exactly once with a query like "{TICKER} next earnings date".

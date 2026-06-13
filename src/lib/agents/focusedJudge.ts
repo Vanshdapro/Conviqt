@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "./audience";
 import { FactSheet, Source } from "./types";
 
@@ -79,7 +79,7 @@ export async function runFocusedJudge(
   audience?: ExperienceLevel | null
 ): Promise<FocusedJudgeResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const aud = audienceDirective(audience);
 
   const sourceLegend = factSheet.sources

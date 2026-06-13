@@ -1,8 +1,8 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 import type { FactSheet } from "./types";
 import {
   MAX_PUBLISHABLE_CONFIDENCE,
@@ -344,7 +344,7 @@ export async function runCIO(
   regime?: MacroRegime
 ): Promise<CIOResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const userMessage = `Today's regime and ${candidates.length} candidate(s). Select the single best (or 0) and call report_cio_pick.
 

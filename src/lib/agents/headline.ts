@@ -1,9 +1,9 @@
 import {
-  getAnthropic,
+  getOpenAI,
   MODELS,
   WEB_SEARCH_COST_USD,
   estimateCallCostUSD,
-} from "../anthropic";
+} from "../openai";
 import { normalizeUrl, hostOf } from "../url-normalize";
 import { audienceDirective, type ExperienceLevel } from "./audience";
 import { extractCanonicalUrls, type ContentBlockLike } from "./provenance";
@@ -167,7 +167,7 @@ export async function runHeadlineDecoder(
 
   onEvent?.({ kind: "start", headline, runId });
 
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   // Haiku reliably runs the searches but often stops with end_turn instead
   // of calling the decode tool (observed live, twice). Fix: if the first

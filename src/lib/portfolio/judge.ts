@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "../agents/audience";
 import { renderMetricsBrief } from "./metrics";
 import type {
@@ -132,7 +132,7 @@ export async function runPortfolioJudge(
   audience?: ExperienceLevel | null
 ): Promise<PortfolioJudgeRunResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const aud = audienceDirective(audience);
   const sourceCount = factSheet.sources.length;
 

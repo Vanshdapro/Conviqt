@@ -9,7 +9,7 @@
 // Every call's cost is measured with estimateCallCostUSD and returned to the
 // refresh route, which writes the per-run ledger row (feed_refresh_runs).
 
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import { fetchHeadlines, type NewsHeadline } from "../news/currents";
 import {
   FEED_REGIONS,
@@ -137,7 +137,7 @@ export interface GenerateResult<T> {
 }
 
 export async function generateDashboard(): Promise<GenerateResult<DashboardContent>> {
-  const client = getAnthropic();
+  const client = getOpenAI();
   const today = new Date().toISOString().slice(0, 10);
 
   const res = await client.messages.create({
@@ -303,7 +303,7 @@ async function gatherRegion(region: FeedRegion): Promise<RegionCandidates> {
 async function annotateBatch(
   batch: RegionCandidates[]
 ): Promise<{ regions: HeadlinesRegion[]; costUSD: number }> {
-  const client = getAnthropic();
+  const client = getOpenAI();
   const now = new Date().toISOString();
 
   const listing = batch

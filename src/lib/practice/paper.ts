@@ -11,7 +11,7 @@
 // Quote fetches (open + each mark) are metered at paper_mark credits upstream;
 // listing/closing is free (no model spend).
 
-import { getAnthropic, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "../openai";
 import { normalizeUrl } from "../url-normalize";
 import { getSupabaseAdmin } from "../supabase";
 import type { PaperQuote, PaperPosition } from "./types";
@@ -97,7 +97,7 @@ export interface QuoteResult {
 export async function fetchQuote(ticker: string): Promise<QuoteResult> {
   const t0 = Date.now();
   const symbol = ticker.trim().toUpperCase();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const response = await anthropic.messages.create({
     model: MODELS.sweep,

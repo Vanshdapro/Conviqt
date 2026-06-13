@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, ANALYST_WEB_SEARCH_TOOL, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, ANALYST_WEB_SEARCH_TOOL, estimateCallCostUSD } from "../openai";
 import { audienceDirective, type ExperienceLevel } from "./audience";
 
 // The Conviqt Analyst — Sonnet 4.6 powering the "general" chat path.
@@ -462,7 +462,7 @@ export async function runAnalyst(
 ): Promise<AnalystResult> {
   const { onDelta } = options;
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
   const aud = audienceDirective(options.audience);
 
   let fullText = "";

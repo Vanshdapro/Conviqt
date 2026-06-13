@@ -16,7 +16,7 @@
 // call fails, we fall back to the report's own bearCase — real data from the
 // report, not fabricated — so the digest still ships.
 
-import { getAnthropic, MODELS, estimateCallCostUSD } from "./anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "./openai";
 import type { StoredReport } from "./stockReports";
 
 export interface DigestEntry {
@@ -137,7 +137,7 @@ export async function buildDigestContent(
   }
 
   try {
-    const anthropic = getAnthropic();
+    const anthropic = getOpenAI();
     const response = await anthropic.messages.create({
       model: MODELS.judge, // Haiku — cheap, this is light summarization
       max_tokens: 900,

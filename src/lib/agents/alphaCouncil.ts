@@ -1,4 +1,4 @@
-import { getAnthropic, MODELS, estimateCallCostUSD } from "../anthropic";
+import { getOpenAI, MODELS, estimateCallCostUSD } from "../openai";
 import type { FactSheet } from "./types";
 import type { AlphaLens, LensScore, LensSignal, MosaicScan } from "../alphaTypes";
 
@@ -139,7 +139,7 @@ export async function runAlphaCouncil(
   mosaic?: MosaicScan
 ): Promise<AlphaCouncilResult> {
   const t0 = Date.now();
-  const anthropic = getAnthropic();
+  const anthropic = getOpenAI();
 
   const response = await anthropic.messages.create({
     model: MODELS.council,
