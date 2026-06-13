@@ -20,22 +20,9 @@
 
 import { useEffect, useRef } from "react";
 
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.trim().replace("#", "");
-  const v =
-    h.length === 3
-      ? h
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : h;
-  const n = parseInt(v || "000000", 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
 const clamp = (lo: number, hi: number, x: number) => Math.max(lo, Math.min(hi, x));
 
 export function LandingMotion() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
 
@@ -204,99 +191,7 @@ export function LandingMotion() {
       });
     }
 
-    // ── Interactive line-field background ─────────────────────────────────────────
-    const canvas = canvasRef.current;
-    if (canvas && !reduce) {
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        const cs = getComputedStyle(document.documentElement);
-        const tan = hexToRgb(cs.getPropertyValue("--border-strong") || "#C9B991");
-        const teal = hexToRgb(cs.getPropertyValue("--accent") || "#0E7978");
-        let w = 0;
-        let h = 0;
-        let lineCount = 14;
-        const mouse = { x: -9999, y: -9999, on: false };
-
-        const size = () => {
-          const dpr = Math.min(2, window.devicePixelRatio || 1);
-          w = window.innerWidth;
-          h = window.innerHeight;
-          lineCount = w < 640 ? 9 : w < 1024 ? 12 : 16;
-          canvas.width = Math.round(w * dpr);
-          canvas.height = Math.round(h * dpr);
-          canvas.style.width = `${w}px`;
-          canvas.style.height = `${h}px`;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        };
-        size();
-
-        let raf = 0;
-        let running = true;
-        const draw = (t: number) => {
-          if (!running) return;
-          ctx.clearRect(0, 0, w, h);
-          const step = w < 640 ? 22 : 16;
-          for (let i = 0; i < lineCount; i++) {
-            const baseY = (h * (i + 0.5)) / lineCount;
-            // proximity of this whole line to the cursor → brightness + teal blend
-            const near = mouse.on
-              ? Math.exp(-((baseY - mouse.y) ** 2) / (140 * 140))
-              : 0;
-            const blend = near * 0.85;
-            const r = Math.round(tan[0] + (teal[0] - tan[0]) * blend);
-            const g = Math.round(tan[1] + (teal[1] - tan[1]) * blend);
-            const b = Math.round(tan[2] + (teal[2] - tan[2]) * blend);
-            const alpha = 0.06 + near * 0.2;
-            ctx.beginPath();
-            for (let x = 0; x <= w; x += step) {
-              let y =
-                baseY +
-                Math.sin(x * 0.004 + t * 0.0004 + i * 0.7) * 10 +
-                Math.sin(x * 0.011 - t * 0.0006 + i) * 5;
-              if (mouse.on) {
-                const dx = x - mouse.x;
-                const d2 = dx * dx + (baseY - mouse.y) ** 2;
-                y -= Math.exp(-d2 / (150 * 150)) * 26; // bow toward the cursor
-              }
-              if (x === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-            }
-            ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-          raf = requestAnimationFrame(draw);
-        };
-        raf = requestAnimationFrame(draw);
-
-        const onMouse = (e: MouseEvent) => {
-          mouse.x = e.clientX;
-          mouse.y = e.clientY;
-          mouse.on = true;
-        };
-        const onMouseOut = () => {
-          mouse.on = false;
-        };
-        const onResize = () => size();
-        const onVis = () => {
-          running = !document.hidden;
-          if (running) raf = requestAnimationFrame(draw);
-          else cancelAnimationFrame(raf);
-        };
-        window.addEventListener("mousemove", onMouse, { passive: true });
-        window.addEventListener("mouseout", onMouseOut);
-        window.addEventListener("resize", onResize);
-        document.addEventListener("visibilitychange", onVis);
-        cleanups.push(() => {
-          cancelAnimationFrame(raf);
-          running = false;
-          window.removeEventListener("mousemove", onMouse);
-          window.removeEventListener("mouseout", onMouseOut);
-          window.removeEventListener("resize", onResize);
-          document.removeEventListener("visibilitychange", onVis);
-        });
-      }
-    }
+    // (The interactive background now lives in <Landing3DBackground/> — WebGL.)
 
     return () => {
       land.classList.remove("cvq-motion");
@@ -305,11 +200,8 @@ export function LandingMotion() {
   }, []);
 
   return (
-    <>
-      <canvas ref={canvasRef} className="cvq-amb" aria-hidden="true" />
-      <div ref={threadRef} className="cvq-thread" aria-hidden="true">
-        <div ref={fillRef} className="cvq-thread-fill" />
-      </div>
-    </>
+    <div ref={threadRef} className="cvq-thread" aria-hidden="true">
+      <div ref={fillRef} className="cvq-thread-fill" />
+    </div>
   );
 }
