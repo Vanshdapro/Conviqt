@@ -1,34 +1,45 @@
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OpenAI provider — Conviqt's single AI chokepoint.
+// AI gateway — Conviqt's single AI chokepoint, now DUAL-PROVIDER.
 //
-// Every agent in the app talks to the model through getOpenAI().messages, which
-// presents the SAME request/response surface the codebase has always used
-// (system blocks, client tools with input_schema, a web_search server tool,
-// content blocks of type text/tool_use/server_tool_use/web_search_tool_result,
-// and a usage block with input/output/cache token buckets).
+// Every agent talks to the model through getOpenAI().messages, which presents
+// the SAME request/response surface the codebase has always used (system
+// blocks, client tools with input_schema, a web_search server tool, content
+// blocks of type text/tool_use/server_tool_use/web_search_tool_result, and a
+// usage block with input/output/cache token buckets).
 //
-// Under the hood this is the OpenAI Responses API — the only OpenAI surface
-// that runs built-in web search ALONGSIDE custom function tools, which Sweep,
-// Headline Decoder, and the Analyst all require. The adapter below translates
-// between the two shapes so the ~28 agent files never had to change.
+// ROUTING (founder decision 2026-06-13 — cost): OpenAI's built-in web search
+// costs ~2.5¢/call vs Anthropic's ~1¢, so:
+//   • Any call that includes a web_search tool  → ANTHROPIC (Claude).
+//   • Every other (pure-reasoning) call          → OPENAI (Responses API).
 //
-// Provenance: OpenAI returns the URLs a search actually consulted via
-// `web_search_call.action.sources` (requested through `include`) plus inline
-// `url_citation` annotations. We rebuild those into the `web_search_tool_result`
-// blocks the provenance validators (sweep.ts / provenance.ts) expect, so the
-// "every fact cites a real, search-returned URL" guarantee is preserved.
+// Why search-using calls run *entirely* on Claude: Anthropic's web_search
+// returns results as ENCRYPTED content that only Claude can read — we never see
+// the page text. So the search and the reasoning that consumes it are
+// inseparable; they must happen on the same provider. The cheap searches (and
+// the agents that drive them — sweep/headline/analyst/picker/regime/mosaic/feed)
+// therefore run on Claude with their original, proven behavior. The heavy
+// pure-reasoning agents (specialists, base judge, comparative/sector judges,
+// CIO, router) run on OpenAI / GPT-4.1.
+//
+// The agents already pass Anthropic-shaped params, so the Claude path forwards
+// them almost verbatim (only the model id is translated). The OpenAI path
+// translates Anthropic params ⇄ the Responses API shape.
 // ─────────────────────────────────────────────────────────────────────────────
 
-let client: OpenAI | null = null;
+// ─── Clients (lazy singletons) ─────────────────────────────────────────────────
 
-// Reads OPENAI_API_KEY with a dev-mode fallback. In Claude Code's desktop
-// environment the parent shell can inject an empty OPENAI_API_KEY that shadows
-// .env.local; if we see an empty shell var in development we parse .env.local
-// directly. (Kept from the previous provider's loader — same failure mode.)
-function resolveApiKey(): string {
-  const fromEnv = process.env.OPENAI_API_KEY ?? "";
+let openaiClient: OpenAI | null = null;
+let anthropicClient: Anthropic | null = null;
+
+// Reads an API key from env with a dev-mode .env.local fallback. In Claude
+// Code's desktop environment the parent shell can inject an empty key that
+// shadows .env.local; if we see an empty shell var in development we parse
+// .env.local directly.
+function resolveKey(varName: string): string {
+  const fromEnv = process.env[varName] ?? "";
   if (fromEnv.trim()) return fromEnv.trim();
 
   if (process.env.NODE_ENV === "development") {
@@ -41,9 +52,7 @@ function resolveApiKey(): string {
         path.resolve(process.cwd(), ".env.local"),
         "utf8"
       );
-      const match = contents.match(/^OPENAI_API_KEY=(.+)$/m);
-      // Strip surrounding quotes — Next's own loader does, so this fallback
-      // must too (a quoted key otherwise fails SDK validation).
+      const match = contents.match(new RegExp(`^${varName}=(.+)$`, "m"));
       if (match) return match[1].trim().replace(/^["']|["']$/g, "");
     } catch {
       // .env.local missing or unreadable — fall through to the error below
@@ -53,42 +62,41 @@ function resolveApiKey(): string {
   return fromEnv;
 }
 
-function rawClient(): OpenAI {
-  if (!client) {
-    const apiKey = resolveApiKey();
+function rawOpenAI(): OpenAI {
+  if (!openaiClient) {
+    const apiKey = resolveKey("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error(
         "OPENAI_API_KEY is not set. Add it to .env.local and restart the dev server."
       );
     }
-    client = new OpenAI({ apiKey });
+    openaiClient = new OpenAI({ apiKey });
   }
-  return client;
+  return openaiClient;
+}
+
+function rawAnthropic(): Anthropic {
+  if (!anthropicClient) {
+    const apiKey = resolveKey("ANTHROPIC_API_KEY");
+    if (!apiKey) {
+      throw new Error(
+        "ANTHROPIC_API_KEY is not set. It powers Conviqt's web search. Add it to .env.local and restart the dev server."
+      );
+    }
+    anthropicClient = new Anthropic({ apiKey });
+  }
+  return anthropicClient;
 }
 
 // ─── Model IDs ───────────────────────────────────────────────────────────────
 //
-// Kept in one place so a role can be re-pointed without hunting through agents.
+// Agents reference these OpenAI ids everywhere. On the Claude (web-search) path
+// the adapter translates them to the equivalent Claude id via CLAUDE_MODEL — so
+// search agents keep the exact Haiku/Sonnet tiering they always had.
 //
-// Mapping rationale (finance-first): GPT-4.1 is the flagship the financial
-// industry has standardized on (Morgan Stanley, JPMorgan, Goldman tooling) and
-// is heavily weighted toward financial text. 4.1-mini covers the cheap,
-// high-frequency structured/classification work the way Haiku used to.
-//
-// Pricing (USD per million tokens, OpenAI standard tier, as of 2026-06):
-//   gpt-4.1-mini : $0.40 in / $1.60 out  (cached in $0.10)
-//   gpt-4.1      : $2.00 in / $8.00 out  (cached in $0.50)
-// Both are cheaper than the Sonnet/Haiku tiers they replace.
-//
-// Web search server tool: ~$25 / 1000 calls at "low" context (see
-// WEB_SEARCH_COST_USD). There is no per-call hard cap like the old max_uses —
-// the search budget is governed by the prompts ("you have up to 2 searches").
-//
-// Role selection (mirrors the old tiering — see CLAUDE.md cost targets):
-// - mini  : intent routing, sweep, specialists, base judge, scheduled feed,
-//           regime/mosaic/council scorecards, per-name sector scorecards.
-// - gpt-4.1: the marquee syntheses — comparative & sector judges, stock picker,
-//           CIO portfolio constructor, and the general Analyst chat.
+// Pricing (USD per 1M tokens, as of 2026-06):
+//   gpt-4.1-mini : $0.40 in / $1.60 out      claude-haiku-4-5   : $1 / $5
+//   gpt-4.1      : $2.00 in / $8.00 out       claude-sonnet-4-6  : $3 / $15
 const MINI = "gpt-4.1-mini" as const;
 const FLAGSHIP = "gpt-4.1" as const;
 
@@ -100,22 +108,31 @@ export const MODELS = {
   comparativeJudge: FLAGSHIP,
   picker: FLAGSHIP,
   analyst: FLAGSHIP, // general chat — flagship for institutional depth
-  // Alpha Tracker institutional pipeline:
-  regime: MINI, // macro regime read — search-driven, structured
-  mosaic: MINI, // deep "small factors" edge scan — search-driven extraction
-  council: MINI, // 6-lens scorecard — one tight structured call
-  cio: FLAGSHIP, // CIO + portfolio constructor — the high-stakes synthesis
-  // Sector Snapshot pipeline:
-  sectorTicker: MINI, // abbreviated per-name scorecard — one tight structured call
-  sectorJudge: FLAGSHIP, // thematic synthesis across 5-8 names — the marquee output
-  // Scheduled Dashboard/Headlines content (Phase 4)
+  regime: MINI,
+  mosaic: MINI,
+  council: MINI,
+  cio: FLAGSHIP,
+  sectorTicker: MINI,
+  sectorJudge: FLAGSHIP,
   feed: MINI,
 } as const;
 
-// Per-model unit costs in USD per token.
-// OpenAI bills a cache WRITE at the normal input rate (no surcharge) and a
-// cache READ at a discount, so cacheWrite == input here and the adapter always
-// reports cache_creation_input_tokens = 0 (see mapUsage).
+// OpenAI model id → Claude model id, used only on the web-search path.
+const CLAUDE_MODEL: Record<string, string> = {
+  "gpt-4.1": "claude-sonnet-4-6",
+  "gpt-4.1-mini": "claude-haiku-4-5-20251001",
+  "gpt-4.1-nano": "claude-haiku-4-5-20251001",
+};
+
+function claudeModelFor(openaiModel: string): string {
+  return CLAUDE_MODEL[openaiModel] ?? "claude-haiku-4-5-20251001";
+}
+
+// Per-model unit costs in USD per token. Keyed by the OpenAI ids the agents pass
+// to estimateCallCostUSD. NOTE: on the Claude (web-search) path the actual
+// per-token cost is Claude's, so these become an approximation for those calls —
+// acceptable because (a) metering is log-only and (b) search runs are dominated
+// by the per-search fee, not tokens.
 export const PRICING_PER_TOKEN = {
   "gpt-4.1": {
     input: 2 / 1_000_000,
@@ -137,33 +154,25 @@ export const PRICING_PER_TOKEN = {
   },
 } as const;
 
-// Cost per web_search server tool invocation. OpenAI's web search runs ~$25 per
-// 1000 calls at "low" search-context size. (The previous provider was ~$0.01.)
-export const WEB_SEARCH_COST_USD = 0.025;
+// Cost per web_search invocation. Searches run on Anthropic (~$10 / 1000).
+export const WEB_SEARCH_COST_USD = 0.01;
 
-// Web search server-tool definitions. These keep the historical Anthropic-style
-// shape because agents pass them straight into `tools`; the adapter detects any
-// tool whose `type` starts with "web_search" and swaps in OpenAI's built-in
-// web_search tool. `max_uses` is advisory only (the prompts enforce the cap;
-// OpenAI's tool has no hard per-call limit).
+// Web search server-tool definitions — native Anthropic shape, passed straight
+// through to Claude on the web-search path.
 export const WEB_SEARCH_TOOL = {
   type: "web_search_20250305" as const,
   name: "web_search" as const,
   max_uses: 2,
 };
 
-// Analyst gets more search latitude — general questions may cross-reference
-// several live data sources (macro print + earnings + sector move).
 export const ANALYST_WEB_SEARCH_TOOL = {
   type: "web_search_20250305" as const,
   name: "web_search" as const,
   max_uses: 3,
 };
 
-// Helper: estimate USD cost of a single call given its usage block and an
-// optional explicit web_search count. Signature unchanged from the previous
-// provider so every call site keeps working; the cache buckets are filled by
-// mapUsage (cache_creation is always 0 on OpenAI).
+// Helper: estimate USD cost of a single call. Signature unchanged from before so
+// every call site keeps working.
 export function estimateCallCostUSD(
   model: keyof typeof PRICING_PER_TOKEN,
   usage: {
@@ -185,10 +194,9 @@ export function estimateCallCostUSD(
   );
 }
 
-// ─── Anthropic-shaped request/response surface ────────────────────────────────
-// Permissive param types so the existing ~28 call sites compile unchanged; the
-// adapter narrows them at runtime. The RESPONSE types are broad-but-explicit so
-// agents can read block.type / .name / .input / .text / .content freely.
+// ─── Shared request/response surface ───────────────────────────────────────────
+// Permissive params so the ~28 call sites compile unchanged; broad-but-explicit
+// response types so agents read block.type/.name/.input/.text/.content freely.
 
 export interface AIUsage {
   input_tokens: number;
@@ -216,6 +224,11 @@ export interface AIMessage {
   usage: AIUsage;
 }
 
+export interface AIMessageStream {
+  on(event: "text", handler: (text: string) => void): unknown;
+  finalMessage(): Promise<AIMessage>;
+}
+
 interface CreateParams {
   model: string;
   max_tokens?: number;
@@ -226,7 +239,31 @@ interface CreateParams {
   temperature?: number;
 }
 
-// ─── Translation: Anthropic params → OpenAI Responses params ───────────────────
+function asRecord(v: unknown): Record<string, unknown> | null {
+  return v && typeof v === "object" ? (v as Record<string, unknown>) : null;
+}
+
+// Does this call use the web_search server tool? → route to Anthropic.
+function usesWebSearch(tools: readonly unknown[] | undefined): boolean {
+  if (!tools) return false;
+  return tools.some((t) => {
+    const type = asRecord(t)?.type;
+    return typeof type === "string" && type.startsWith("web_search");
+  });
+}
+
+// ─── Anthropic (web-search) path ───────────────────────────────────────────────
+// Params are already Anthropic-shaped; only the model id is translated.
+
+function anthropicParams(params: CreateParams): Record<string, unknown> {
+  return {
+    ...params,
+    model: claudeModelFor(params.model),
+    max_tokens: params.max_tokens ?? 1024,
+  };
+}
+
+// ─── OpenAI (Responses) path: param translation ────────────────────────────────
 
 function flattenSystem(system: unknown): string | undefined {
   if (!system) return undefined;
@@ -241,10 +278,6 @@ function flattenSystem(system: unknown): string | undefined {
   return undefined;
 }
 
-function asRecord(v: unknown): Record<string, unknown> | null {
-  return v && typeof v === "object" ? (v as Record<string, unknown>) : null;
-}
-
 function safeJson(v: unknown): string {
   try {
     return JSON.stringify(v);
@@ -253,11 +286,6 @@ function safeJson(v: unknown): string {
   }
 }
 
-// Flatten a message's content (string OR array of Anthropic-style blocks) into
-// plain text for the Responses `input`. Assistant turns replayed by Headline
-// carry their prior search results as text so a forced follow-up can still cite
-// real URLs; provenance itself is re-validated from the original blocks, not
-// from this serialization.
 function flattenContent(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
@@ -321,22 +349,13 @@ function mapToolChoice(tc: unknown): ToolChoiceOut {
   return undefined;
 }
 
-interface BuiltRequest {
-  req: OpenAI.Responses.ResponseCreateParams;
-}
-
-function buildRequest(params: CreateParams): BuiltRequest {
+function buildOpenAIRequest(params: CreateParams): OpenAI.Responses.ResponseCreateParams {
   const tools: OpenAI.Responses.Tool[] = [];
-  let hasWebSearch = false;
 
   for (const raw of params.tools ?? []) {
     const t = asRecord(raw);
     if (!t) continue;
-    const type = typeof t.type === "string" ? t.type : "";
-    if (type.startsWith("web_search")) {
-      hasWebSearch = true;
-      tools.push({ type: "web_search", search_context_size: "low" });
-    } else if (typeof t.name === "string") {
+    if (typeof t.name === "string") {
       tools.push({
         type: "function",
         name: t.name,
@@ -361,30 +380,20 @@ function buildRequest(params: CreateParams): BuiltRequest {
   const instructions = flattenSystem(params.system);
   if (instructions) req.instructions = instructions;
   if (tools.length) req.tools = tools;
-  if (hasWebSearch) req.include = ["web_search_call.action.sources"];
   if (typeof params.temperature === "number") req.temperature = params.temperature;
 
   const tc = mapToolChoice(params.tool_choice);
   if (tc !== undefined) req.tool_choice = tc;
 
-  return { req };
+  return req;
 }
 
-// ─── Translation: OpenAI Responses output → Anthropic-shaped message ───────────
-
-function hostTitle(url: string): string {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
+// ─── OpenAI path: response translation ─────────────────────────────────────────
 
 function mapUsage(usage: OpenAI.Responses.ResponseUsage | undefined): AIUsage {
   const cached = usage?.input_tokens_details?.cached_tokens ?? 0;
   const totalInput = usage?.input_tokens ?? 0;
   return {
-    // Match the previous provider's semantics: input_tokens EXCLUDES cached.
     input_tokens: Math.max(0, totalInput - cached),
     output_tokens: usage?.output_tokens ?? 0,
     cache_read_input_tokens: cached,
@@ -394,25 +403,12 @@ function mapUsage(usage: OpenAI.Responses.ResponseUsage | undefined): AIUsage {
 
 function mapResponse(response: OpenAI.Responses.Response): AIMessage {
   const blocks: AIContentBlock[] = [];
-  // Canonical URL set the searches actually returned, keyed by raw URL so the
-  // provenance validators (which normalize on their side) can match.
-  const canonical = new Map<string, { url: string; title: string }>();
 
   for (const item of response.output ?? []) {
     if (item.type === "message") {
       for (const part of item.content ?? []) {
         if (part.type === "output_text") {
           blocks.push({ type: "text", text: part.text });
-          for (const ann of part.annotations ?? []) {
-            if (ann.type === "url_citation" && typeof ann.url === "string") {
-              if (!canonical.has(ann.url)) {
-                canonical.set(ann.url, {
-                  url: ann.url,
-                  title: typeof ann.title === "string" && ann.title ? ann.title : hostTitle(ann.url),
-                });
-              }
-            }
-          }
         }
       }
     } else if (item.type === "function_call") {
@@ -423,33 +419,7 @@ function mapResponse(response: OpenAI.Responses.Response): AIMessage {
         parsed = {};
       }
       blocks.push({ type: "tool_use", id: item.call_id, name: item.name, input: parsed });
-    } else if (item.type === "web_search_call") {
-      const action = item.action as
-        | { type?: string; query?: string; queries?: string[]; sources?: Array<{ url?: string }> }
-        | undefined;
-      const query = action?.queries?.[0] ?? action?.query ?? "";
-      blocks.push({ type: "server_tool_use", id: item.id, name: "web_search", input: { query } });
-      if (action?.type === "search" && Array.isArray(action.sources)) {
-        for (const s of action.sources) {
-          if (s && typeof s.url === "string" && !canonical.has(s.url)) {
-            canonical.set(s.url, { url: s.url, title: hostTitle(s.url) });
-          }
-        }
-      }
     }
-  }
-
-  // Rebuild the web_search_tool_result block the provenance validators read.
-  if (canonical.size > 0) {
-    blocks.push({
-      type: "web_search_tool_result",
-      tool_use_id: "ws",
-      content: Array.from(canonical.values()).map((c) => ({
-        type: "web_search_result",
-        url: c.url,
-        title: c.title,
-      })),
-    });
   }
 
   const stopReason = blocks.some((b) => b.type === "tool_use")
@@ -469,18 +439,15 @@ function mapResponse(response: OpenAI.Responses.Response): AIMessage {
   };
 }
 
-// ─── Streaming wrapper (mirrors the old messages.stream contract) ──────────────
+// ─── OpenAI streaming wrapper (mirrors the messages.stream contract) ────────────
 
 type TextHandler = (text: string) => void;
 
-class MessageStream {
+class OpenAIMessageStream implements AIMessageStream {
   private textHandlers: TextHandler[] = [];
   private final: Promise<AIMessage>;
 
   constructor(params: CreateParams) {
-    // run() begins synchronously and suspends at the first network await, so
-    // .on("text", …) registered immediately after construction is in place
-    // before any delta can arrive.
     this.final = this.run(params);
   }
 
@@ -490,8 +457,8 @@ class MessageStream {
   }
 
   private async run(params: CreateParams): Promise<AIMessage> {
-    const { req } = buildRequest(params);
-    const stream = await rawClient().responses.create({ ...req, stream: true });
+    const req = buildOpenAIRequest(params);
+    const stream = await rawOpenAI().responses.create({ ...req, stream: true });
     let finalResponse: OpenAI.Responses.Response | null = null;
     for await (const event of stream) {
       if (event.type === "response.output_text.delta") {
@@ -502,7 +469,7 @@ class MessageStream {
       }
     }
     if (!finalResponse) {
-      throw new Error("[openai] stream completed without a final response");
+      throw new Error("[ai] OpenAI stream completed without a final response");
     }
     return mapResponse(finalResponse);
   }
@@ -517,7 +484,7 @@ class MessageStream {
 export interface AIClient {
   messages: {
     create(params: CreateParams): Promise<AIMessage>;
-    stream(params: CreateParams): MessageStream;
+    stream(params: CreateParams): AIMessageStream;
   };
 }
 
@@ -528,12 +495,26 @@ export function getOpenAI(): AIClient {
     adapter = {
       messages: {
         async create(params: CreateParams): Promise<AIMessage> {
-          const { req } = buildRequest(params);
-          const response = await rawClient().responses.create({ ...req, stream: false });
+          if (usesWebSearch(params.tools)) {
+            // Web-search path → Anthropic. Params are already Anthropic-shaped.
+            const res = await rawAnthropic().messages.create(
+              anthropicParams(params) as unknown as Anthropic.MessageCreateParamsNonStreaming
+            );
+            return res as unknown as AIMessage;
+          }
+          // Reasoning path → OpenAI Responses.
+          const req = buildOpenAIRequest(params);
+          const response = await rawOpenAI().responses.create({ ...req, stream: false });
           return mapResponse(response);
         },
-        stream(params: CreateParams): MessageStream {
-          return new MessageStream(params);
+        stream(params: CreateParams): AIMessageStream {
+          if (usesWebSearch(params.tools)) {
+            // Web-search path → Anthropic's native streaming (same .on/.finalMessage).
+            return rawAnthropic().messages.stream(
+              anthropicParams(params) as unknown as Anthropic.MessageStreamParams
+            ) as unknown as AIMessageStream;
+          }
+          return new OpenAIMessageStream(params);
         },
       },
     };

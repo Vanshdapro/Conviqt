@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { WordmarkIntro } from "@/components/landing/WordmarkIntro";
+import { LandingMotion } from "@/components/landing/LandingMotion";
 import { PhoneFrame, BrowserFrame } from "@/components/landing/DeviceFrame";
 import { FounderNote } from "@/components/landing/FounderNote";
 import { ChangePill } from "@/components/ui";
@@ -133,6 +134,7 @@ export default async function Home() {
   return (
     <div className="cvq-land">
       <WordmarkIntro />
+      <LandingMotion />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
@@ -155,21 +157,21 @@ export default async function Home() {
 
       <main>
         {/* ── 1 · Hero ────────────────────────────────────────────────────── */}
-        <section className="cvq-land-hero">
+        <section className="cvq-land-hero" data-thread-node>
           <div className="cvq-land-hero-copy">
-            <h1 className="cvq-land-h1">{HERO_H1}</h1>
-            <p className="cvq-land-sub">{HERO_SUB}</p>
-            <div className="cvq-land-cta-row">
-              <Link href="/signup" className="cvq-btn cvq-btn--primary cvq-land-cta">
+            <h1 className="cvq-land-h1" data-intro>{HERO_H1}</h1>
+            <p className="cvq-land-sub" data-intro>{HERO_SUB}</p>
+            <div className="cvq-land-cta-row" data-intro>
+              <Link href="/signup" className="cvq-btn cvq-btn--primary cvq-land-cta" data-magnetic>
                 Start free
               </Link>
               <a href="#track-record" className="cvq-btn cvq-btn--secondary">
                 See the track record
               </a>
             </div>
-            <p className="cvq-land-fineprint">Free plan · No card needed · Works in your browser</p>
+            <p className="cvq-land-fineprint" data-intro>Free plan · No card needed · Works in your browser</p>
           </div>
-          <div className="cvq-land-hero-shot">
+          <div className="cvq-land-hero-shot" data-fade data-parallax="0.05">
             <PhoneFrame
               src="/landing/hero-research.png"
               alt="The Conviqt Research screen on a phone: “What do you want to look into?” with one-tap skills"
@@ -181,7 +183,7 @@ export default async function Home() {
         </section>
 
         {/* ── 2 · Credibility strip ───────────────────────────────────────── */}
-        <section className="cvq-land-strip" aria-label="Why trust Conviqt">
+        <section className="cvq-land-strip" aria-label="Why trust Conviqt" data-reveal="up">
           <span>Every pick public</span>
           <span aria-hidden="true">·</span>
           <span>{TOTAL_LESSONS} lessons</span>
@@ -190,18 +192,18 @@ export default async function Home() {
         </section>
 
         {/* ── 3 · Skill grid ──────────────────────────────────────────────── */}
-        <section className="cvq-land-section" aria-labelledby="skills-h">
-          <p className="cvq-land-eyebrow">Skills</p>
-          <h2 id="skills-h" className="cvq-land-h2">
+        <section className="cvq-land-section" aria-labelledby="skills-h" data-thread-node>
+          <p className="cvq-land-eyebrow" data-reveal="up">Skills</p>
+          <h2 id="skills-h" className="cvq-land-h2" data-reveal="clip">
             One tap. A real piece of research.
           </h2>
-          <p className="cvq-land-lede">
+          <p className="cvq-land-lede" data-reveal="up">
             Skills turn the questions you&rsquo;d actually ask into deep research — no prompt
             engineering, no jargon.
           </p>
-          <div className="cvq-land-skillgrid">
+          <div className="cvq-land-skillgrid" data-reveal-group>
             {gridSkills.map((s) => (
-              <Link key={s.id} href={`/research?skill=${s.id}`} className="cvq-card cvq-card--interactive cvq-land-skill">
+              <Link key={s.id} href={`/research?skill=${s.id}`} className="cvq-card cvq-card--interactive cvq-land-skill" data-reveal="up">
                 <span className="cvq-land-skill-cat">{s.category}</span>
                 <span className="cvq-land-skill-name">{s.name}</span>
                 <span className="cvq-land-skill-line">{s.oneLiner}</span>
@@ -212,8 +214,8 @@ export default async function Home() {
 
         {/* ── 4 · Feature rows (real screenshots) ─────────────────────────── */}
         <section className="cvq-land-section" aria-label="What's inside">
-          <div className="cvq-land-row">
-            <div className="cvq-land-row-copy">
+          <div className="cvq-land-row" data-thread-node>
+            <div className="cvq-land-row-copy" data-reveal="left">
               <p className="cvq-land-eyebrow">Dashboard</p>
               <h2 className="cvq-land-h2">Start the day already caught up.</h2>
               <p>
@@ -222,17 +224,19 @@ export default async function Home() {
                 after the close.
               </p>
             </div>
-            <BrowserFrame
-              src="/landing/dashboard.png"
-              alt="The Conviqt Dashboard: today's trends, early signals, and the public picks — losses included"
-              width={2064}
-              height={1720}
-              url="conviqt.com/dashboard"
-            />
+            <div data-fade data-parallax="0.06">
+              <BrowserFrame
+                src="/landing/dashboard.png"
+                alt="The Conviqt Dashboard: today's trends, early signals, and the public picks — losses included"
+                width={2064}
+                height={1720}
+                url="conviqt.com/dashboard"
+              />
+            </div>
           </div>
 
-          <div className="cvq-land-row cvq-land-row--flip">
-            <div className="cvq-land-row-copy">
+          <div className="cvq-land-row cvq-land-row--flip" data-thread-node>
+            <div className="cvq-land-row-copy" data-reveal="right">
               <p className="cvq-land-eyebrow">Headlines</p>
               <h2 className="cvq-land-h2">Every headline, decoded.</h2>
               <p>
@@ -241,17 +245,19 @@ export default async function Home() {
                 touches and how.
               </p>
             </div>
-            <BrowserFrame
-              src="/landing/headlines.png"
-              alt="Conviqt Headlines: region tabs and headlines, each with a one-line read on why traders care"
-              width={2560}
-              height={1720}
-              url="conviqt.com/headlines"
-            />
+            <div data-fade data-parallax="0.06">
+              <BrowserFrame
+                src="/landing/headlines.png"
+                alt="Conviqt Headlines: region tabs and headlines, each with a one-line read on why traders care"
+                width={2560}
+                height={1720}
+                url="conviqt.com/headlines"
+              />
+            </div>
           </div>
 
-          <div className="cvq-land-row">
-            <div className="cvq-land-row-copy">
+          <div className="cvq-land-row" data-thread-node>
+            <div className="cvq-land-row-copy" data-reveal="left">
               <p className="cvq-land-eyebrow">Portfolio</p>
               <h2 className="cvq-land-h2">Know what you actually own.</h2>
               <p>
@@ -260,23 +266,25 @@ export default async function Home() {
                 explains it. Run an AI Health Check when you want the hard look.
               </p>
             </div>
-            <BrowserFrame
-              src="/landing/portfolio.png"
-              alt="Conviqt Portfolio: add holdings by ticker or CSV, with the AI Health Check one tap away"
-              width={2560}
-              height={1546}
-              url="conviqt.com/portfolio"
-            />
+            <div data-fade data-parallax="0.06">
+              <BrowserFrame
+                src="/landing/portfolio.png"
+                alt="Conviqt Portfolio: add holdings by ticker or CSV, with the AI Health Check one tap away"
+                width={2560}
+                height={1546}
+                url="conviqt.com/portfolio"
+              />
+            </div>
           </div>
         </section>
 
         {/* ── 5 · Track record (live data) ────────────────────────────────── */}
-        <section className="cvq-land-section cvq-land-track" id="track-record" aria-labelledby="track-h">
-          <p className="cvq-land-eyebrow">Track record</p>
-          <h2 id="track-h" className="cvq-land-h2">
+        <section className="cvq-land-section cvq-land-track" id="track-record" aria-labelledby="track-h" data-thread-node>
+          <p className="cvq-land-eyebrow" data-reveal="up">Track record</p>
+          <h2 id="track-h" className="cvq-land-h2" data-reveal="clip">
             We publish everything. Even the misses.
           </h2>
-          <p className="cvq-land-lede">
+          <p className="cvq-land-lede" data-reveal="up">
             Every pick goes on the record with its entry price and stays there — wins and losses
             alike. No quiet deletions, ever.
           </p>

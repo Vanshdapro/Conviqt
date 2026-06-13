@@ -2857,3 +2857,151 @@ body,
   body, .app-frame, .cvq-sidebar, .cvq-topbar, .cvq-tabbar, .cvq-card,
   .cvq-theme-toggle { transition: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LANDING MOTION — agency-grade scroll choreography (LOGGED-OUT LANDING ONLY)
+   ───────────────────────────────────────────────────────────────────────────
+   Founder-approved exception to the global "150–220ms micro-interactions only"
+   motion budget and the no-parallax line — scoped ENTIRELY to the public landing
+   (`.cvq-land`), never the signed-in app. DNA is lifted from Noomo / Digilab /
+   Trellis (a teal thread that draws down the page revealing each screen, a living
+   line-field background, scroll reveals + parallax) and recoloured to ALMANAC
+   tokens. No WebGL, no 3D, no gradient-as-art, no colour outside the token set.
+   Everything degrades to nothing under prefers-reduced-motion (block at the end).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cvq-land {
+  position: relative;
+  isolation: isolate;          /* contain the z-index:-1 motion layers */
+  overflow-x: clip;            /* parallax/thread never spawn a sideways scrollbar (clip ≠ hidden → sticky still works) */
+  /* landing-only motion curve + duration (longer than the app budget, by design) */
+  --rv-ease: cubic-bezier(0.16, 0.84, 0.30, 1);
+  --rv-dur: 820ms;
+}
+
+/* ── Interactive line-field background (recoloured Noomo/Digilab DNA) ──────── */
+.cvq-amb {
+  position: fixed;
+  inset: 0;
+  z-index: -1;                 /* above .cvq-land's paper bg, behind all content */
+  pointer-events: none;
+  display: block;
+}
+
+/* ── Scroll thread — the line that draws down the page as you scroll ───────── */
+.cvq-thread {
+  position: absolute;
+  top: 0;
+  left: max(16px, calc(50vw - 580px));   /* hugs the left edge of the content column */
+  width: 2px;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+.cvq-thread::before {                    /* the faint full-height track */
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--border-strong) 65%, transparent);
+}
+.cvq-thread-fill {                       /* the teal portion already "drawn" (height fed by JS) */
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 0;
+  transform: translateX(-50%);
+  background: var(--accent);
+  border-radius: 2px;
+}
+.cvq-thread-fill::after {                /* glowing leading dot that travels down */
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent),
+              0 0 14px 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.cvq-thread-node {                       /* a station on the thread, lit as the dot passes (top fed by JS) */
+  position: absolute;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  transform: translateX(-50%) scale(0.7);
+  border-radius: 50%;
+  background: var(--bg-page);
+  border: 1.5px solid var(--border-strong);
+  transition: transform 380ms var(--rv-ease), background-color 380ms var(--rv-ease),
+              border-color 380ms var(--rv-ease), box-shadow 380ms var(--rv-ease);
+}
+.cvq-thread-node.is-on {
+  transform: translateX(-50%) scale(1);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* ── Hero intro — plays once on load (under .cvq-motion) ───────────────────── */
+.cvq-motion .cvq-land-hero [data-intro] {
+  animation: cvq-rise var(--rv-dur) var(--rv-ease) both;
+  animation-delay: var(--rd, 0ms);
+}
+@keyframes cvq-rise {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Scroll reveals — hidden only once JS arms motion, shown on .is-in ─────── */
+.cvq-motion [data-reveal]:not(.is-in),
+.cvq-motion [data-fade]:not(.is-in) { opacity: 0; }
+.cvq-motion [data-reveal],
+.cvq-motion [data-fade] {
+  transition: opacity var(--rv-dur) var(--rv-ease),
+              transform var(--rv-dur) var(--rv-ease),
+              clip-path var(--rv-dur) var(--rv-ease);
+  transition-delay: var(--rd, 0ms);
+}
+.cvq-motion [data-reveal] { will-change: opacity, transform; }
+.cvq-motion [data-reveal="up"]:not(.is-in)    { transform: translateY(34px); }
+.cvq-motion [data-reveal="left"]:not(.is-in)  { transform: translateX(-40px); }
+.cvq-motion [data-reveal="right"]:not(.is-in) { transform: translateX(40px); }
+.cvq-motion [data-reveal="scale"]:not(.is-in) { transform: translateY(28px) scale(0.96); }
+.cvq-motion [data-reveal="clip"]:not(.is-in)  { clip-path: inset(0 0 100% 0); transform: translateY(0.22em); }
+.cvq-motion [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 0 0);
+}
+.cvq-motion [data-fade].is-in { opacity: 1; }   /* opacity-only — leaves transform free for parallax */
+
+/* parallax drift (subtle) — JS feeds --py; pairs with data-fade, never with a transform reveal */
+.cvq-motion [data-parallax] {
+  transform: translate3d(0, var(--py, 0px), 0);
+  will-change: transform;
+}
+
+/* magnetic primary CTAs — JS feeds --mx/--my; resets smoothly on leave */
+.cvq-land [data-magnetic] { transition: transform 240ms var(--rv-ease); }
+.cvq-motion [data-magnetic] { transform: translate(var(--mx, 0px), var(--my, 0px)); }
+
+/* reduced-motion: erase the whole choreography, show everything at rest */
+@media (prefers-reduced-motion: reduce) {
+  .cvq-amb, .cvq-thread { display: none; }
+  .cvq-land [data-reveal], .cvq-land [data-fade], .cvq-land [data-intro] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .cvq-land [data-parallax], .cvq-land [data-magnetic] { transform: none !important; }
+}

@@ -1,6 +1,6 @@
 // Live smoke test for the OpenAI adapter. Exercises the three hardest paths
 // the agents depend on. Run: NODE_ENV=development npx tsx scripts/smoke-openai.ts
-import { getOpenAI, MODELS, WEB_SEARCH_TOOL, estimateCallCostUSD } from "../src/lib/openai";
+import { getOpenAI, MODELS, WEB_SEARCH_TOOL, ANALYST_WEB_SEARCH_TOOL, estimateCallCostUSD } from "../src/lib/openai";
 
 const ai = getOpenAI();
 
@@ -28,7 +28,7 @@ async function testForcedTool() {
     messages: [{ role: "user", content: "Give a verdict on a fictional cash-rich profitable company. Use the tool." }],
   });
   const tool = res.content.find((b) => b.type === "tool_use");
-  console.log("stop_reason:", res.stop_reason);
+  console.log("provider model:", res.model, "| stop_reason:", res.stop_reason);
   console.log("tool_use found:", !!tool, "name:", tool?.name);
   console.log("parsed input:", JSON.stringify(tool?.input));
   console.log("usage:", JSON.stringify(res.usage));
@@ -64,7 +64,7 @@ async function testWebSearchPlusTool() {
   const wsResult = res.content.find((b) => b.type === "web_search_tool_result");
   const tool = res.content.find((b) => b.type === "tool_use");
   const canonical = Array.isArray(wsResult?.content) ? (wsResult!.content as unknown[]) : [];
-  console.log("stop_reason:", res.stop_reason);
+  console.log("provider model:", res.model, "| stop_reason:", res.stop_reason);
   console.log("server_tool_use (searches):", serverUse.length, "queries:", serverUse.map((b) => (b.input as { query?: string })?.query));
   console.log("web_search_tool_result block present:", !!wsResult, "canonical URLs:", canonical.length);
   console.log("sample canonical:", JSON.stringify(canonical.slice(0, 2)));
@@ -82,6 +82,7 @@ async function testStreaming() {
     model: MODELS.analyst,
     max_tokens: 120,
     system: [{ type: "text", text: "You are a terse finance tutor.", cache_control: { type: "ephemeral" } }],
+    tools: [ANALYST_WEB_SEARCH_TOOL], // → routes to Anthropic (real analyst path)
     messages: [{ role: "user", content: "In two sentences, what is the yield curve?" }],
   });
   stream.on("text", (t) => {
@@ -91,7 +92,7 @@ async function testStreaming() {
   const final = await stream.finalMessage();
   console.log("delta chunks received:", chunks);
   console.log("text length:", text.length, "| matches final:", text.trim().length > 0);
-  console.log("usage:", JSON.stringify(final.usage));
+  console.log("provider model:", final.model, "| usage:", JSON.stringify(final.usage));
   console.log("first 120 chars:", text.slice(0, 120));
   if (chunks === 0 || text.length === 0) throw new Error("FAIL: no streamed text");
 }
