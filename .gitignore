@@ -44,3 +44,5 @@ data/stock-reports.json
 data/conviction-history.json
 data/watchlist.json
 data/watchlist-alerts.json
+qa-shots/
+qa-shoot.mjs

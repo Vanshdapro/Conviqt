@@ -5,7 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 // redirects to /login. NOTE: this proxy is a UX guard only — the real
 // security boundary is the per-request auth check inside the API routes, which
 // fail closed. So if env is missing we fail OPEN here to avoid bricking the site.
-const PROTECTED_PREFIXES = ["/chat", "/alpha", "/research"];
+const PROTECTED_PREFIXES = ["/chat", "/research"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -57,5 +57,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/chat/:path*", "/alpha/:path*", "/research/:path*"],
+  matcher: ["/chat/:path*", "/research/:path*"],
 };

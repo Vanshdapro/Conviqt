@@ -2,10 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "conviqt-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "-p", "3099"],
+      "cwd": "/Users/vanshagarwal/Desktop/Conviqt/conviqt",
+      "port": 3099
+    },
+    {
       "name": "conviqt-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "/Users/vanshagarwal/Desktop/conviqt/conviqt",
+      "cwd": "/Users/vanshagarwal/Desktop/Conviqt/conviqt",
       "port": 3099,
       "autoPort": true
     }

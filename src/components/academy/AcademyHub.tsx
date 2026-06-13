@@ -96,8 +96,8 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
           <strong style={{ color: INK, fontWeight: 600 }}>Learn</strong> builds the mental model — how risk, sizing,
           valuation, and markets actually work.{" "}
           <strong style={{ color: INK, fontWeight: 600 }}>Practice</strong> makes you do it: trade real historical
-          episodes bar by bar and write theses an AI grades like a portfolio manager. Master both, and the real tools —
-          Research and Alpha — stop being a black box.
+          episodes bar by bar and write theses an AI grades like a portfolio manager. Master both, and the rest of
+          Conviqt — Research, the Dashboard, your Portfolio — stops being a black box.
         </p>
       </header>
 
@@ -227,7 +227,7 @@ export function AcademyHub({ totalLessons }: { totalLessons: number }) {
           <ArcSep />
           <ArcStep n="02" icon={<ChartSvg />} label="Practice" sub="Run it under fire" accent={GOOD} />
           <ArcSep />
-          <ArcStep n="03" icon={<SearchSvg />} label="Research / Alpha" sub="The real tools" faded />
+          <ArcStep n="03" icon={<SearchSvg />} label="Research" sub="The real tools" faded />
         </div>
       </div>
 
