@@ -3057,6 +3057,63 @@ html.lenis, html.lenis body { height: auto; }
 .cvq-seq--static .cvq-seq-step + .cvq-seq-step { margin-top: clamp(48px, 7vw, 88px); }
 .cvq-seq--static .cvq-seq-rail { display: none; }
 
+/* ── Finale — dark espresso CTA + the giant wordmark wipe (Digilab DNA) ────── */
+.cvq-finale {
+  position: relative;
+  background: var(--espresso);
+  color: var(--on-accent);
+  padding: clamp(72px, 13vw, 168px) clamp(20px, 5vw, 56px) 0;
+  overflow: hidden;
+  text-align: center;
+}
+.cvq-finale-inner { max-width: 900px; margin: 0 auto; }
+.cvq-finale-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 65%, var(--on-accent));
+  margin: 0 0 var(--space-4);
+}
+.cvq-finale-head {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 5vw, 54px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 auto var(--space-8);
+  max-width: 18ch;
+}
+.cvq-finale-cta { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-3); }
+.cvq-finale-cta .cvq-btn--secondary {
+  background: transparent;
+  color: var(--on-accent);
+  border-color: color-mix(in srgb, var(--on-accent) 38%, transparent);
+}
+.cvq-finale-cta .cvq-btn--secondary:hover {
+  border-color: var(--on-accent);
+  background: color-mix(in srgb, var(--on-accent) 8%, transparent);
+}
+/* the giant wordmark — sits at the bottom, its baseline bleeding into the footer */
+.cvq-bigmark {
+  margin-top: clamp(40px, 9vw, 110px);
+  line-height: 0.74;
+  user-select: none;
+  pointer-events: none;
+}
+.cvq-bigmark-word {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(72px, 21vw, 320px);
+  letter-spacing: -0.04em;
+  color: var(--on-accent);
+  margin-bottom: -0.12em;          /* clip the lower edge for the bleed-into-footer look */
+}
+.cvq-bigmark-word b { font-weight: 800; color: var(--accent); }
+/* the footer sits flush under the finale — both espresso, one dark close */
+.cvq-finale + .cvq-land-footer { margin-top: 0; }
+
 /* ── Hero intro — plays once on load (under .cvq-motion) ───────────────────── */
 .cvq-motion .cvq-land-hero [data-intro] {
   animation: cvq-rise var(--rv-dur) var(--rv-ease) both;
@@ -3080,6 +3137,7 @@ html.lenis, html.lenis body { height: auto; }
 .cvq-motion [data-reveal="right"].is-in { animation-name: cvq-rv-right; }
 .cvq-motion [data-reveal="scale"].is-in { animation-name: cvq-rv-scale; }
 .cvq-motion [data-reveal="clip"].is-in  { animation-name: cvq-rv-clip; }
+.cvq-motion [data-reveal="wipe"].is-in   { animation-name: cvq-rv-wipe; animation-duration: 1100ms; }
 .cvq-motion [data-fade].is-in {
   animation: cvq-rv-fade var(--rv-dur) var(--rv-ease) var(--rd, 0ms) both;
 }
@@ -3090,6 +3148,8 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes cvq-rv-clip  { from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(0.22em); }
                           to   { opacity: 1; clip-path: inset(0 0 0 0);   transform: none; } }
 @keyframes cvq-rv-fade  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cvq-rv-wipe  { from { opacity: 0; clip-path: inset(100% 0 0 0); transform: translateY(0.18em); }
+                          to   { opacity: 1; clip-path: inset(0 0 0 0);   transform: none; } }
 
 /* parallax drift (subtle) — JS feeds --py every scroll frame; instant, never transitioned.
    Pairs with data-fade (opacity-only reveal), never with a transform reveal. */

@@ -394,6 +394,29 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
+        {/* ── 10 · Finale — dark CTA + giant wordmark wipe ─────────────────── */}
+        <section className="cvq-finale" data-thread-node aria-labelledby="finale-h">
+          <div className="cvq-finale-inner">
+            <p className="cvq-finale-eyebrow" data-reveal="up">Get started</p>
+            <h2 id="finale-h" className="cvq-finale-head" data-reveal="clip">
+              Ask your first question, free.
+            </h2>
+            <div className="cvq-finale-cta" data-reveal="up">
+              <Link href="/signup" className="cvq-btn cvq-btn--primary cvq-land-cta" data-magnetic>
+                Start free
+              </Link>
+              <a href="#track-record" className="cvq-btn cvq-btn--secondary">
+                See the track record
+              </a>
+            </div>
+          </div>
+          <div className="cvq-bigmark" aria-hidden="true">
+            <span className="cvq-bigmark-word" data-reveal="wipe">
+              CONVI<b>Q</b>T
+            </span>
+          </div>
+        </section>
       </main>
 
       {/* ── Footer — the one dark moment ──────────────────────────────────── */}
