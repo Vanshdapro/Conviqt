@@ -2870,6 +2870,13 @@ body,
    Everything degrades to nothing under prefers-reduced-motion (block at the end).
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Lenis smooth-scroll plumbing (only active while the landing mounts SmoothScroll) */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
 .cvq-land {
   position: relative;
   isolation: isolate;          /* contain the z-index:-1 motion layers */
@@ -2949,6 +2956,106 @@ body,
   border-color: var(--accent);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
 }
+
+/* ── Pinned scroll-scrubbed feature sequence (Digilab DNA) ─────────────────── */
+.cvq-seq {
+  position: relative;
+  height: calc(var(--steps, 3) * 94vh);   /* the scroll runway for the scrub */
+}
+.cvq-seq-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.cvq-seq-track {
+  position: relative;
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.cvq-seq-step {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 56px);
+  padding: 0 clamp(20px, 5vw, 56px);
+  will-change: opacity, transform;
+}
+.cvq-seq-step:first-child { position: relative; inset: auto; }  /* sets the track height */
+.cvq-seq-body {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-2);
+  margin: 0;
+  max-width: 42ch;
+}
+.cvq-seq-stage { display: flex; justify-content: center; }
+/* step rail — vertical progress with a lit dot per step */
+.cvq-seq-rail {
+  position: absolute;
+  right: clamp(14px, 3.5vw, 40px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 0;
+}
+.cvq-seq-railtrack {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--border-strong) 60%, transparent);
+  overflow: hidden;
+}
+.cvq-seq-railfill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: top center;
+  transform: scaleY(0);
+}
+.cvq-seq-dot {
+  position: relative;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-page);
+  border: 1.5px solid var(--border-strong);
+  transition: transform 320ms var(--rv-ease), background-color 320ms var(--rv-ease),
+              border-color 320ms var(--rv-ease);
+}
+.cvq-seq-dot.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.4);
+}
+@media (max-width: 860px) {
+  .cvq-seq-step { grid-template-columns: 1fr; gap: var(--space-6); align-content: center; }
+  .cvq-seq-rail { display: none; }
+}
+/* static fallback (reduced-motion or small screens): a plain stacked list */
+.cvq-seq--static { height: auto; }
+.cvq-seq--static .cvq-seq-sticky { position: static; height: auto; display: block; overflow: visible; padding: clamp(44px, 7vw, 88px) 0; }
+.cvq-seq--static .cvq-seq-step {
+  position: relative !important;
+  inset: auto;
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+.cvq-seq--static .cvq-seq-step + .cvq-seq-step { margin-top: clamp(48px, 7vw, 88px); }
+.cvq-seq--static .cvq-seq-rail { display: none; }
 
 /* ── Hero intro — plays once on load (under .cvq-motion) ───────────────────── */
 .cvq-motion .cvq-land-hero [data-intro] {

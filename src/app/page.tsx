@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { WordmarkIntro } from "@/components/landing/WordmarkIntro";
+import { SmoothScroll } from "@/components/landing/SmoothScroll";
 import { Landing3DBackground } from "@/components/landing/Landing3DBackground";
 import { LandingMotion } from "@/components/landing/LandingMotion";
-import { PhoneFrame, BrowserFrame } from "@/components/landing/DeviceFrame";
+import { FeatureSequence, type FeatureStep } from "@/components/landing/FeatureSequence";
+import { PhoneFrame } from "@/components/landing/DeviceFrame";
 import { FounderNote } from "@/components/landing/FounderNote";
 import { ChangePill } from "@/components/ui";
 import { loadPicks, pickStats, thesisLine, type PickView } from "@/lib/picksView";
@@ -39,6 +41,43 @@ const GRID_SKILL_IDS = [
   "entry-exit-zones",
   "headline-decoder",
   "bull-bear-map",
+];
+
+// The pinned scroll-scrubbed feature sequence (replaces the static feature rows).
+const FEATURE_STEPS: FeatureStep[] = [
+  {
+    eyebrow: "Dashboard",
+    title: "Start the day already caught up.",
+    body:
+      "A shared daily read on the market — snapshot, today’s trends, early signals, upcoming earnings and Fed dates, and the picks. Refreshed before the US open and after the close.",
+    src: "/landing/dashboard.png",
+    alt: "The Conviqt Dashboard: today's trends, early signals, and the public picks — losses included",
+    width: 2064,
+    height: 1720,
+    url: "conviqt.com/dashboard",
+  },
+  {
+    eyebrow: "Headlines",
+    title: "Every headline, decoded.",
+    body:
+      "Markets news from ten regions plus crypto — and under each headline, one line on what it could mean for traders. Tap any of them and Conviqt decodes which stocks it touches and how.",
+    src: "/landing/headlines.png",
+    alt: "Conviqt Headlines: region tabs and headlines, each with a one-line read on why traders care",
+    width: 2560,
+    height: 1720,
+    url: "conviqt.com/headlines",
+  },
+  {
+    eyebrow: "Portfolio",
+    title: "Know what you actually own.",
+    body:
+      "Your holdings and watchlist with live values — plus the risk numbers the pros use (Beta, Volatility, Max Drawdown, Sharpe), each one tap away from the lesson that explains it. Run an AI Health Check when you want the hard look.",
+    src: "/landing/portfolio.png",
+    alt: "Conviqt Portfolio: add holdings by ticker or CSV, with the AI Health Check one tap away",
+    width: 2560,
+    height: 1546,
+    url: "conviqt.com/portfolio",
+  },
 ];
 
 const FAQ: Array<{ q: string; a: string }> = [
@@ -135,6 +174,7 @@ export default async function Home() {
   return (
     <div className="cvq-land">
       <WordmarkIntro />
+      <SmoothScroll />
       <Landing3DBackground />
       <LandingMotion />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
@@ -214,71 +254,8 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── 4 · Feature rows (real screenshots) ─────────────────────────── */}
-        <section className="cvq-land-section" aria-label="What's inside">
-          <div className="cvq-land-row" data-thread-node>
-            <div className="cvq-land-row-copy" data-reveal="left">
-              <p className="cvq-land-eyebrow">Dashboard</p>
-              <h2 className="cvq-land-h2">Start the day already caught up.</h2>
-              <p>
-                A shared daily read on the market — snapshot, today&rsquo;s trends, early signals,
-                upcoming earnings and Fed dates, and the picks. Refreshed before the US open and
-                after the close.
-              </p>
-            </div>
-            <div data-fade data-parallax="0.06">
-              <BrowserFrame
-                src="/landing/dashboard.png"
-                alt="The Conviqt Dashboard: today's trends, early signals, and the public picks — losses included"
-                width={2064}
-                height={1720}
-                url="conviqt.com/dashboard"
-              />
-            </div>
-          </div>
-
-          <div className="cvq-land-row cvq-land-row--flip" data-thread-node>
-            <div className="cvq-land-row-copy" data-reveal="right">
-              <p className="cvq-land-eyebrow">Headlines</p>
-              <h2 className="cvq-land-h2">Every headline, decoded.</h2>
-              <p>
-                Markets news from ten regions plus crypto — and under each headline, one line on
-                what it could mean for traders. Tap any of them and Conviqt decodes which stocks it
-                touches and how.
-              </p>
-            </div>
-            <div data-fade data-parallax="0.06">
-              <BrowserFrame
-                src="/landing/headlines.png"
-                alt="Conviqt Headlines: region tabs and headlines, each with a one-line read on why traders care"
-                width={2560}
-                height={1720}
-                url="conviqt.com/headlines"
-              />
-            </div>
-          </div>
-
-          <div className="cvq-land-row" data-thread-node>
-            <div className="cvq-land-row-copy" data-reveal="left">
-              <p className="cvq-land-eyebrow">Portfolio</p>
-              <h2 className="cvq-land-h2">Know what you actually own.</h2>
-              <p>
-                Your holdings and watchlist with live values — plus the risk numbers the pros use
-                (Beta, Volatility, Max Drawdown, Sharpe), each one tap away from the lesson that
-                explains it. Run an AI Health Check when you want the hard look.
-              </p>
-            </div>
-            <div data-fade data-parallax="0.06">
-              <BrowserFrame
-                src="/landing/portfolio.png"
-                alt="Conviqt Portfolio: add holdings by ticker or CSV, with the AI Health Check one tap away"
-                width={2560}
-                height={1546}
-                url="conviqt.com/portfolio"
-              />
-            </div>
-          </div>
-        </section>
+        {/* ── 4 · Pinned scroll-scrubbed feature sequence ─────────────────── */}
+        <FeatureSequence steps={FEATURE_STEPS} />
 
         {/* ── 5 · Track record (live data) ────────────────────────────────── */}
         <section className="cvq-land-section cvq-land-track" id="track-record" aria-labelledby="track-h" data-thread-node>

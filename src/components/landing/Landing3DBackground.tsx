@@ -54,7 +54,7 @@ const FRAG = /* glsl */ `
     if (d > 0.25) discard;                          // round dot
     float soft = smoothstep(0.25, 0.06, d);         // crisp but soft edge
     vec3 col = mix(uColor, uColorHi, smoothstep(-1.2, 1.6, vH));  // crests brighten
-    float a = soft * vFade * (0.5 + vRnd * 0.34);   // subtle per-point twinkle
+    float a = soft * vFade * (0.34 + vRnd * 0.24);  // subtle backdrop — never fights the content
     gl_FragColor = vec4(col, a);
   }
 `;
