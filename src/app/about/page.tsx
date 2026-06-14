@@ -37,7 +37,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is Conviqt free to use?",
-    a: "Yes — Free includes 5 deep analyses every month, quick takes, Headlines, the fundamentals Academy track, and full access to the public track record. Pro ($16/mo billed annually, $25 monthly, 7-day free trial) opens unlimited fair-use analyses, the full Academy, and the portfolio tools. Current plans are on the pricing page.",
+    a: "Yes — Free includes 5 deep analyses every month, quick takes, Headlines, the fundamentals Academy track, and full access to the public track record. Pro ($8/month, month to month, 7-day free trial) opens unlimited fair-use analyses, the full Academy, and the portfolio tools. Current plans are on the pricing page.",
   },
   {
     q: "How accurate is Conviqt, and is it financial advice?",

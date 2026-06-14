@@ -1,21 +1,20 @@
 "use client";
 
-// /pricing — rebuilt for the subscription model (Phase 7, playbook 2.4).
+// /pricing — the subscription model (Phase 7, playbook 2.4; pricing updated
+// 2026-06-14 by founder call).
 //
-// Two plans, no packs, no credit math anywhere:
+// Two plans, month-to-month only — no annual billing, no packs, no credit math:
 //   Free — 5 deep analyses/mo + quick takes + Academy fundamentals + the full
 //          public track record (transparency is free, always).
-//   Pro  — $25 monthly · $16/mo billed annually · 7-day free trial.
+//   Pro  — $8/month, month to month · 7-day free trial.
 //
-// Soft sell only: clear prices, a visible toggle, cancel-anytime copy, and a
-// FAQ that answers the real questions. Nothing counts down, nothing guilts.
+// Soft sell only: clear prices, cancel-anytime copy, and a FAQ that answers the
+// real questions. Nothing counts down, nothing guilts.
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { track } from "@/lib/analytics/track";
-
-type Billing = "annual" | "monthly";
 
 const PRO_FEATURES = [
   "Unlimited deep analyses — fair use, no monthly cap",
@@ -66,7 +65,6 @@ function PricingInner() {
   const canceled = params.get("canceled") === "true";
   const sessionId = params.get("session_id");
 
-  const [billing, setBilling] = useState<Billing>("annual");
   const [plan, setPlan] = useState<"free" | "pro" | null>(null); // null = logged out / unknown
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -109,12 +107,12 @@ function PricingInner() {
     }
     setBusy(true);
     setNotice(null);
-    track("checkout_start", { plan: billing === "annual" ? "pro_annual" : "pro_monthly" });
+    track("checkout_start", { plan: "pro_monthly" });
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: billing === "annual" ? "pro_annual" : "pro_monthly" }),
+        body: JSON.stringify({ plan: "pro_monthly" }),
       });
       const d = await res.json().catch(() => null);
       if (res.status === 401) {
@@ -183,29 +181,8 @@ function PricingInner() {
 
         <h1 className="cvq-price-h1">Simple pricing. No surprises.</h1>
         <p className="cvq-price-sub">
-          Start free. Upgrade when you want more. Cancel anytime — it takes two taps.
+          Start free. Upgrade when you want more. Month to month — cancel anytime, it takes two taps.
         </p>
-
-        <div className="cvq-price-toggle" role="radiogroup" aria-label="Billing period">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={billing === "monthly"}
-            data-active={billing === "monthly"}
-            onClick={() => setBilling("monthly")}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={billing === "annual"}
-            data-active={billing === "annual"}
-            onClick={() => setBilling("annual")}
-          >
-            Annual <em>save 36%</em>
-          </button>
-        </div>
 
         <div className="cvq-price-grid">
           {/* Free */}
@@ -239,11 +216,9 @@ function PricingInner() {
             <span className="cvq-price-badge">7-day free trial</span>
             <h2>Pro</h2>
             <p className="cvq-price-amount">
-              {billing === "annual" ? "$16" : "$25"} <span>/ month</span>
+              $8 <span>/ month</span>
             </p>
-            <p className="cvq-price-tag">
-              {billing === "annual" ? "Billed $192 once a year." : "Billed monthly. Switch or stop whenever."}
-            </p>
+            <p className="cvq-price-tag">Billed monthly. Switch or stop whenever.</p>
             <ul className="cvq-price-list">
               {PRO_FEATURES.map((f) => (
                 <li key={f}>

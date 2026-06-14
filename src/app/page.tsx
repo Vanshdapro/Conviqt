@@ -10,14 +10,19 @@ import { SignalField } from "@/components/landing/SignalField";
 import { RisingThread } from "@/components/landing/RisingThread";
 import { PhoneFrame } from "@/components/landing/DeviceFrame";
 import { FounderNote } from "@/components/landing/FounderNote";
-import { loadPicks, thesisLine, type PickView } from "@/lib/picksView";
+import { TrackRecordViz } from "@/components/landing/TrackRecordViz";
+import { loadPicks, type PickView } from "@/lib/picksView";
 import { SKILLS } from "@/lib/skills";
 import { TRACKS, TOTAL_LESSONS } from "@/lib/learn/curriculum";
 
 // The public landing (playbook Phase 6). Server-rendered with a 15-minute
-// revalidate so the TRACK RECORD section embeds live picks data — losses
-// visible — while the page itself stays static-fast. The intro is a single
-// 1.0s CSS wordmark reveal (WordmarkIntro), once per session, no WebGL.
+// revalidate so the TRACK RECORD section reflects the live count of public
+// calls — while the page itself stays static-fast. The picks themselves are
+// NOT enumerated here (founder call 2026-06-14): the landing shows that a real,
+// dated, permanent record exists (an abstract sealed-ledger viz + the live
+// count) but the actual calls live one tap inside the app, so visitors can't
+// lift free picks off a public page. The intro is a single 1.0s CSS wordmark
+// reveal (WordmarkIntro), once per session, no WebGL.
 
 export const revalidate = 900;
 
@@ -101,45 +106,16 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
 ];
 
-// ── Track record helpers ─────────────────────────────────────────────────────
-
-// Show the most recent calls, as-published. We deliberately DON'T surface
-// per-pick or aggregate returns on the landing yet — the record's credibility
-// here is that every call is public, dated, and permanent (the full history,
-// with performance, lives one tap away on the Dashboard).
-function selectShowcase(views: PickView[], count = 6): PickView[] {
-  return views.slice(0, count);
-}
-
-function PickCard({ v }: { v: PickView }) {
-  const thesis = thesisLine(v.pick);
-  return (
-    <article className="cvq-pick">
-      <div className="cvq-pick-head">
-        <span className="cvq-pick-ticker">{v.pick.ticker}</span>
-        <span className={`cvq-chip ${v.open ? "cvq-dash-chip-open" : "cvq-dash-chip-closed"}`}>
-          {v.open ? "Open" : "Closed"}
-        </span>
-      </div>
-      <span className="cvq-pick-company">{v.pick.company_name}</span>
-      <span className="cvq-pick-entry">
-        Entry ${v.pick.entry_price.toFixed(2)} · {v.pick.entry_date}
-      </span>
-      {thesis && <p className="cvq-pick-thesis">{thesis}</p>}
-    </article>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function Home() {
-  // Snapshot prices only (honestly dated) — live quote() fetches are no-store
-  // and would force this route dynamic; the landing stays static + ISR.
+  // We load the picks only to surface their COUNT — never to enumerate them on
+  // this public page (founder call 2026-06-14). Snapshot mode (no live quotes)
+  // keeps the route static + ISR; live quote() fetches would force it dynamic.
   const views = await loadPicks({ live: false }).catch((err): PickView[] | null => {
     console.error("[landing] picks load failed:", err);
     return null; // error state, not an empty track record
   });
-  const showcase = views ? selectShowcase(views) : [];
 
   const gridSkills = GRID_SKILL_IDS.map((id) => SKILLS.find((s) => s.id === id)).filter(
     (s): s is NonNullable<typeof s> => Boolean(s)
@@ -300,15 +276,11 @@ export default async function Home() {
                   <span>Calls stay up for good. Never quietly edited, never deleted.</span>
                 </li>
               </ul>
-              <div className="cvq-picks" data-reveal="up">
-                {showcase.map((v) => (
-                  <PickCard key={v.pick.id ?? `${v.pick.ticker}-${v.pick.entry_date}`} v={v} />
-                ))}
-              </div>
+              <TrackRecordViz count={views.length} />
               <p className="cvq-land-track-note">
-                Each call stays public for good — the complete history, wins and losses alike, is
-                one tap away. Past results never guarantee future returns.{" "}
-                <Link href="/dashboard">See the full history →</Link>
+                We don&rsquo;t print the calls themselves on this page — the complete record, wins
+                and losses alike, opens the moment you&rsquo;re inside. Past results never guarantee
+                future returns. <Link href="/dashboard">Open the record →</Link>
               </p>
             </>
           )}
@@ -410,10 +382,10 @@ export default async function Home() {
             <div className="cvq-card cvq-card--pad-lg cvq-land-plan cvq-land-plan--pro" data-reveal="up">
               <h3>Pro</h3>
               <p className="cvq-land-plan-price">
-                <span>$16</span>
-                <span className="cvq-land-plan-per">/month billed annually</span>
+                <span>$8</span>
+                <span className="cvq-land-plan-per">/month</span>
               </p>
-              <p className="cvq-land-plan-alt">or $25 month-to-month · 7-day free trial</p>
+              <p className="cvq-land-plan-alt">Month to month · cancel anytime · 7-day free trial</p>
               <ul>
                 <li>Unlimited fair-use analyses</li>
                 <li>The full Academy — every track, every lesson</li>
@@ -425,7 +397,7 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-          <p className="cvq-land-fineprint" data-reveal="up">Prices in USD. Cancel anytime.</p>
+          <p className="cvq-land-fineprint" data-reveal="up">Prices in USD. Month to month — cancel anytime.</p>
         </section>
 
         {/* ── 9 · FAQ ─────────────────────────────────────────────────────── */}

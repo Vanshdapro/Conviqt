@@ -2145,65 +2145,9 @@
   line-height: 1.45;
   color: var(--text-muted);
 }
-/* Picks ledger — an open record of every call, wins AND misses. Hairline-ruled
-   to rhyme with the skill ledger; a win/loss tick on each card's top edge makes
-   the "even the misses" promise scannable. --up/--down are the market-data
-   colours and this IS market data, so they're allowed here. */
-.cvq-picks {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-}
-@media (max-width: 900px) { .cvq-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .cvq-picks { grid-template-columns: 1fr; } }
-.cvq-pick {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: clamp(18px, 1.9vw, 26px);
-  background: var(--bg-page);
-  transition: background var(--motion) var(--ease-out);
-}
-.cvq-pick:hover { background: var(--bg-surface); }
-/* a uniform teal tick on the top edge — a branded accent, NOT a win/loss
-   signal (per-pick performance is intentionally not surfaced on the landing) */
-.cvq-pick::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: color-mix(in srgb, var(--accent) 50%, transparent);
-  opacity: 0.8;
-  transition: opacity var(--motion) var(--ease-out);
-}
-.cvq-pick:hover::before { opacity: 1; }
-.cvq-pick-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.cvq-pick-ticker {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.01em;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-}
-.cvq-pick-company { font-size: 12px; color: var(--text-muted); }
-.cvq-pick-entry {
-  margin-top: var(--space-1);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-2);
-}
-.cvq-pick-thesis { font-size: 13px; line-height: 1.55; color: var(--text-2); margin: var(--space-1) 0 0; }
+/* (The per-pick card grid — .cvq-picks / .cvq-pick* — was removed 2026-06-14
+   when the landing stopped enumerating the calls; see the sealed-ledger viz
+   below. The trust strip above and the note below stayed.) */
 .cvq-land-track-note {
   font-size: 13px;
   color: var(--text-muted);
@@ -2214,6 +2158,213 @@
 .cvq-land-track-note a,
 .cvq-land-track-error a { color: var(--link); text-decoration: underline; }
 .cvq-land-track-error p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-2); }
+
+/* ── Track record — "sealed ledger" visualization ─────────────────────────────
+   The landing no longer lists the picks (founder call 2026-06-14): it shows the
+   record EXISTS without giving the calls away. A light CSS-3D scene (no WebGL):
+   a redacted ledger tilted in perspective, a teal seal stamped with the live
+   count, and ambient shapes drifting behind it. Landing-only motion (founder
+   override of the app's no-3D rule); fully stilled under prefers-reduced-motion.
+   Tokens only; the one allowed shadow (espresso rgba) per the brand spec. */
+.cvq-trkviz { position: relative; margin: 0; }
+.cvq-trkviz-stage {
+  position: relative;
+  height: clamp(300px, 40vw, 400px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+  overflow: hidden;
+  /* perspective on the stage projects its direct children into depth; no
+     transform-style here (overflow:hidden would force it flat anyway) */
+  perspective: 1100px;
+  perspective-origin: 50% 38%;
+}
+/* the sealed ledger — a redacted register tilted back into depth */
+.cvq-trk-ledger {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(440px, 74%);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(9px, 1.4vw, 14px);
+  padding: clamp(18px, 2.6vw, 26px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 8px rgba(42, 28, 21, 0.06);
+  overflow: hidden;
+  transform: translate(-50%, -50%) rotateX(54deg) rotateZ(-9deg);
+  animation: cvq-trk-float 9s ease-in-out infinite;
+}
+/* top teal tick, echoing the old pick-card accent */
+.cvq-trk-ledger::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.cvq-trk-row { display: flex; align-items: center; gap: clamp(8px, 1.4vw, 14px); }
+.cvq-trk-cell { height: clamp(9px, 1.2vw, 12px); border-radius: 999px; }
+.cvq-trk-cell--tick { width: 22%; background: color-mix(in srgb, var(--text-2) 28%, var(--bg-sunken)); }
+.cvq-trk-cell--line { flex: 1; background: color-mix(in srgb, var(--border-strong) 70%, var(--bg-sunken)); }
+.cvq-trk-row:nth-child(even) .cvq-trk-cell--line { flex: 0 0 46%; }
+.cvq-trk-row:nth-child(3n)   .cvq-trk-cell--line { flex: 0 0 62%; }
+.cvq-trk-dot {
+  width: clamp(9px, 1.2vw, 12px);
+  height: clamp(9px, 1.2vw, 12px);
+  border-radius: 999px;
+  border: 1.5px solid var(--border-strong);
+  margin-left: auto;
+}
+.cvq-trk-row:nth-child(4n) .cvq-trk-dot { background: var(--accent-weak); border-color: var(--accent); }
+/* a soft teal scan sweeping the ledger — "always being recorded" */
+.cvq-trk-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -40%;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--accent) 22%, transparent),
+    transparent
+  );
+  animation: cvq-trk-scan 4.6s ease-in-out infinite;
+}
+/* the seal — flat in front, stamped with the live count */
+.cvq-trk-seal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -52%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: clamp(116px, 16vw, 148px);
+  height: clamp(116px, 16vw, 148px);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(42, 28, 21, 0.08);
+  color: var(--accent);
+  animation: cvq-trk-pulse 3.6s ease-in-out infinite;
+}
+.cvq-trk-seal-lock { opacity: 0.85; margin-bottom: 1px; }
+.cvq-trk-seal-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 4.4vw, 44px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cvq-trk-seal-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 86%;
+  line-height: 1.3;
+}
+/* ambient drifting shapes */
+.cvq-trk-shape { position: absolute; pointer-events: none; opacity: 0.5; }
+.cvq-trk-shape--ring {
+  width: 64px;
+  height: 64px;
+  left: 8%;
+  top: 18%;
+  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
+  animation: cvq-trk-drift1 16s ease-in-out infinite;
+}
+.cvq-trk-shape--dot {
+  width: 18px;
+  height: 18px;
+  right: 12%;
+  top: 24%;
+  background: var(--accent-weak);
+  border-radius: 999px;
+  animation: cvq-trk-drift2 13s ease-in-out infinite;
+}
+.cvq-trk-shape--tri {
+  width: 0;
+  height: 0;
+  right: 9%;
+  bottom: 16%;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 28px solid color-mix(in srgb, var(--border-strong) 80%, transparent);
+  opacity: 0.45;
+  animation: cvq-trk-drift3 19s ease-in-out infinite;
+}
+.cvq-trk-shape--sq {
+  width: 22px;
+  height: 22px;
+  left: 14%;
+  bottom: 18%;
+  border: 2px solid color-mix(in srgb, var(--border-strong) 90%, transparent);
+  border-radius: 6px;
+  animation: cvq-trk-drift4 15s ease-in-out infinite;
+}
+.cvq-trk-shape--bar {
+  width: 40px;
+  height: 8px;
+  left: 50%;
+  top: 12%;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 999px;
+  animation: cvq-trk-drift2 18s ease-in-out infinite reverse;
+}
+@keyframes cvq-trk-float {
+  0%, 100% { transform: translate(-50%, -50%) rotateX(54deg) rotateZ(-9deg) translateY(0); }
+  50%      { transform: translate(-50%, -50%) rotateX(51deg) rotateZ(-7deg) translateY(-10px); }
+}
+@keyframes cvq-trk-scan {
+  0%   { transform: translateY(0); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(380%); opacity: 0; }
+}
+@keyframes cvq-trk-pulse {
+  0%, 100% { transform: translate(-50%, -52%) scale(1); box-shadow: 0 2px 8px rgba(42, 28, 21, 0.08); }
+  50%      { transform: translate(-50%, -52%) scale(1.035); box-shadow: 0 4px 16px rgba(42, 28, 21, 0.1); }
+}
+@keyframes cvq-trk-drift1 {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  50%      { transform: translate(18px, -14px) rotate(40deg); }
+}
+@keyframes cvq-trk-drift2 {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-16px, 16px); }
+}
+@keyframes cvq-trk-drift3 {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  50%      { transform: translate(-14px, -18px) rotate(-30deg); }
+}
+@keyframes cvq-trk-drift4 {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  50%      { transform: translate(14px, -12px) rotate(45deg); }
+}
+@media (max-width: 560px) {
+  .cvq-trk-ledger { width: 86%; }
+  .cvq-trk-shape--ring { width: 44px; height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvq-trk-ledger,
+  .cvq-trk-seal,
+  .cvq-trk-shape { animation: none !important; }
+  .cvq-trk-seal { transform: translate(-50%, -52%); }
+  .cvq-trk-scan { display: none; }
+}
 
 /* ── Academy — advertise the "learn what the numbers mean" differentiator ───── */
 .cvq-land-academy { border-top: 1px solid var(--border); }
@@ -2355,39 +2506,19 @@
   white-space: nowrap;
 }
 
-/* ── Founder note ──────────────────────────────────────────────────────────── */
-.cvq-founder {
-  display: grid;
-  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-  gap: clamp(24px, 4vw, 48px);
-  align-items: start;
-}
-@media (max-width: 720px) { .cvq-founder { grid-template-columns: 1fr; } }
-.cvq-founder-img {
-  display: block;
-  width: min(280px, 64vw);
-  aspect-ratio: 1;
-  height: auto;
-  object-fit: cover;
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border-strong);
-}
-.cvq-founder-placeholder {
+/* ── Team note (no photo — speaks in the team's voice) ──────────────────────── */
+.cvq-team-note {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-sunken);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 96px;
-  color: var(--accent);
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 64ch;
+  margin-top: var(--space-6);
 }
-.cvq-founder-text p {
+.cvq-team-note p {
   font-size: 16px;
   line-height: 1.65;
   color: var(--text-2);
-  margin: 0 0 var(--space-4);
-  max-width: 58ch;
+  margin: 0;
 }
 .cvq-founder-promise { font-weight: 600; color: var(--text); }
 .cvq-founder-name { font-family: var(--font-display); font-weight: 600; color: var(--text); }
@@ -2881,45 +3012,8 @@
   margin: 0 0 var(--space-6);
   max-width: 52ch;
 }
-.cvq-price-toggle {
-  display: inline-flex;
-  gap: 4px;
-  background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 4px;
-  margin-bottom: var(--space-5);
-}
-.cvq-price-toggle button {
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text-2);
-  background: none;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 8px 16px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition: background 160ms ease-out, color 160ms ease-out;
-}
-.cvq-price-toggle button[data-active="true"] {
-  background: var(--bg-surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  margin: -1px;
-}
-.cvq-price-toggle em {
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-hover);
-  background: var(--accent-weak);
-  border-radius: var(--radius-pill);
-  padding: 2px 8px;
-}
+/* (The monthly/annual billing toggle — .cvq-price-toggle — was removed
+   2026-06-14 when Pro went month-to-month only.) */
 .cvq-price-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

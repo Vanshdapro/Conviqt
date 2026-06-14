@@ -3,14 +3,14 @@
 // Price IDs live in env vars. Create the products in Stripe Dashboard first,
 // then paste the price IDs into .env.local / Vercel environment variables.
 //
-// THE PLANS WE SELL (Phase 7 — playbook 2.4, subscription only):
-//   Pro (monthly)  $25/mo  recurring, 7-day trial → STRIPE_PRICE_PRO_MONTHLY
-//   Pro (annual)   $192/yr recurring, 7-day trial → STRIPE_PRICE_PRO_ANNUAL
-//                  ($16/mo billed annually)
-//   Dashboard setup: one "Conviqt Pro" product with two prices (monthly +
-//   yearly). Both checkouts run with subscription_data.trial_period_days = 7.
+// THE PLAN WE SELL (founder pricing call 2026-06-14 — month-to-month only):
+//   Pro (monthly)  $8/mo  recurring, 7-day trial → STRIPE_PRICE_PRO_MONTHLY
+//   Dashboard setup: one "Conviqt Pro" product with a single $8/mo price, run
+//   with subscription_data.trial_period_days = 7. No annual plan is offered.
 //
 // LEGACY (no longer sold, webhook still honors live subscriptions/sessions):
+//   Pro (annual) — annual billing retired 2026-06-14; the price id/env stay so
+//   any live annual sub keeps renewing, but checkout no longer offers it.
 //   Credit packs (credits_500…3000) — one-time; retired with the credit brand.
 //   Max / Max Pro — old credit subscriptions; renewals still reset credits.
 //   Developer / Developer Pro — API call quota (migration 016); the /developers
@@ -90,12 +90,12 @@ export const SUBSCRIPTION_PLANS = new Set<PlanId>([
 // plan-state entitlement (subscribers table), NOT a credit grant.
 export const PRO_PLANS = new Set<PlanId>(["pro_monthly", "pro_annual"]);
 
-// What checkout will still sell. Credit packs, the Max plans, and the Developer
-// (API) plans are retired — existing subscriptions keep working through the
-// webhook, but no new sales. Pro is the only thing money buys (Phase 7/8).
+// What checkout will still sell. Annual Pro, credit packs, the Max plans, and
+// the Developer (API) plans are retired — existing subscriptions keep working
+// through the webhook, but no new sales. Pro monthly ($8/mo) is the only thing
+// money buys (founder pricing call 2026-06-14).
 export const PURCHASABLE_PLANS = new Set<PlanId>([
   "pro_monthly",
-  "pro_annual",
 ]);
 
 // LEGACY: Developer (API) plans — the /developers surface and the public /v1
