@@ -173,7 +173,7 @@ type AuditPhase =
 // ── Live data shapes (from /api/portfolio/live) ──────────────────────────────
 
 interface LiveResponse {
-  portfolio: { id: string; name: string; holdings: Holding[] } | null;
+  portfolio: { id: string; name: string; holdings: Holding[]; cash: number } | null;
   rows?: LiveHoldingRow[];
   totals?: LiveTotals;
   statsStrip?: LiveStatsStrip;
@@ -342,6 +342,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
     () => data?.portfolio?.holdings ?? [],
     [data]
   );
+  const cash = data?.portfolio?.cash ?? 0;
 
   const load = useCallback(async () => {
     try {
@@ -367,8 +368,11 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
 
   useEffect(() => () => auditAbort.current?.abort(), []);
 
+  // One saver for both holdings and cash edits. `patch` carries only what's
+  // changing; the rest is preserved from the current portfolio so a holdings
+  // edit never wipes the cash balance and vice-versa.
   const save = useCallback(
-    async (next: Holding[], message: string) => {
+    async (patch: { holdings?: Holding[]; cash?: number }, message: string) => {
       setSaving(true);
       setStatusMsg(null);
       try {
@@ -378,7 +382,8 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
           body: JSON.stringify({
             id: data?.portfolio?.id,
             name: data?.portfolio?.name ?? "My Portfolio",
-            holdings: next,
+            holdings: patch.holdings ?? data?.portfolio?.holdings ?? [],
+            cash: patch.cash ?? data?.portfolio?.cash ?? 0,
           }),
         });
         const body = await res.json().catch(() => null);
@@ -398,6 +403,14 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
       }
     },
     [data, load]
+  );
+
+  const saveCash = useCallback(
+    async (next: number) => {
+      const label = next > 0 ? `Cash set to ${fmtMoney(next)}.` : "Cash cleared.";
+      return save({ cash: next }, label);
+    },
+    [save]
   );
 
   const submitForm = useCallback(
@@ -433,7 +446,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
       const next = exists
         ? holdings.map((h) => (h.ticker === ticker ? updated : h))
         : [...holdings, updated];
-      const ok = await save(next, editing ? `Updated ${ticker}.` : `Added ${ticker}.`);
+      const ok = await save({ holdings: next }, editing ? `Updated ${ticker}.` : `Added ${ticker}.`);
       if (ok) {
         setQuery("");
         setShares("");
@@ -455,7 +468,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
   const remove = useCallback(
     (ticker: string) => {
       void save(
-        holdings.filter((h) => h.ticker !== ticker),
+        { holdings: holdings.filter((h) => h.ticker !== ticker) },
         `Removed ${ticker}.`
       );
     },
@@ -477,7 +490,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
         ...parsed.holdings,
       ].slice(0, MAX_HOLDINGS);
       const skippedNote = parsed.skipped > 0 ? ` ${parsed.skipped} row${parsed.skipped === 1 ? "" : "s"} couldn't be read.` : "";
-      await save(merged, `Imported ${parsed.holdings.length} holding${parsed.holdings.length === 1 ? "" : "s"}.${skippedNote}`);
+      await save({ holdings: merged }, `Imported ${parsed.holdings.length} holding${parsed.holdings.length === 1 ? "" : "s"}.${skippedNote}`);
     },
     [holdings, save]
   );
@@ -510,6 +523,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
           portfolioId: data?.portfolio?.id,
           name: data?.portfolio?.name ?? "My Portfolio",
           holdings,
+          cash,
         }),
         signal: controller.signal,
       });
@@ -580,7 +594,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
       console.error("[portfolio] health check stream failed:", err);
       setAudit({ name: "error", message: "The connection dropped mid-run. Try again in a moment.", code: "other" });
     }
-  }, [data, holdings, load]);
+  }, [data, holdings, cash, load]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -624,6 +638,8 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
           <HoldingsTable rows={rows} onEdit={startEdit} onRemove={remove} saving={saving} />
         </>
       )}
+
+      <CashEditor cash={cash} onSave={(n) => void saveCash(n)} saving={saving} />
 
       <form className="cvq-folio-add" onSubmit={submitForm}>
         <div className="cvq-folio-add-fields">
@@ -747,21 +763,125 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
   );
 }
 
+// ── Cash editor ──────────────────────────────────────────────────────────────
+// A small control for the uninvested cash a user holds. It feeds the headline
+// Total value and the AI Health Check (where it reads as a zero-risk buffer).
+
+function CashEditor({
+  cash,
+  onSave,
+  saving,
+}: {
+  cash: number;
+  onSave: (n: number) => void;
+  saving: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const open = () => {
+    setValue(cash > 0 ? String(cash) : "");
+    setError(null);
+    setEditing(true);
+  };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const raw = value.trim().replace(/[$,]/g, "");
+    const n = raw === "" ? 0 : Number(raw);
+    if (!Number.isFinite(n) || n < 0) {
+      setError("Enter a dollar amount, or 0 to clear it.");
+      return;
+    }
+    onSave(Math.round(n * 100) / 100);
+    setEditing(false);
+  };
+
+  return (
+    <Card padding="lg" className="cvq-folio-cash">
+      <div className="cvq-folio-cash-head">
+        <div className="cvq-folio-cash-intro">
+          <span className="cvq-folio-summary-label">Cash in account</span>
+          <p className="cvq-folio-cash-sub">
+            Uninvested money you&rsquo;re holding. It counts toward your total value and your AI Health Check.
+          </p>
+        </div>
+        {!editing && (
+          <div className="cvq-folio-cash-readout">
+            <span className="cvq-folio-cash-value">{cash > 0 ? fmtMoney(cash) : "—"}</span>
+            <button
+              type="button"
+              className="cvq-btn cvq-btn--secondary"
+              onClick={open}
+              disabled={saving}
+            >
+              {cash > 0 ? "Edit" : "Add cash"}
+            </button>
+          </div>
+        )}
+      </div>
+      {editing && (
+        <form className="cvq-folio-cash-form" onSubmit={submit}>
+          <div className="cvq-folio-cash-inputwrap">
+            <span className="cvq-folio-cash-dollar" aria-hidden>$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              className="cvq-folio-num-input cvq-folio-cash-input"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="13,000"
+              aria-label="Cash amount in dollars"
+              autoFocus
+            />
+          </div>
+          <div className="cvq-folio-add-actions">
+            <button type="submit" className="cvq-btn cvq-btn--primary" disabled={saving}>
+              Save cash
+            </button>
+            <button
+              type="button"
+              className="cvq-btn cvq-btn--ghost"
+              onClick={() => setEditing(false)}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+          </div>
+          {error && <p className="cvq-folio-msg" role="alert">{error}</p>}
+        </form>
+      )}
+    </Card>
+  );
+}
+
 // ── Summary + stats strips ───────────────────────────────────────────────────
 
 function SummaryStrip({ totals }: { totals: LiveTotals }) {
+  const hasValue = totals.pricedCount > 0;
+  const hasCash = totals.cash > 0;
   return (
     <Card raised padding="lg" className="cvq-folio-summary">
       <div className="cvq-folio-summary-main">
         <span className="cvq-folio-summary-label">Total value</span>
-        {/* $0.00 would read as "your portfolio is worth nothing"; when no
-            holding could be priced, say so honestly instead of a fake zero. */}
-        {totals.pricedCount > 0 ? (
+        {/* $0.00 would read as "your portfolio is worth nothing"; when nothing
+            could be priced AND there's no cash, say so honestly. Cash alone is
+            still a real total. */}
+        {hasValue || hasCash ? (
           <span className="cvq-folio-summary-value">
-            {fmtMoney(totals.value)}
+            {fmtMoney(totals.totalWithCash)}
           </span>
         ) : (
           <span className="cvq-quote-unavailable">Live values unavailable right now</span>
+        )}
+        {/* Split out invested vs. cash so the headline total is never a mystery. */}
+        {hasCash && (
+          <span className="cvq-folio-summary-split">
+            {hasValue ? `${fmtMoney(totals.value)} invested` : "Nothing invested yet"}
+            {" · "}
+            {fmtMoney(totals.cash)} cash
+          </span>
         )}
         {totals.freshnessLabel && (
           <span className="cvq-quote-fresh">{totals.freshnessLabel}</span>

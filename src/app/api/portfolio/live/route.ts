@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     if (!portfolio) return json({ portfolio: null });
 
     const [view, latestAudit] = await Promise.all([
-      getLivePortfolioView(portfolio.holdings),
+      getLivePortfolioView(portfolio.holdings, portfolio.cash),
       getLatestAudit(user.email, portfolio.id),
     ]);
 

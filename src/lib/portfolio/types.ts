@@ -26,6 +26,7 @@ export interface Holding {
 export interface PortfolioInput {
   name: string;
   holdings: Holding[];
+  cash?: number; // uninvested dollars held alongside the positions
 }
 
 // ── Sweep output ─────────────────────────────────────────────────────────────
@@ -78,8 +79,10 @@ export interface SectorWeight {
 }
 
 export interface PortfolioMetrics {
-  totalValue: number;
+  totalValue: number;        // pricedValue + cash — the whole portfolio
   pricedValue: number;       // value of holdings we could price
+  cashValue: number;         // uninvested cash buffer (zero market risk)
+  cashPct: number;           // cash as a % of totalValue
   positions: PositionMetric[]; // sorted desc by weight
   sectors: SectorWeight[];   // sorted desc by weight
   topPositionPct: number;    // largest single weight

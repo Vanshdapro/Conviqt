@@ -7,6 +7,7 @@ import {
   savePortfolio,
   deletePortfolio,
   sanitizeHoldings,
+  sanitizeCash,
 } from "@/lib/portfolio/store";
 
 // /api/portfolio
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
   const user = await getVerifiedUser();
   if (!user) return json({ error: "Please sign in.", code: "auth_required" }, 401);
 
-  let body: { id?: string; name?: string; holdings?: unknown };
+  let body: { id?: string; name?: string; holdings?: unknown; cash?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -72,9 +73,11 @@ export async function POST(req: Request) {
   }
 
   const holdings = sanitizeHoldings(body.holdings);
+  const cash = body.cash !== undefined ? sanitizeCash(body.cash) : undefined;
   // Updating an existing portfolio to empty is allowed (removing your last
-  // holding is a legitimate edit); only creating an empty one is rejected.
-  if (holdings.length === 0 && !body.id) {
+  // holding is a legitimate edit, and logging cash with no holdings yet is
+  // fine too); only creating a wholly-empty portfolio is rejected.
+  if (holdings.length === 0 && !body.id && !cash) {
     return json({ error: "No valid holdings. Each needs a ticker and a positive share count." }, 400);
   }
 
@@ -82,6 +85,7 @@ export async function POST(req: Request) {
     id: body.id,
     name: (body.name ?? "My Portfolio").toString(),
     holdings,
+    cash,
   });
   if (!saved) return json({ error: "Could not save portfolio. Storage may be unavailable." }, 503);
 

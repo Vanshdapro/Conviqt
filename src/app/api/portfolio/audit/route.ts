@@ -15,7 +15,7 @@ import {
 import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
 import { getExperienceLevel, useDeepAnalysis, refundDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG } from "@/lib/profile";
 import { runAudit, type AuditEvent } from "@/lib/portfolio/orchestrator";
-import { savePortfolio, recordAudit, sanitizeHoldings } from "@/lib/portfolio/store";
+import { savePortfolio, recordAudit, sanitizeHoldings, sanitizeCash } from "@/lib/portfolio/store";
 import type { Holding } from "@/lib/portfolio/types";
 
 // POST /api/portfolio/audit
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   }
   const email = user.email;
 
-  let body: { portfolioId?: string; name?: string; holdings?: unknown };
+  let body: { portfolioId?: string; name?: string; holdings?: unknown; cash?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
   }
 
   const holdings: Holding[] = sanitizeHoldings(body.holdings);
+  const cash = sanitizeCash(body.cash);
   if (holdings.length < 2) {
     return json(
       { type: "error", error: "Add at least 2 holdings (ticker + share count) to audit a portfolio." },
@@ -111,6 +112,7 @@ export async function POST(req: Request) {
         const result = await runAudit(holdings, {
           name,
           audience,
+          cash,
           onEvent: (event: AuditEvent) => emit({ type: "audit", event }),
         });
         recordSpend(result.estCostUSD);
@@ -118,7 +120,7 @@ export async function POST(req: Request) {
         // Persist: upsert the portfolio, then append the audit to its history.
         let portfolioId = body.portfolioId;
         try {
-          const saved = await savePortfolio(email, { id: portfolioId, name, holdings });
+          const saved = await savePortfolio(email, { id: portfolioId, name, holdings, cash });
           if (saved) {
             portfolioId = saved.id;
             await recordAudit(email, saved.id, result);

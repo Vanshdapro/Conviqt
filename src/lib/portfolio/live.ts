@@ -38,7 +38,9 @@ export interface LiveHoldingRow {
 }
 
 export interface LiveTotals {
-  value: number; // priced value
+  value: number; // priced value of the holdings only
+  cash: number; // uninvested cash buffer
+  totalWithCash: number; // value + cash — the headline portfolio value
   dayPL: number | null;
   dayPLPct: number | null;
   totalPL: number | null; // over holdings with a cost basis only
@@ -79,7 +81,8 @@ function stalestLabel(quotes: Quote[]): string | null {
 }
 
 async function priceRows(
-  holdings: Holding[]
+  holdings: Holding[],
+  cash: number
 ): Promise<{ rows: LiveHoldingRow[]; totals: LiveTotals }> {
   const quotes = await Promise.all(
     holdings.map((h) => quote(h.ticker).catch(() => null))
@@ -155,10 +158,13 @@ async function priceRows(
   );
   const totalPLPct = totalPL !== null && costValue > 0 ? (totalPL / costValue) * 100 : null;
 
+  const cashValue = isFinite(cash) && cash > 0 ? cash : 0;
   return {
     rows,
     totals: {
       value: totalValue,
+      cash: cashValue,
+      totalWithCash: totalValue + cashValue,
       dayPL,
       dayPLPct,
       totalPL,
@@ -260,10 +266,11 @@ async function statsStrip(holdings: Holding[]): Promise<LiveStatsStrip> {
 // ── Entry point ──────────────────────────────────────────────────────────────
 
 export async function getLivePortfolioView(
-  holdings: Holding[]
+  holdings: Holding[],
+  cash = 0
 ): Promise<LivePortfolioView> {
   const [{ rows, totals }, strip] = await Promise.all([
-    priceRows(holdings),
+    priceRows(holdings, cash),
     statsStrip(holdings),
   ]);
   return { rows, totals, statsStrip: strip };

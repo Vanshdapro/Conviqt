@@ -35,6 +35,7 @@ export interface RunAuditOptions {
   name?: string;
   onEvent?: (event: AuditEvent) => void;
   audience?: ExperienceLevel | null;
+  cash?: number; // uninvested cash held alongside the holdings
 }
 
 function makeRunId(): string {
@@ -45,7 +46,7 @@ export async function runAudit(
   holdings: Holding[],
   options: RunAuditOptions = {}
 ): Promise<PortfolioAuditResult> {
-  const { name = "My Portfolio", onEvent, audience } = options;
+  const { name = "My Portfolio", onEvent, audience, cash = 0 } = options;
   const t0 = Date.now();
   const runId = makeRunId();
   const asOf = new Date().toISOString();
@@ -73,8 +74,8 @@ export async function runAudit(
     );
   }
 
-  // Step 2: deterministic metrics.
-  const metrics = computeMetrics(holdings, sweep.factSheet);
+  // Step 2: deterministic metrics (cash folds into totals + dilutes weights).
+  const metrics = computeMetrics(holdings, sweep.factSheet, cash);
 
   onEvent?.({
     kind: "sweep_done",

@@ -21,9 +21,11 @@ function factsByTicker(fs: PortfolioFactSheet): Map<string, HoldingFacts> {
 
 export function computeMetrics(
   holdings: Holding[],
-  factSheet: PortfolioFactSheet
+  factSheet: PortfolioFactSheet,
+  cash = 0
 ): PortfolioMetrics {
   const facts = factsByTicker(factSheet);
+  const cashValue = isFinite(cash) && cash > 0 ? cash : 0;
 
   // 1. Build raw positions. A position is "priced" only if the sweep returned
   //    a numeric price for it; unpriced names are excluded from weight math
@@ -47,7 +49,12 @@ export function computeMetrics(
   });
 
   const pricedValue = raw.reduce((s, p) => s + p.value, 0);
-  const totalValue = pricedValue; // unpriced contribute 0 — we weight over what we can price
+  // Cash is part of the portfolio but carries no market risk. Weighting every
+  // position over (priced holdings + cash) means a fat cash buffer correctly
+  // SHRINKS each holding's weight — so concentration/sector/HHI all ease off
+  // automatically. Unpriced names still contribute 0 (we can't size them).
+  const totalValue = pricedValue + cashValue;
+  const cashPct = totalValue > 0 ? (cashValue / totalValue) * 100 : 0;
 
   for (const p of raw) {
     p.weightPct = totalValue > 0 && p.priced ? (p.value / totalValue) * 100 : 0;
@@ -83,6 +90,8 @@ export function computeMetrics(
   return {
     totalValue,
     pricedValue,
+    cashValue,
+    cashPct: round1(cashPct),
     positions,
     sectors,
     topPositionPct: round1(topPositionPct),
@@ -105,6 +114,11 @@ export function renderMetricsBrief(m: PortfolioMetrics): string {
   lines.push(
     `Total priced value: $${m.pricedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} across ${m.positionCount} positions${m.unpricedCount > 0 ? ` (${m.unpricedCount} could not be priced and are excluded)` : ""}.`
   );
+  if (m.cashValue > 0) {
+    lines.push(
+      `Cash held: $${m.cashValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} (${m.cashPct}% of the $${m.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} total). This is uninvested dry powder — zero market risk — and the position weights below are already net of it.`
+    );
+  }
   lines.push(
     `Concentration: largest position ${m.topPositionPct}%, top-5 ${m.top5Pct}%, largest sector ${m.topSectorPct}%, HHI ${m.hhi}.`
   );
