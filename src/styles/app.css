@@ -3776,3 +3776,22 @@ html.lenis, html.lenis body { height: auto; }
   .cvq-cv-core.is-on .cvq-cv-core-ring { animation: none !important; }
   .cvq-cv-label, .cvq-cv-verdict { transition: none !important; }
 }
+
+/* mobile (≤860px): the founder's scroll choreography is desktop-only (every
+   motion component already collapses to static at this width, and the JS loop
+   is gated off too — see LandingMotion). Without this, the JS-armed
+   `.cvq-motion [data-reveal] { opacity: 0 }` state would leave content hidden
+   on phones whenever the scroll-triggered reveal can't fire (slow JS, no scroll
+   yet, in-app browsers). Force everything visible at rest, exactly like
+   reduced-motion does, so mobile content is never invisible or half-revealed. */
+@media (max-width: 860px) {
+  .cvq-thread { display: none; }
+  .cvq-land [data-reveal], .cvq-land [data-fade], .cvq-land [data-intro] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .cvq-land [data-parallax], .cvq-land [data-magnetic] { transform: none !important; }
+}

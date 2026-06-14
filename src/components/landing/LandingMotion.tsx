@@ -28,7 +28,14 @@ export function LandingMotion() {
   const labelRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Treat phones/small tablets like reduced-motion: the founder's scroll
+    // choreography is desktop-only, and every other motion component already
+    // collapses to static at ≤860px. This skips the thread, parallax, and the
+    // rAF scroll loop on mobile (battery + jank), and reveals/count-ups settle
+    // at their final state immediately (paired with the ≤860px CSS block).
+    const reduce =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      window.matchMedia("(max-width: 860px)").matches;
     const land = document.querySelector<HTMLElement>(".cvq-land");
     if (!land) return;
 

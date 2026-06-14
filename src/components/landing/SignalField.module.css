@@ -218,16 +218,16 @@
   }
 }
 
-/* On small viewports tighten the card type so the (static) overlay stays legible. */
+/* On small viewports the absolutely-positioned readout cards (laid out in the
+   1200×560 desktop coordinate space) overflow the narrow stage and get clipped
+   at the right edge — half-cards that read as broken. The field is decorative,
+   so on mobile we drop the card overlay and keep the clean scattered-node SVG,
+   and give the stage a taller aspect so the nodes aren't a thin slit. */
 @media (max-width: 860px) {
-  .card {
-    min-width: 112px;
-    padding: var(--space-2) var(--space-3) 11px;
+  .cards {
+    display: none;
   }
-  .cardTicker {
-    font-size: 16px;
-  }
-  .cardSkill {
-    font-size: 11px;
+  .stage {
+    aspect-ratio: 1200 / 760;
   }
 }
