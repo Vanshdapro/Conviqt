@@ -227,3 +227,62 @@ Paste this as the kickoff prompt:
 - ✅ Audit-flagged copy + brand violations patched in this branch
 - ⚠️ One product question (C-8 / D: Picks widget scope) needs your call
 - ⏳ Sections C-1…C-7 are the only humans-only steps remaining before launch
+
+---
+
+## F. Post-deploy stress test — LIVE on www.conviqt.com (2026-06-14)
+
+Deployed `rebrand-almanac` → production via `vercel --prod` (deployment
+`dpl_G2z5YcadegK8mdC6nUX2abnb5CAQ`, build 55s, aliased to www.conviqt.com).
+**Root cause of the pre-test state:** the production domain had been pinned for
+22 days to an old pre-rebrand deployment — Vercel's production branch is `main`
+(44 commits behind `rebrand-almanac`), so the rebrand had only ever reached
+preview URLs. The `vercel --prod` from the repo promoted the rebrand to the
+domain. Also set `NEXT_PUBLIC_SITE_URL=https://www.conviqt.com` (www; the
+non-www value would log users out after Stripe checkout).
+
+### What's confirmed WORKING in production
+- ✅ All 5 surfaces + landing/pricing/auth render 200; `/headlines` + `/dashboard`
+  (404 before) now live. Brand is Almanac (theme `#F5EFE1`, Cabinet/General
+  Sans). Zero old-brand leakage, zero banned words, all `/landing/*` images +
+  favicons + OG + sitemap + robots 200.
+- ✅ Market data live: `/stock/aapl` $312.48, `/stock/nvda` $215.90, OG cards
+  (`/api/og/NVDA|AAPL|TSLA`, compare) all render server-side PNGs. Twelve Data +
+  Finnhub keys are active in prod.
+- ✅ Auth gates correct (no 500s): checkout/portal/profile/credits/watchlist →
+  401, webhook → 400 (missing signature), feed/refresh → 401.
+- ✅ Pricing CTA real: "Start free" + "Try Pro free for 7 days", $8 shown.
+- ✅ Zero client-side console errors on landing/pricing.
+
+### 🚨 LAUNCH BLOCKERS found (your hands — DDL can't be applied via API)
+1. **Payments are not end-to-end yet — `subscribers` table is MISSING in prod.**
+   Prod Supabase has 019/020/021/022 applied (marketdata_cache, feed_cache,
+   user_profiles, analysis_usage, `use_deep_analysis` RPC all present and the RPC
+   works) — but **migration `003_subscribers.sql` was never run**. `src/lib/
+   subscription.ts` reads/writes `subscribers`, so today a customer's card WOULD
+   be charged at Stripe but the webhook write crashes → Pro never unlocks.
+   **FIX:** open Supabase → SQL editor → paste & run `supabase/migrations/
+   003_subscribers.sql` (self-contained; no dependency on 022). Verify with
+   `select 1 from subscribers limit 1;`.
+2. **Academy progress tracking — `learn_progress` table MISSING.** Migration
+   `007_learn.sql` (creates `learn_lesson_cache` + `learn_progress`) wasn't run.
+   Lessons render, but XP/completion won't persist. **FIX:** run
+   `supabase/migrations/007_learn.sql` in the SQL editor.
+3. **Headlines feed is EMPTY** (feed_cache + feed_refresh_runs exist but have 0
+   rows — the refresh has never run in prod). Customers see an empty Headlines
+   surface. **FIX (two parts):** (a) confirm the GitHub Actions repo secret
+   `CRON_SECRET` exactly matches the Vercel `CRON_SECRET` value, then (b) trigger
+   it once now: GitHub → Actions → "feed-refresh" → Run workflow, OR
+   `curl -X POST https://www.conviqt.com/api/feed/refresh -H "Authorization:
+   Bearer <YOUR_PROD_CRON_SECRET>"`. (~25–35¢ of gpt-4.1-mini, within budget.)
+
+### After you do 1–3, the ONE manual test only you can run
+A real Stripe checkout (test card `4242 4242 4242 4242`): sign in as a free
+user → "Try Pro free for 7 days" → complete checkout → confirm a row appears in
+`subscribers` and the account flips to Pro (unlimited analyses). This is the
+only payment step that needs a human + a card.
+
+### Minor / verify-visually
+- An agent grep read MSFT as "$2.80" on `/stock/msft` (almost certainly a
+  mis-grabbed figure, not the price — AAPL/NVDA were correct). Eyeball
+  `/stock/msft` once to confirm the headline price is right.
