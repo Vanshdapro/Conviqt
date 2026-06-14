@@ -90,7 +90,7 @@ const FEATURE_STEPS: FeatureStep[] = [
 const FAQ: Array<{ q: string; a: string }> = [
   {
     q: "Why not just use ChatGPT?",
-    a: "ChatGPT is a great generalist — but it isn’t wired into the market. Conviqt has live market data built in, so answers come with real prices instead of guesses. Skills run a full piece of research in one tap, so you never have to engineer the perfect prompt. Every pick we publish stays public — wins and losses — which is a track record ChatGPT can’t have. And the Academy teaches you what the numbers actually mean, so you get smarter with every answer.",
+    a: "ChatGPT is a great generalist — but it isn’t wired into the market. Conviqt has live market data built in, so answers come with real prices instead of guesses. Skills run a full piece of research in one tap, so you never have to figure out the perfect way to ask. Every pick we publish stays public — wins and losses — which is a track record ChatGPT can’t have. And the Academy teaches you what the numbers actually mean, so you get smarter with every answer.",
   },
   {
     q: "Is this financial advice?",
@@ -202,8 +202,8 @@ export default async function Home() {
             One tap. A real piece of research.
           </h2>
           <p className="cvq-land-lede" data-reveal="up">
-            Skills turn the questions you&rsquo;d actually ask into deep research — no prompt
-            engineering, no jargon.
+            Skills turn the questions you&rsquo;d actually ask into deep research — no special
+            phrasing, no jargon.
           </p>
           <div className="cvq-skills" data-reveal="up" aria-label="Skills">
             {gridSkills.map((s, i) => (

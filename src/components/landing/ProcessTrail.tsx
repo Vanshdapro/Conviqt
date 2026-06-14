@@ -32,7 +32,7 @@ const STEPS: Step[] = [
   {
     n: "01",
     title: "Ask anything",
-    body: "Type a question about any stock in plain English — no jargon, no perfect prompt to engineer. Just ask what you actually want to know.",
+    body: "Type a question about any stock in plain English — no jargon, no special phrasing. Just ask what you actually want to know.",
   },
   {
     n: "02",

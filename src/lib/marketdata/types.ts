@@ -10,7 +10,7 @@
 // a human can visit. Delayed data is fine; unlabeled data is not. If no
 // provider can answer, callers get null — never synthetic numbers.
 
-export type ProviderName = "stooq" | "yahoo" | "finnhub" | "fmp";
+export type ProviderName = "stooq" | "yahoo" | "finnhub" | "fmp" | "twelvedata";
 
 // Human-readable publisher names for Source attribution (one source of
 // truth — both sweep agents render these).
@@ -19,6 +19,7 @@ export const PROVIDER_LABELS: Record<ProviderName, string> = {
   yahoo: "Yahoo Finance",
   finnhub: "Finnhub",
   fmp: "Financial Modeling Prep",
+  twelvedata: "Twelve Data",
 };
 
 export type Capability = "quote" | "history" | "keyStats";

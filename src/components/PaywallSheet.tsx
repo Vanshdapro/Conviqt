@@ -11,8 +11,8 @@ import { Sheet } from "@/components/ui";
 
 const PRO_PERKS = [
   { title: "Unlimited deep analyses", sub: "Full multi-angle reports on any stock, whenever you want." },
-  { title: "Every skill, no caps", sub: "Face-Off, Sector Pulse, Health Check, Starter Portfolio — all open." },
-  { title: "Full Academy", sub: "All 89 lessons, practice drills, and the leaderboard." },
+  { title: "Every skill, no caps", sub: "Face-Off, Sector Pulse, Portfolio Health Check, Starter Portfolio — all open." },
+  { title: "Full Academy", sub: "All 100 lessons, practice drills, and the leaderboard." },
   { title: "Priority speed", sub: "Your runs go to the front of the line." },
 ] as const;
 

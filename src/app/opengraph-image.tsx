@@ -105,7 +105,7 @@ export default async function OgImage() {
           >
             <span>Every pick public</span>
             <span style={{ color: OG.borderStrong }}>·</span>
-            <span>89 lessons</span>
+            <span>100 lessons</span>
             <span style={{ color: OG.borderStrong }}>·</span>
             <span>No download needed</span>
           </div>

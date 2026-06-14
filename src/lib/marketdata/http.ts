@@ -39,6 +39,56 @@ export function assertNotCoolingDown(provider: ProviderName) {
   }
 }
 
+// ── Proactive token-bucket per provider ──────────────────────────────────────
+// The free tiers we use have small per-minute ceilings (Twelve Data 8/min,
+// Finnhub 60/min). The Supabase cache already takes most reads off the wire,
+// but a burst-y page (Portfolio with 30 tickers) can still light up a provider
+// fast enough to trip a 429. The bucket refills linearly; if it's empty we
+// throw NON-RETRYABLE so the chain falls through to the next provider rather
+// than queueing.
+
+interface Bucket {
+  tokens: number;
+  capacity: number;
+  refillPerMs: number; // tokens per millisecond
+  lastRefill: number;
+}
+
+const buckets = new Map<ProviderName, Bucket>();
+
+export function configureBucket(
+  provider: ProviderName,
+  perMinute: number,
+  capacity = perMinute
+) {
+  buckets.set(provider, {
+    tokens: capacity,
+    capacity,
+    refillPerMs: perMinute / 60_000,
+    lastRefill: Date.now(),
+  });
+}
+
+export function takeToken(provider: ProviderName) {
+  const b = buckets.get(provider);
+  if (!b) return; // unconfigured = no limit
+  const now = Date.now();
+  const elapsed = now - b.lastRefill;
+  if (elapsed > 0) {
+    b.tokens = Math.min(b.capacity, b.tokens + elapsed * b.refillPerMs);
+    b.lastRefill = now;
+  }
+  if (b.tokens < 1) {
+    const waitMs = Math.ceil((1 - b.tokens) / b.refillPerMs);
+    throw new ProviderError(
+      provider,
+      `local rate limit: bucket empty (wait ${Math.ceil(waitMs / 1000)}s)`,
+      false
+    );
+  }
+  b.tokens -= 1;
+}
+
 // ── Fetch helpers ────────────────────────────────────────────────────────────
 
 export interface FetchOpts {
@@ -52,6 +102,7 @@ export interface FetchOpts {
 export async function fetchRaw(url: string, opts: FetchOpts): Promise<Response> {
   const { provider, headers, timeoutMs = DEFAULT_TIMEOUT_MS } = opts;
   assertNotCoolingDown(provider);
+  takeToken(provider);
 
   let res: Response;
   try {

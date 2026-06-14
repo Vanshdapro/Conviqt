@@ -20,7 +20,7 @@ const PRO_FEATURES = [
   "Unlimited deep analyses — fair use, no monthly cap",
   "Every skill open: Face-Off, Sector Pulse, Headline Decoder…",
   "Portfolio tools + AI Health Check on what you own",
-  "Full Academy — all 11 tracks and 89 lessons",
+  "Full Academy — all 11 tracks and 100 lessons",
   "Priority speed — your runs go first",
 ];
 

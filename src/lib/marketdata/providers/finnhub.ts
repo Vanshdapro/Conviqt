@@ -20,10 +20,14 @@ import {
   ProviderError,
   Quote,
 } from "../types";
-import { fetchRaw } from "../http";
+import { configureBucket, fetchRaw } from "../http";
 
 const NAME = "finnhub" as const;
 const BASE = "https://finnhub.io/api/v1";
+
+// Finnhub free tier: 60 req/min. Capacity 12 so a Portfolio render with a
+// dozen tickers can fetch quotes in parallel without queueing.
+configureBucket(NAME, 60, 12);
 
 function apiKey(): string {
   return (process.env.FINNHUB_API_KEY ?? "").trim();
