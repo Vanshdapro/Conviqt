@@ -157,7 +157,10 @@ const jsonLd = {
       // Google's Knowledge Graph and for disambiguating Conviqt (the product)
       // from "CONVIQT" the 2022 video-quality research paper. Add each official
       // profile URL here as it goes live (Instagram, X, LinkedIn, etc.).
-      sameAs: [],
+      sameAs: [
+        "https://www.instagram.com/conviqt",
+        "https://x.com/conviqt",
+      ],
     },
     {
       "@type": "WebSite",
