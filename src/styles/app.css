@@ -269,11 +269,18 @@
 .cvq-card--pad-lg { padding: var(--space-6); }
 .cvq-card--interactive {
   transition: border-color var(--motion-fast) var(--ease-out),
-              box-shadow var(--motion-fast) var(--ease-out);
+              box-shadow var(--motion) var(--ease-out),
+              transform var(--motion) var(--ease-out);
 }
 .cvq-card--interactive:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-card);
+  /* Lift a hair off the paper — tone + 1px border + 2px rise, never a glow. */
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvq-card--interactive { transition: border-color var(--motion-fast) var(--ease-out); }
+  .cvq-card--interactive:hover { transform: none; }
 }
 
 /* ── StatTile ────────────────────────────────────────────────────────────── */
@@ -441,21 +448,42 @@
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.005em;
   cursor: pointer;
   border: 1px solid transparent;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
   transition: background var(--motion-fast) var(--ease-out),
               border-color var(--motion-fast) var(--ease-out),
-              color var(--motion-fast) var(--ease-out);
+              color var(--motion-fast) var(--ease-out),
+              box-shadow var(--motion) var(--ease-out),
+              transform var(--motion-fast) var(--ease-out);
 }
-.cvq-btn--primary { background: var(--accent); color: var(--on-accent); }
-.cvq-btn--primary:hover { background: var(--accent-hover); }
+/* Tactile press — the control yields under the finger (within motion budget). */
+.cvq-btn:active { transform: translateY(1px); }
+.cvq-btn:disabled,
+.cvq-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.cvq-btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  /* Whisper of teal weight so the primary CTA reads as raised, not painted on.
+     Stays inside the Almanac shadow budget (≤2px/8px, low-opacity, ink-tinted). */
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent-hover) 26%, transparent);
+}
+.cvq-btn--primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-hover) 30%, transparent);
+}
 .cvq-btn--secondary {
   background: var(--bg-surface);
   border-color: var(--border-strong);
   color: var(--text);
 }
-.cvq-btn--secondary:hover { background: var(--bg-sunken); }
+.cvq-btn--secondary:hover { background: var(--bg-sunken); border-color: var(--text-muted); }
 .cvq-btn--ghost { background: none; color: var(--accent-hover); }
 .cvq-btn--ghost:hover { background: var(--accent-weak); }
 
@@ -564,10 +592,16 @@
   color: var(--text);
   font-family: var(--font-ui);
   font-size: 16px;
-  transition: border-color var(--motion-fast) var(--ease-out);
+  transition: border-color var(--motion-fast) var(--ease-out),
+              box-shadow var(--motion-fast) var(--ease-out);
 }
 .cvq-ask-input::placeholder { color: var(--text-muted); }
-.cvq-ask-input:focus { outline: none; border-color: var(--accent); }
+.cvq-ask-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  /* Soft teal halo so the active field lights up — institutional form polish. */
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
 .cvq-ask-go { padding: 0 var(--space-4); border-radius: var(--radius-card); }
 .cvq-ask-go:disabled { opacity: 0.45; cursor: default; }
 
@@ -706,8 +740,14 @@
   font-size: 15px;
   min-width: 0;
   flex: 1;
+  transition: border-color var(--motion-fast) var(--ease-out),
+              box-shadow var(--motion-fast) var(--ease-out);
 }
-.cvq-guided-input:focus { outline: none; border-color: var(--accent); }
+.cvq-guided-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
 .cvq-guided-textarea { resize: vertical; width: 100%; }
 .cvq-guided-vs {
   font-family: var(--font-display);
@@ -1610,7 +1650,11 @@
 }
 .cvq-folio-num-input { font-variant-numeric: tabular-nums; }
 .cvq-folio-num-input:focus,
-.cvq-folio-search-input:focus { outline: none; border-color: var(--accent); }
+.cvq-folio-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
 .cvq-folio-search-input:disabled { color: var(--text-muted); }
 
 .cvq-folio-search { position: relative; }

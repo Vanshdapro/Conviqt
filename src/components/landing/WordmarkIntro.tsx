@@ -16,7 +16,10 @@ const INTRO_SCRIPT = `(function(){try{var d=document.getElementById("cvq-intro")
 export function WordmarkIntro() {
   return (
     <>
-      <div id="cvq-intro" className="cvq-intro" aria-hidden="true">
+      {/* The inline script below display:none's this node before React hydrates
+          (repeat visit / reduced motion), so the server HTML and the post-script
+          DOM intentionally differ — suppress the expected hydration warning. */}
+      <div id="cvq-intro" className="cvq-intro" aria-hidden="true" suppressHydrationWarning>
         <span className="cvq-intro-word">
           CONVI<span className="cvq-intro-q">Q</span>T
         </span>

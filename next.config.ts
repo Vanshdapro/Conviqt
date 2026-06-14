@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // An orphan stub lockfile sits in the parent folder (~/Desktop/Conviqt/), so
+  // Next otherwise infers the workspace root one level too high. Pin it to this
+  // project to silence the multi-lockfile warning without touching files
+  // outside the repo.
+  turbopack: { root: __dirname },
   devIndicators: false,
   async redirects() {
     return [

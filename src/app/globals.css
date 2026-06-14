@@ -210,3 +210,38 @@ body {
   color: var(--accent) !important;
   border-bottom: 2px solid var(--accent);
 }
+
+/* ============================================================================
+   INSTITUTIONAL REFINEMENT — premium detail pass (2026-06-14).
+   Universal, token-only polish that lifts every surface. No new colours —
+   everything resolves to an Almanac token, light and dark alike.
+   ============================================================================ */
+
+/* Teal-tinted text selection — a small luxury, unmistakably on-brand. */
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text);
+}
+
+/* Balanced, orphan-free headlines — the cheapest "this was typeset, not dumped"
+   signal there is. Body copy wraps "pretty" to avoid a single trailing word.
+   Newer engines only; silently ignored elsewhere, so it can't regress layout. */
+h1, h2, h3,
+.cvq-land-h1, .cvq-land-h2, .cvq-finale-head {
+  text-wrap: balance;
+}
+p, li, .cvq-land-sub, .cvq-land-lede, .cvq-skill-line {
+  text-wrap: pretty;
+}
+
+/* A warm, slim scrollbar that belongs to the paper — not the OS default grey.
+   Standard properties only (Chromium 121+ / Firefox): they tint the bar to the
+   tan hairline and keep it thin without forcing a permanent classic gutter, so
+   the OS's auto-hiding overlay behaviour is respected. Safari keeps its native
+   overlay bar. Tokens flip with the theme, so it stays on-brand after dark. */
+@supports (scrollbar-color: auto) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+}
