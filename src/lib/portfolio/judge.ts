@@ -26,9 +26,10 @@ Deliver via the report_audit tool:
 1. healthScore (0-100): overall portfolio HEALTH (inverse of risk). A concentrated, single-sector, highly-correlated book scores LOW (high risk). A diversified, well-sized, macro-balanced book scores HIGH. Weight the analysts' findings but apply judgment — don't just average.
 2. healthGrade: a letter grade for the score (90+ A, 80-89 B, 70-79 C, 60-69 D, <60 F; use +/- nuance).
 3. assessment: 3-4 sentences, plain institutional prose, NO inline (#N). State the single biggest risk plainly.
-4. scenarios: EXACTLY these four stress tests — "Recession", "Rate Shock (+150bps)", "Tariff / Trade War", "Tech-Led Selloff". For each: estImpactPct (a range like "-18% to -26%"), a 1-2 sentence narrative, hardestHit tickers, and severity. Ground impacts in the actual holdings and weights, and cite the macro source where relevant.
-5. hedges: 3-6 CONCRETE, ranked actions (priority 1 = most important). Each names a specific move ("Trim NVDA from 22% to under 10%", "Add 5-8% in TLT or a long-duration Treasury ETF", "Rotate part of the tech sleeve into defensives"). Say which risk dimension(s) it addresses and why. Be actionable, not generic.
-6. bottomLine: one punchy sentence — the single most important thing to do.
+4. strengths: 2-4 SHORT plain-English things this portfolio is doing RIGHT, specific to THIS book ("You hold a low-cost S&P 500 core", "No single position is oversized at X%", "These are large, profitable, liquid companies"). Honest, never flattery — if there is genuinely little to praise, return fewer. A stress-test still names what's working.
+5. scenarios: EXACTLY these four stress tests — "Recession", "Rate Shock (+150bps)", "Tariff / Trade War", "Tech-Led Selloff". For each: estImpactPct (a range like "-18% to -26%"), a 1-2 sentence narrative, hardestHit tickers, and severity. Ground impacts in the actual holdings and weights, and cite the macro source where relevant.
+6. hedges: 3-6 CONCRETE, ranked actions (priority 1 = most important). Each names a specific move ("Trim NVDA from 22% to under 10%", "Add 5-8% in TLT or a long-duration Treasury ETF", "Rotate part of the tech sleeve into defensives"). Say which risk dimension(s) it addresses and why. Be actionable, not generic.
+7. bottomLine: one punchy sentence — the single most important thing to do.
 
 Rules:
 - Reason only over the provided numbers and findings. Never invent a holding, weight, or price.
@@ -44,6 +45,11 @@ const REPORT_TOOL = {
       healthScore: { type: "number", minimum: 0, maximum: 100 },
       healthGrade: { type: "string" },
       assessment: { type: "string" },
+      strengths: {
+        type: "array",
+        description: "2-4 short plain-English things the portfolio is doing right. Honest, specific, never flattery.",
+        items: { type: "string" },
+      },
       scenarios: {
         type: "array",
         items: {
@@ -81,7 +87,7 @@ const REPORT_TOOL = {
       bottomLine: { type: "string" },
       sourceIndexes: { type: "array", items: { type: "number" } },
     },
-    required: ["healthScore", "healthGrade", "assessment", "scenarios", "hedges", "bottomLine", "sourceIndexes"],
+    required: ["healthScore", "healthGrade", "assessment", "strengths", "scenarios", "hedges", "bottomLine", "sourceIndexes"],
   },
 };
 
@@ -170,6 +176,7 @@ Synthesize the final audit now via report_audit. Remember: exactly four scenario
     healthScore: number;
     healthGrade: string;
     assessment: string;
+    strengths?: string[];
     scenarios: Array<{
       name: string;
       estImpactPct: string;
@@ -196,6 +203,11 @@ Synthesize the final audit now via report_audit. Remember: exactly four scenario
       : [];
 
   const healthScore = clamp(input.healthScore);
+
+  const strengths: string[] = (Array.isArray(input.strengths) ? input.strengths : [])
+    .map((s) => String(s).trim())
+    .filter((s) => s.length > 0)
+    .slice(0, 4);
 
   const scenarios: Scenario[] = (Array.isArray(input.scenarios) ? input.scenarios : [])
     .slice(0, 4)
@@ -231,6 +243,7 @@ Synthesize the final audit now via report_audit. Remember: exactly four scenario
       healthScore,
       healthGrade: input.healthGrade?.trim() || gradeFor(healthScore),
       assessment: (input.assessment ?? "").trim(),
+      strengths,
       scenarios,
       hedges,
       bottomLine: (input.bottomLine ?? "").trim(),

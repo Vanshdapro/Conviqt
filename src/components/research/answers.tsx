@@ -669,6 +669,17 @@ export function AuditAnswer({ result }: { result: PortfolioAuditResult }) {
         <Prose text={j.assessment} />
       </Section>
 
+      {/* strengths may be absent on audits saved before this field existed */}
+      {(j.strengths?.length ?? 0) > 0 && (
+        <Section title="What's working">
+          <ul className="cvq-wins">
+            {j.strengths!.map((s, i) => (
+              <li key={i}>{stripCites(s)}</li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {result.agents.length > 0 && (
         <Section title="Where the risk hides">
           <div className="cvq-riskdims">

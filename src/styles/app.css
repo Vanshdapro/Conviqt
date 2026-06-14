@@ -1130,6 +1130,32 @@
 .cvq-riskdim p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); }
 .cvq-riskdim-flags { font-size: 12.5px; color: var(--text-muted); }
 
+/* "What's working" — the strengths a stress-test still names. Teal check is
+   decorative accent (allowed); Pacific Blue/Coral stay reserved for market data. */
+.cvq-wins { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.cvq-wins li {
+  position: relative;
+  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 22px);
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--accent-weak);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: var(--radius-card);
+}
+.cvq-wins li::before {
+  content: "";
+  position: absolute;
+  left: var(--space-4);
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 13l4 4L19 7' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 13l4 4L19 7' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+}
+
 /* Related skills */
 .cvq-related {
   display: grid;

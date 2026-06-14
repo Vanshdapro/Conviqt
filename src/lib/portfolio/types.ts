@@ -149,6 +149,9 @@ export interface PortfolioJudgeOutput {
   healthGrade: string;   // "A".."F" derived label, e.g. "B-"
   // 3-4 sentence plain-prose assessment, no inline [#N].
   assessment: string;
+  // 2-4 short plain-English things this portfolio is doing RIGHT. A stress-test
+  // still names what's working — beginners need the balance, not just the scold.
+  strengths: string[];
   scenarios: Scenario[];
   hedges: Hedge[];       // ranked
   bottomLine: string;    // one punchy sentence

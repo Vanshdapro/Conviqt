@@ -47,13 +47,13 @@ const DEMOS: Record<string, DemoScript> = {
     capStatic: "Every headline, decoded for what it means",
   },
   Portfolio: {
-    ax: "44%",
-    ay: "55%",
-    bx: "79%",
-    by: "82%",
-    capA: "Add what you own — by ticker or CSV",
-    capB: "One tap: an AI Health Check on your risk",
-    capStatic: "Know what you own — Beta, Volatility, Drawdown, Sharpe",
+    ax: "95%",
+    ay: "9%",
+    bx: "20%",
+    by: "45%",
+    capA: "A plain-English health grade",
+    capB: "…and the exact moves to shore it up",
+    capStatic: "A full AI Health Check — graded, with the fixes",
   },
 };
 

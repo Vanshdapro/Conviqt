@@ -78,11 +78,11 @@ const FEATURE_STEPS: FeatureStep[] = [
     eyebrow: "Portfolio",
     title: "Know what you actually own.",
     body:
-      "Your holdings and watchlist with live values — plus the risk numbers the pros use (Beta, Volatility, Max Drawdown, Sharpe), each one tap away from the lesson that explains it. Run an AI Health Check when you want the hard look.",
+      "Add your holdings and run an AI Health Check: a plain-English grade, what’s working, where the risk hides, and the exact moves to shore it up — every number linked to the lesson behind it.",
     src: "/landing/portfolio.png",
-    alt: "Conviqt Portfolio: add holdings by ticker or CSV, with the AI Health Check one tap away",
+    alt: "Conviqt’s AI Health Check on a sample portfolio — an overall grade, what’s working, the risks across five checks, and the fixes",
     width: 2560,
-    height: 1546,
+    height: 1640,
     url: "conviqt.com/portfolio",
   },
 ];
