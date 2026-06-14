@@ -286,3 +286,47 @@ only payment step that needs a human + a card.
 - An agent grep read MSFT as "$2.80" on `/stock/msft` (almost certainly a
   mis-grabbed figure, not the price — AAPL/NVDA were correct). Eyeball
   `/stock/msft` once to confirm the headline price is right.
+
+---
+
+## G. Authenticated end-to-end test (2026-06-14, real logged-in user)
+
+Created a confirmed QA user via the Supabase admin API, logged in through the
+real UI, and exercised every authenticated flow against the live code + real
+AI keys + prod DB. **All test data was deleted afterward** (portfolios,
+analysis_usage, user_profiles, watchlist rows + the auth user — verified 0 rows
+remaining; prod DB clean).
+
+| Flow | Result |
+| ---- | ------ |
+| **Login** (Supabase email+password) | ✅ session established, redirect to /research |
+| **FirstRun onboarding** (3-step: invest style → experience → starter stocks) | ✅ all steps work |
+| **First-run tour** (4 tooltips) | ✅ shows, skippable |
+| **Council deep analysis** ("Is AAPL worth owning?") | ✅ full verdict: live price $291.13 (−1.52%, "delayed ~15 min"), **Buy / How sure: High**, the case, real fundamentals (Q2 rev $111B +17%, EPS beat, margin 49.3%, P/E 34.9x), bull case, bear case, what-to-watch dates, **Academy "Learn why →" deep-links**, **Sources (16)** with real URLs, related skills, disclaimer. Zero banned words. 16 SVGs (viz) rendered. |
+| **Intent routing** | ✅ logs: `intent=analyze mode=council` |
+| **Free meter (5 deep/mo)** | ✅ logs `free deep analysis 1/5`; **persisted** to `analysis_usage` (deep_count=1, month 2026-06) |
+| **Portfolio add holding** (AAPL ×10 @ $150) | ✅ live value $2,911.30, today −1.52%, all-time +94.09% |
+| **Portfolio stats strip** | ✅ Beta 0.88 / Vol 22.7% / MaxDD −13.8% / Sharpe 1.66 (250 sessions vs SPY), teaching ⓘ each |
+| **AI Health Check** (audit pipeline, 2 holdings) | ✅ graded **D / How sure: High**, correctly flagged the ~60% AAPL two-stock tech concentration |
+| **Stripe checkout** (prod, authed) | ✅ POST /api/stripe/checkout → 200 + real **`cs_live_…`** Checkout session URL (proves secret key + `STRIPE_PRICE_PRO_MONTHLY` valid in LIVE mode) |
+
+### The ONLY thing still not machine-verifiable
+**Card entry → webhook → `subscribers` row → Pro unlock.** Stripe Checkout is a
+hosted page; completing it needs a human entering a card. Everything up to it is
+proven and the `subscribers` table now exists for the webhook to write to.
+
+⚠️ **Stripe is in LIVE mode** (`cs_live_`), so the `4242` test card will NOT
+work — use a **real card**. Because Pro has a **7-day trial**, completing checkout
+charges **$0 today** and creates a `trialing` subscription; cancel before day 7 to
+avoid the $8. That's the safe way to run the final webhook test.
+
+### Minor follow-ups found
+- Onboarding's "pick starter stocks" step didn't seed the `watchlist` table
+  (stayed empty after selecting AAPL + Finish). Low severity — users add to
+  Watching manually in Portfolio. Worth a look post-launch.
+- Verdict label renders as a bare "Buy" — reads as a research rating (framed
+  "The analysts say: Buy"), but confirm you're comfortable with it vs. the
+  CLAUDE.md "no imperative trade language" rule.
+- Council answer content (e.g. "Gemini-powered Siri", a named future CEO) comes
+  from the model's web search — pipeline mechanics are sound, but spot-check
+  factual claims; that's inherent to any LLM-research product.
