@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState, Skeleton, TickerChip } from "@/components/ui";
-import { ATTRIBUTION } from "@/lib/news/currents";
 import { FEED_REGIONS, timeAgo, type FeedHeadline } from "@/lib/feed/types";
 
 // The Headlines surface. One tab per region (+ Crypto); each tab serves the
@@ -182,12 +181,6 @@ export function HeadlinesFeed() {
             ))}
           </div>
         ))}
-
-      <p className="cvq-heads-attribution">
-        <a href={ATTRIBUTION.url} target="_blank" rel="noopener noreferrer">
-          {ATTRIBUTION.label}
-        </a>
-      </p>
 
       <p className="cvq-disclaimer">
         Conviqt is a research and education tool, not a licensed financial adviser. Nothing here is
