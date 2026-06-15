@@ -35,7 +35,7 @@ import {
 } from "@/lib/credits";
 import { getVerifiedUser } from "@/lib/auth";
 import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
-import { getExperienceLevel, useDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG } from "@/lib/profile";
+import { getExperienceLevel, useDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG, FREE_METER_DEGRADED_MSG } from "@/lib/profile";
 import { audienceCacheSuffix, type ExperienceLevel } from "@/lib/agents/audience";
 
 // POST /api/chat
@@ -185,6 +185,13 @@ async function gateAndMeter(
     if (!isPremium(subscriber)) {
       const gate = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
       if (!gate.allowed) {
+        if (gate.degraded) {
+          console.error(`[chat] usage meter degraded for ${email} — failing closed`);
+          return jsonResponse(
+            { type: "error", error: FREE_METER_DEGRADED_MSG, code: "meter_unavailable" },
+            503
+          );
+        }
         console.log(`[chat] free deep limit hit for ${email} (${gate.used}/${FREE_DEEP_LIMIT})`);
         return jsonResponse(
           { type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" },

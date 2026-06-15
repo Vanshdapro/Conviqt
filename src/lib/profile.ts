@@ -24,6 +24,13 @@ export const FREE_DEEP_LIMIT = 5;
 export const FREE_LIMIT_MSG =
   "You've used this month's 5 included deep analyses. They refresh on the 1st — or Pro removes the limit entirely.";
 
+// Shown when the meter itself can't be reached (DB outage / missing migration).
+// We fail CLOSED — better a brief "try again" than silently handing out
+// unlimited paid analyses. Distinct from FREE_LIMIT_MSG so the UI shows a
+// retry, not the paywall.
+export const FREE_METER_DEGRADED_MSG =
+  "We couldn't check your usage just now. Please try again in a moment.";
+
 export interface UserProfile {
   email: string;
   investorStyle: InvestorStyle | null;
@@ -183,14 +190,19 @@ export interface DeepUsage {
 
 /**
  * Atomically consumes one deep analysis from this month's Free allowance.
- * Returns { allowed, used }. Callers must check the plan FIRST — Pro users
- * never reach this. Fails open on storage errors: an outage must never lock
- * paying-attention users out of the product's heart.
+ * Returns { allowed, used, degraded? }. Callers must check the plan FIRST —
+ * Pro users never reach this.
+ *
+ * Fails CLOSED on storage errors (founder call 2026-06-15): if the meter can't
+ * be reached — DB outage, or migration 022 not yet run in this environment —
+ * we return { allowed: false, degraded: true } so a Free user is told to retry
+ * rather than silently granted unlimited paid analyses. `degraded` lets the
+ * route show a retry message instead of the paywall.
  */
 export async function useDeepAnalysis(
   email: string,
   limit = FREE_DEEP_LIMIT
-): Promise<{ allowed: boolean; used: number }> {
+): Promise<{ allowed: boolean; used: number; degraded?: boolean }> {
   const e = norm(email);
   const month = currentMonth();
 
@@ -213,12 +225,12 @@ export async function useDeepAnalysis(
     });
     if (error) {
       console.error("[profile] use_deep_analysis RPC error:", error.message);
-      return { allowed: true, used: 0 }; // fail open
+      return { allowed: false, used: 0, degraded: true }; // fail closed
     }
     return data as { allowed: boolean; used: number };
   } catch (err) {
     console.error("[profile] useDeepAnalysis error:", err instanceof Error ? err.message : err);
-    return { allowed: true, used: 0 }; // fail open
+    return { allowed: false, used: 0, degraded: true }; // fail closed
   }
 }
 

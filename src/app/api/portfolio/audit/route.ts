@@ -13,7 +13,7 @@ import {
   CREDITS_PER_INTENT,
 } from "@/lib/credits";
 import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
-import { getExperienceLevel, useDeepAnalysis, refundDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG } from "@/lib/profile";
+import { getExperienceLevel, useDeepAnalysis, refundDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG, FREE_METER_DEGRADED_MSG } from "@/lib/profile";
 import { runAudit, type AuditEvent } from "@/lib/portfolio/orchestrator";
 import { savePortfolio, recordAudit, sanitizeHoldings, sanitizeCash } from "@/lib/portfolio/store";
 import type { Holding } from "@/lib/portfolio/types";
@@ -88,6 +88,10 @@ export async function POST(req: Request) {
   if (!isPro) {
     const gate = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
     if (!gate.allowed) {
+      if (gate.degraded) {
+        console.error(`[portfolio/audit] usage meter degraded for ${email} — failing closed`);
+        return json({ type: "error", error: FREE_METER_DEGRADED_MSG, code: "meter_unavailable" }, 503);
+      }
       return json({ type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" }, 402);
     }
   }
