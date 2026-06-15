@@ -319,3 +319,90 @@ export async function runHeadlineDecoder(
 
   return result;
 }
+
+// ── Headline refiner ─────────────────────────────────────────────────────────
+//
+// A cheap pure-reasoning pre-step for the Headline Decoder guided input: take a
+// thin, clickbaity, or ambiguous headline and rewrite it into a self-contained
+// decode prompt the full pipeline can actually map. Vague one-liners (no named
+// company, no obvious sector) are the common reason a decode comes back with no
+// usable stock impacts — this gives the searcher concrete entities to chase.
+//
+// NO web_search tool → the adapter routes this to OpenAI gpt-4.1-mini, so it's
+// the same sub-half-cent weight as intent routing. It does NOT invent events or
+// numbers: it only surfaces the sectors, regions, and candidate companies the
+// headline already implies, which the decoder then web-verifies before using.
+
+export interface RefineHeadlineResult {
+  sharpened: string;
+  estCostUSD: number;
+}
+
+const REFINE_SYSTEM = `You sharpen news headlines into decode-ready prompts for Conviqt, a plain-English stock research app.
+
+The user pastes a headline. Some are thin, clickbaity, or name no company. Your job: rewrite it into ONE self-contained line that the stock-impact decoder can map to real US-listed tickers.
+
+Rules:
+- Keep the real story. Do NOT invent events, prices, percentages, or facts that aren't implied by the original.
+- Make the implied subject explicit: the sector, region, and the most likely named companies/tickers the story touches. If the headline is generic (e.g. "dividend shares", "AI chips"), name 2-4 representative public companies it plausibly refers to so the decoder has somewhere concrete to look.
+- Plain English, one sentence, no jargon. Under 280 characters.
+- Never write trade instructions ("buy"/"sell"). This is research framing.
+- Call sharpen_headline exactly once.`;
+
+const SHARPEN_TOOL = {
+  name: "sharpen_headline",
+  description:
+    "Return the sharpened, decode-ready rewrite of the user's headline.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      sharpened: {
+        type: "string",
+        description:
+          "One self-contained plain-English sentence (under 280 chars) naming the sector, region, and likely public companies/tickers the story touches. No invented facts or numbers.",
+      },
+    },
+    required: ["sharpened"],
+  },
+};
+
+export async function refineHeadline(
+  headlineInput: string
+): Promise<RefineHeadlineResult> {
+  const headline = headlineInput.trim().slice(0, 300);
+  const client = getOpenAI();
+
+  const res = await client.messages.create({
+    model: MODELS.sweep, // mini, pure-reasoning → OpenAI
+    max_tokens: 400,
+    temperature: 0.3,
+    system: REFINE_SYSTEM,
+    tools: [SHARPEN_TOOL],
+    tool_choice: { type: "tool", name: SHARPEN_TOOL.name },
+    messages: [
+      {
+        role: "user",
+        content: `Headline: "${headline}"\n\nSharpen it for the decoder.`,
+      },
+    ],
+  });
+
+  const toolUse = res.content.find(
+    (b) => b.type === "tool_use" && b.name === SHARPEN_TOOL.name
+  ) as { input?: { sharpened?: string } } | undefined;
+
+  const sharpened = (toolUse?.input?.sharpened ?? "").trim().slice(0, 300);
+  const estCostUSD = estimateCallCostUSD(MODELS.sweep, res.usage, 0);
+
+  // No usable rewrite (model returned empty or refused) → hand back the
+  // original so the caller never blocks; the raw headline still decodes.
+  if (sharpened.length < 12) {
+    console.log(`[Headline] refine produced nothing usable for "${headline}"`);
+    return { sharpened: headline, estCostUSD };
+  }
+
+  console.log(
+    `[Headline] refined "${headline.slice(0, 50)}…" → "${sharpened.slice(0, 50)}…" cost=$${estCostUSD.toFixed(4)}`
+  );
+  return { sharpened, estCostUSD };
+}

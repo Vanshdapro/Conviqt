@@ -739,6 +739,52 @@ function GuidedInput(props: {
   const { skill, onCancel } = props;
   const [error, setError] = useState<string | null>(null);
 
+  // Headline Decoder "Sharpen this" — an AI pre-step that rewrites a thin/vague
+  // headline into a decode-ready prompt before the run. `sharpenedFrom` holds
+  // the pre-sharpen text so the user can undo with one tap.
+  const [sharpening, setSharpening] = useState(false);
+  const [sharpenErr, setSharpenErr] = useState<string | null>(null);
+  const [sharpenedFrom, setSharpenedFrom] = useState<string | null>(null);
+
+  const sharpenHeadline = useCallback(async () => {
+    const h = props.gHeadline.trim();
+    if (h.length < 12) {
+      setSharpenErr("Paste the full headline first so there's enough to sharpen.");
+      return;
+    }
+    setSharpenErr(null);
+    setSharpening(true);
+    try {
+      const res = await fetch("/api/headline/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ headline: h }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.sharpened) {
+        setSharpenErr(data?.error ?? "Couldn't sharpen that just now. You can still run it as-is.");
+        return;
+      }
+      if (String(data.sharpened).trim() === h) {
+        // Already specific enough — nothing changed; don't fake an undo state.
+        setSharpenErr("That one's already clear enough to decode — run it as-is.");
+        return;
+      }
+      setSharpenedFrom(h);
+      props.setGHeadline(String(data.sharpened).slice(0, 300));
+    } catch {
+      setSharpenErr("Couldn't reach the sharpener. You can still run it as-is.");
+    } finally {
+      setSharpening(false);
+    }
+  }, [props]);
+
+  const undoSharpen = useCallback(() => {
+    if (sharpenedFrom !== null) props.setGHeadline(sharpenedFrom);
+    setSharpenedFrom(null);
+    setSharpenErr(null);
+  }, [props, sharpenedFrom]);
+
   // Starter Portfolio form state.
   const [lumpSum, setLumpSum] = useState("1000");
   const [monthly, setMonthly] = useState("100");
@@ -928,15 +974,50 @@ function GuidedInput(props: {
       )}
 
       {skill.input === "headline" && (
-        <textarea
-          className="cvq-guided-input cvq-guided-textarea"
-          value={props.gHeadline}
-          onChange={(e) => props.setGHeadline(e.target.value)}
-          placeholder='e.g. "Fed signals two more rate cuts this year"'
-          rows={3}
-          maxLength={300}
-          autoFocus
-        />
+        <>
+          <textarea
+            className="cvq-guided-input cvq-guided-textarea"
+            value={props.gHeadline}
+            onChange={(e) => {
+              props.setGHeadline(e.target.value);
+              // A manual edit invalidates the undo target and any stale note.
+              if (sharpenedFrom !== null) setSharpenedFrom(null);
+              if (sharpenErr) setSharpenErr(null);
+            }}
+            placeholder='e.g. "Fed signals two more rate cuts this year"'
+            rows={3}
+            maxLength={300}
+            autoFocus
+          />
+          <div className="cvq-sharpen-row">
+            <button
+              type="button"
+              className="cvq-btn cvq-btn--secondary cvq-sharpen-btn"
+              onClick={sharpenHeadline}
+              disabled={sharpening || props.gHeadline.trim().length < 12}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 3.5l1.6 4.3 4.3 1.6-4.3 1.6L12 15.3l-1.6-4.3L6.1 9.4l4.3-1.6L12 3.5zM18 14.5l.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8.8-2.1z" fill="currentColor" />
+              </svg>
+              {sharpening ? "Sharpening…" : sharpenedFrom ? "Sharpen again" : "Sharpen this"}
+            </button>
+            {sharpenedFrom !== null ? (
+              <span className="cvq-mode-hint">
+                Sharpened — edit freely, then run.{" "}
+                <button type="button" className="cvq-link-btn" onClick={undoSharpen}>
+                  Undo
+                </button>
+              </span>
+            ) : (
+              <span className="cvq-mode-hint">Vague headline? Let AI flesh it out before running.</span>
+            )}
+          </div>
+          {sharpenErr && (
+            <p className="cvq-guided-error" role="alert">
+              {sharpenErr}
+            </p>
+          )}
+        </>
       )}
 
       {skill.input === "allocator" && (

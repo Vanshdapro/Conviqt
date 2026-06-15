@@ -783,6 +783,28 @@
 .cvq-guided-error { font-size: 13.5px; color: var(--down-ink); margin: 0; }
 .cvq-guided-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 
+/* Headline Decoder "Sharpen this" pre-step. */
+.cvq-sharpen-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+.cvq-sharpen-btn { display: inline-flex; align-items: center; gap: var(--space-2); }
+.cvq-sharpen-btn svg { color: var(--accent); }
+.cvq-sharpen-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.cvq-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cvq-link-btn:hover { color: var(--accent-hover); }
+
 /* ── Run bar + progress ──────────────────────────────────────────────────── */
 .cvq-runbar {
   display: flex;
