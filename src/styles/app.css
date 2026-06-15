@@ -1570,17 +1570,44 @@
   font-variant-numeric: tabular-nums;
 }
 .cvq-folio-cash-form { display: flex; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap; }
-.cvq-folio-cash-inputwrap { position: relative; flex: 0 1 220px; }
+/* Input group: the wrapper carries the border + focus ring; the "$" and the
+   field sit side by side so a leading digit can never hide behind the sign. */
+.cvq-folio-cash-inputwrap {
+  display: flex;
+  align-items: center;
+  flex: 0 1 220px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-page);
+  padding-left: var(--space-3);
+  overflow: hidden;
+}
+.cvq-folio-cash-inputwrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
 .cvq-folio-cash-dollar {
-  position: absolute;
-  left: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
   color: var(--text-muted);
   font-size: 15px;
+  line-height: 1;
   pointer-events: none;
+  flex: none;
 }
-.cvq-folio-cash-input { padding-left: calc(var(--space-3) + 12px); }
+/* Borderless field inside the group — the wrapper owns the chrome. The
+   compound selector outranks the base .cvq-folio-num-input rules. */
+.cvq-folio-cash-inputwrap .cvq-folio-cash-input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding-left: 4px;
+}
+.cvq-folio-cash-inputwrap .cvq-folio-cash-input:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
 
 /* ── Stats strip ── */
 .cvq-folio-statsec { display: flex; flex-direction: column; gap: var(--space-2); }
