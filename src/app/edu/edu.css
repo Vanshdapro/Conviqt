@@ -430,3 +430,72 @@
   border-radius: 9px;
   padding: 12px 14px;
 }
+
+/* ============================================================================
+   Market Wedge Finder
+   ============================================================================ */
+.wdg-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.wdg-readout strong {
+  font-family: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  font-size: 26px;
+  color: var(--accent-hover);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.wdg-swatch-wedge {
+  display: inline-block;
+  width: 16px;
+  height: 11px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.wdg-verdict {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.wdg-label {
+  display: block;
+  font-family: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.wdg-pct {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-hover);
+  font-variant-numeric: tabular-nums;
+}
+.wdg-verdict .sbx-bullets { margin-top: 14px; }
+
+.sbx-invalid {
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+  background: var(--down-weak);
+  border: 1px solid color-mix(in srgb, var(--down) 30%, transparent);
+  border-radius: 9px;
+  padding: 12px 14px;
+  margin: 0;
+}
