@@ -1284,6 +1284,18 @@
 @media (max-width: 768px) {
   .cvq-dash-snapshot { grid-template-columns: repeat(2, 1fr); }
 }
+.cvq-dash-snaptile { display: block; text-decoration: none; height: 100%; }
+.cvq-dash-snaptile .cvq-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+}
+
+/* Sparkline (30-day trend) — fills the width of its slot, keeps its aspect.
+   The svg's width attribute is a fallback; CSS width:100% + height:auto wins
+   and scales it to the container. margin-top:auto pins it to the card floor. */
+.cvq-dash-spark { width: 100%; height: auto; margin-top: auto; }
 
 .cvq-dash-grid {
   display: grid;
@@ -1310,13 +1322,46 @@
 .cvq-dash-trends li:last-child { border-bottom: 0; padding-bottom: 0; }
 .cvq-dash-trends li:first-child { padding-top: 0; }
 
-.cvq-dash-signals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.cvq-dash-signal { padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
-.cvq-dash-signal:last-child { border-bottom: 0; padding-bottom: 0; }
-.cvq-dash-signal:first-child { padding-top: 0; }
-.cvq-dash-signal-head { margin-bottom: var(--space-1); }
+/* Card footer link — the "read more" affordance under a section's content. */
+.cvq-dash-cardfoot {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--link);
+  text-decoration: none;
+}
+.cvq-dash-cardfoot:hover { text-decoration: underline; }
+
+.cvq-dash-signals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+/* Each signal is its own tappable well — one tap = a full Research read. */
+.cvq-dash-signal {
+  display: block;
+  text-decoration: none;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface);
+  transition: border-color 160ms ease-out, background 160ms ease-out;
+}
+.cvq-dash-signal:hover { border-color: var(--border-strong); background: var(--bg-sunken); }
+.cvq-dash-signal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+.cvq-dash-signal-spark { flex-shrink: 0; }
 .cvq-dash-signal-note { font-size: 14px; color: var(--text); margin: var(--space-1) 0 0; line-height: 1.5; }
 .cvq-dash-signal-why { font-size: 13px; color: var(--text-2); margin: 2px 0 0; line-height: 1.5; }
+.cvq-dash-more {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--link);
+}
 
 .cvq-dash-pickstats {
   display: flex;
@@ -1336,7 +1381,8 @@
 }
 @media (max-width: 768px) { .cvq-dash-picks { grid-template-columns: 1fr; } }
 
-.cvq-dash-pick { display: flex; flex-direction: column; gap: var(--space-2); }
+.cvq-dash-picklink { display: block; text-decoration: none; height: 100%; }
+.cvq-dash-pick { display: flex; flex-direction: column; gap: var(--space-2); height: 100%; }
 .cvq-dash-pick-top {
   display: flex;
   align-items: center;
@@ -3325,20 +3371,23 @@
 
 /* ── Dashboard: Your Stocks strip (watchlist personalization) ─────────────── */
 .cvq-dash-yourstocks {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--space-2);
 }
 .cvq-yourstock {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   text-decoration: none;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: var(--space-2) var(--space-3);
-  transition: border-color 160ms ease-out;
+  padding: var(--space-3);
+  transition: border-color 160ms ease-out, background 160ms ease-out;
 }
-.cvq-yourstock:hover { border-color: var(--border-strong); }
+.cvq-yourstock:hover { border-color: var(--border-strong); background: var(--bg-sunken); }
+.cvq-yourstock .cvq-dash-spark { margin-top: 0; }
 
 /* ── Theme toggle — the small light/dark switch (mounted once, all routes) ──
    On-brand: warm surface + 1px hairline, never a glow. Fixed bottom-right so
