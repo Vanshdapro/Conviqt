@@ -15,6 +15,7 @@
 import fs from "fs";
 import path from "path";
 import type { CouncilResult, Verdict } from "./agents/types";
+import { deepStripCitations } from "./citations";
 
 // Public shape returned to callers (page, sitemap, gate API).
 export interface StoredReport {
@@ -300,7 +301,10 @@ export function getStockReportStore(): StockReportStore {
 
 export async function getStockReport(ticker: string): Promise<StoredReport | null> {
   try {
-    return await getStockReportStore().get(ticker);
+    const stored = await getStockReportStore().get(ticker);
+    // Scrub any Claude web_search <cite …> markup older cached rows baked into
+    // the verdict prose, so the public page never renders raw tags.
+    return stored ? deepStripCitations(stored) : stored;
   } catch (err) {
     // A store read failure must never crash a statically-generated page or
     // the build. Fail soft → "report pending" state.

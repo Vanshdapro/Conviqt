@@ -24,6 +24,7 @@ import type {
   CompareEdge,
 } from "./agents/types";
 import { comparePairKey } from "./tickers";
+import { deepStripCitations } from "./citations";
 
 // Public shape returned to callers (page, sitemap, OG, hub).
 export interface StoredCompare {
@@ -308,7 +309,10 @@ export async function getCompareReport(
   tickerB: string
 ): Promise<StoredCompare | null> {
   try {
-    return await getCompareReportStore().get(tickerA, tickerB);
+    const stored = await getCompareReportStore().get(tickerA, tickerB);
+    // Scrub any Claude web_search <cite …> markup that older cached rows baked
+    // into the verdict prose, so the public page never renders raw tags.
+    return stored ? deepStripCitations(stored) : stored;
   } catch (err) {
     // A store read failure must never crash a statically-generated page or the
     // build. Fail soft → "comparison pending" state.

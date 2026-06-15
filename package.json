@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/marketdata/__tests__/*.test.ts src/components/research/__tests__/*.test.ts src/components/portfolio/__tests__/*.test.ts",
+    "test": "tsx --test src/lib/__tests__/*.test.ts src/lib/marketdata/__tests__/*.test.ts src/components/research/__tests__/*.test.ts src/components/portfolio/__tests__/*.test.ts",
     "alpha:run": "node scripts/run-alpha.mjs"
   },
   "dependencies": {

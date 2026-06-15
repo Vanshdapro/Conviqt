@@ -28,15 +28,20 @@ import type { HeadlineResult } from "@/lib/agents/headline";
 import type { AllocatorResult } from "@/lib/allocator/types";
 import type { PortfolioAuditResult } from "@/lib/portfolio/types";
 import { learnLinksFor, lessonHref } from "./learnLinks";
+import { stripCitationTags } from "@/lib/citations";
 
 /** ticker → quote. undefined = still loading; null = honestly unavailable. */
 export type QuoteMap = Record<string, Quote | null | undefined>;
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
-/** Strip internal [#N]/(#N) citation markers — sources live in the accordion. */
+/** Strip internal citation noise — sources live in the accordion. Handles both
+    our own [#N]/(#N) markers AND Claude web_search `<cite …>` markup that can
+    leak into model prose (defence in depth; the adapter/store also scrub it). */
 function stripCites(text: string): string {
-  return text.replace(/\s*[\[(]#\d+(?:\s*,\s*#?\d+)*[\])]/g, "").trim();
+  return stripCitationTags(text)
+    .replace(/\s*[\[(]#\d+(?:\s*,\s*#?\d+)*[\])]/g, "")
+    .trim();
 }
 
 export type HowSureLevel = "High" | "Medium" | "Low";

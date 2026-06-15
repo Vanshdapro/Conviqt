@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
+import { stripCitationTags, deepStripCitations } from "./citations";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AI gateway — Conviqt's single AI chokepoint, now DUAL-PROVIDER.
@@ -330,6 +331,28 @@ function flattenContent(content: unknown): string {
   return parts.join("\n");
 }
 
+// Scrub Claude web_search `<cite …>` markup out of an Anthropic message before
+// any agent reads it — both free-text `text` blocks and the string values of
+// structured `tool_use` results (where Headline Decoder et al. put their
+// summary/why/takeaway). Keeps every other field intact; clones shallowly so we
+// never mutate the SDK's response object.
+function sanitizeAnthropicCitations<T extends { content?: unknown }>(msg: T): T {
+  const content = (msg as { content?: unknown }).content;
+  if (!Array.isArray(content)) return msg;
+  const cleaned = content.map((raw) => {
+    const b = asRecord(raw);
+    if (!b) return raw;
+    if (b.type === "text" && typeof b.text === "string") {
+      return { ...b, text: stripCitationTags(b.text) };
+    }
+    if (b.type === "tool_use" && b.input && typeof b.input === "object") {
+      return { ...b, input: deepStripCitations(b.input) };
+    }
+    return raw;
+  });
+  return { ...(msg as object), content: cleaned } as T;
+}
+
 type ToolChoiceOut =
   | "auto"
   | "required"
@@ -479,6 +502,56 @@ class OpenAIMessageStream implements AIMessageStream {
   }
 }
 
+// Wraps Anthropic's native streaming so web_search `<cite …>` markup never
+// reaches the UI — neither in the live token deltas nor the final message.
+// Deltas are buffered: we only forward text once it's clear it isn't sitting
+// mid-tag (a trailing unclosed "<" is held back until it resolves), so a
+// half-typed "<cite" can't flash on screen. finalMessage() flushes any held
+// tail and returns the scrubbed message.
+class CitationSanitizingStream implements AIMessageStream {
+  private handlers: TextHandler[] = [];
+  private buffer = ""; // raw accumulated text from the inner stream
+  private emitted = ""; // cleaned text already forwarded to handlers
+
+  constructor(private inner: AIMessageStream) {
+    this.inner.on("text", (raw: string) => {
+      this.buffer += raw;
+      this.flush(false);
+    });
+  }
+
+  private flush(final: boolean) {
+    const cleaned = stripCitationTags(this.buffer);
+    // Hold back a trailing unclosed "<" — it might be the start of a cite tag
+    // we can't strip yet. On the final flush, nothing is pending: emit it all.
+    const lt = cleaned.lastIndexOf("<");
+    const safe =
+      !final && lt !== -1 && !cleaned.slice(lt).includes(">")
+        ? cleaned.slice(0, lt)
+        : cleaned;
+    if (safe.length > this.emitted.length && safe.startsWith(this.emitted)) {
+      const delta = safe.slice(this.emitted.length);
+      this.emitted = safe;
+      for (const h of this.handlers) h(delta);
+    } else if (!safe.startsWith(this.emitted)) {
+      // A tag removal shifted earlier text; resync silently (finalMessage is
+      // authoritative, and consumers that rebuild from deltas stay close).
+      this.emitted = safe;
+    }
+  }
+
+  on(event: "text", handler: TextHandler): this {
+    if (event === "text") this.handlers.push(handler);
+    return this;
+  }
+
+  async finalMessage(): Promise<AIMessage> {
+    const final = await this.inner.finalMessage();
+    this.flush(true); // release any held-back tail to delta consumers
+    return sanitizeAnthropicCitations(final);
+  }
+}
+
 // ─── Public client ─────────────────────────────────────────────────────────────
 
 export interface AIClient {
@@ -500,7 +573,7 @@ export function getOpenAI(): AIClient {
             const res = await rawAnthropic().messages.create(
               anthropicParams(params) as unknown as Anthropic.MessageCreateParamsNonStreaming
             );
-            return res as unknown as AIMessage;
+            return sanitizeAnthropicCitations(res as unknown as AIMessage);
           }
           // Reasoning path → OpenAI Responses.
           const req = buildOpenAIRequest(params);
@@ -509,10 +582,12 @@ export function getOpenAI(): AIClient {
         },
         stream(params: CreateParams): AIMessageStream {
           if (usesWebSearch(params.tools)) {
-            // Web-search path → Anthropic's native streaming (same .on/.finalMessage).
-            return rawAnthropic().messages.stream(
+            // Web-search path → Anthropic's native streaming (same .on/.finalMessage),
+            // wrapped to scrub `<cite …>` markup from deltas + final message.
+            const inner = rawAnthropic().messages.stream(
               anthropicParams(params) as unknown as Anthropic.MessageStreamParams
             ) as unknown as AIMessageStream;
+            return new CitationSanitizingStream(inner);
           }
           return new OpenAIMessageStream(params);
         },

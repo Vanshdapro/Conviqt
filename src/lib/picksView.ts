@@ -7,6 +7,7 @@
 import { quote } from "@/lib/marketdata";
 import { getAlphaStore } from "@/lib/alphaStore";
 import type { AlphaPick } from "@/lib/alphaTypes";
+import { stripCitationTags } from "@/lib/citations";
 
 export interface PickView {
   pick: AlphaPick;
@@ -102,6 +103,8 @@ export function pickStats(views: PickView[]): PickStats | null {
 }
 
 export function thesisLine(pick: AlphaPick): string {
-  const line = (pick.bull_thesis || pick.catalyst || "").trim().replace(/\s+/g, " ");
+  const line = stripCitationTags(pick.bull_thesis || pick.catalyst || "")
+    .trim()
+    .replace(/\s+/g, " ");
   return line.length > 150 ? `${line.slice(0, 149)}…` : line;
 }

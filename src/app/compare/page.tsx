@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCompareReportStore } from "@/lib/compareReports";
 import { COMPARE_UNIVERSE, comparePairToSlug, comparePairKey } from "@/lib/tickers";
+import { stripCitationTags } from "@/lib/citations";
 import { PseoShell, ResearchCta } from "@/components/pseo/PseoShell";
 
 // The compare hub: a published index of head-to-head verdicts plus the curated
@@ -39,6 +40,8 @@ export default async function CompareHub() {
   let published: Awaited<ReturnType<ReturnType<typeof getCompareReportStore>["listSummaries"]>> = [];
   try {
     published = await getCompareReportStore().listSummaries(200);
+    // Scrub Claude web_search <cite …> markup from cached verdict headlines.
+    published = published.map((s) => ({ ...s, headline: stripCitationTags(s.headline) }));
   } catch {
     published = [];
   }

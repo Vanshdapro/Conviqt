@@ -16,6 +16,7 @@ import path from "path";
 import { getSupabaseAdmin } from "../supabase";
 import { isSupabaseConfigured } from "../watchlist";
 import type { DashboardContent, HeadlinesRegion } from "./types";
+import { deepStripCitations } from "../citations";
 
 export const DASHBOARD_KEY = "feed:dashboard";
 export const headlinesKey = (region: string) => `feed:headlines:${region}`;
@@ -140,10 +141,12 @@ export function getFeedStore(): FeedStore {
 
 export async function readDashboard(): Promise<DashboardContent | null> {
   const row = await getFeedStore().get<DashboardContent>(DASHBOARD_KEY);
-  return row?.payload ?? null;
+  // Scrub Claude web_search <cite …> markup from cached signal/note prose.
+  return row?.payload ? deepStripCitations(row.payload) : null;
 }
 
 export async function readHeadlines(region: string): Promise<HeadlinesRegion | null> {
   const row = await getFeedStore().get<HeadlinesRegion>(headlinesKey(region));
-  return row?.payload ?? null;
+  // Scrub Claude web_search <cite …> markup from cached "Why traders care" takes.
+  return row?.payload ? deepStripCitations(row.payload) : null;
 }
