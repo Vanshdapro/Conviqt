@@ -1,0 +1,174 @@
+/* ============================================================================
+   Conviqt for Academia — subdomain skin.
+   Same Almanac tokens as the retail app (tokens.css); NO new colour values.
+   A denser, data-forward register for MSc Finance/Economics users. Every
+   colour is a var(--token); tints via color-mix() only — per CLAUDE.md.
+   ============================================================================ */
+
+.edu-root {
+  min-height: 100vh;
+  background: var(--bg-page);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────── */
+.edu-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.edu-wordmark {
+  font-family: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.edu-wordmark .edu-sub {
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.edu-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.edu-nav a {
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 9px;
+  transition: background 160ms ease-out, color 160ms ease-out;
+}
+
+.edu-nav a:hover {
+  background: var(--accent-weak);
+  color: var(--accent-hover);
+}
+
+.edu-nav a[aria-current="page"] {
+  background: var(--accent-weak);
+  color: var(--accent-hover);
+}
+
+/* ── Content ──────────────────────────────────────────────────────────── */
+.edu-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* ── Footer / disclaimer (CLAUDE.md mandated) ─────────────────────────── */
+.edu-footer {
+  background: var(--espresso);
+  color: var(--on-accent);
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 20px 24px;
+  text-align: center;
+}
+
+/* ── Landing hero ─────────────────────────────────────────────────────── */
+.edu-hero {
+  text-align: center;
+  padding: 24px 0 12px;
+}
+
+.edu-hero h1 {
+  font-family: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.edu-hero p {
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text-2);
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* ── Feature cards ────────────────────────────────────────────────────── */
+.edu-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 36px;
+}
+
+@media (max-width: 768px) {
+  .edu-cards { grid-template-columns: 1fr; }
+  .edu-topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .edu-main { padding: 24px 16px 48px; }
+}
+
+.edu-card {
+  display: block;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(42, 28, 21, 0.06);
+  transition: border-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.edu-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.edu-card .edu-kicker {
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.edu-card h3 {
+  font-family: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 8px 0 8px;
+}
+
+.edu-card p {
+  font-family: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+  margin: 0;
+}

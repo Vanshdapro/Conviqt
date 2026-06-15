@@ -7,8 +7,38 @@ import { createServerClient } from "@supabase/ssr";
 // fail closed. So if env is missing we fail OPEN here to avoid bricking the site.
 const PROTECTED_PREFIXES = ["/chat", "/research"];
 
+// Academic subdomain (edu.conviqt.com) host match. The portal lives under the
+// real /edu segment; we keep that prefix OUT of the public URL by rewriting
+// host → path here. See src/app/edu/.
+const EDU_HOST_RE = /^edu\./i;
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // ── Host isolation: retail (conviqt.com) vs academic (edu.conviqt.com) ────
+  const onEduHost = EDU_HOST_RE.test(req.headers.get("host") ?? "");
+  const isEduPath = pathname === "/edu" || pathname.startsWith("/edu/");
+
+  if (onEduHost) {
+    // Transparently map the public path into the /edu app segment:
+    //   edu.conviqt.com/sandbox → /edu/sandbox,  edu.conviqt.com/ → /edu.
+    // Already-prefixed (internal) requests pass straight through.
+    if (!isEduPath) {
+      const url = req.nextUrl.clone();
+      url.pathname = pathname === "/" ? "/edu" : `/edu${pathname}`;
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
+
+  // Retail host must never expose the academic segment directly.
+  if (isEduPath) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  // ── Retail auth guard (unchanged) ─────────────────────────────────────────
   const isProtected = PROTECTED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
@@ -56,6 +86,10 @@ export async function proxy(req: NextRequest) {
   return res;
 }
 
+// Runs on all page navigations except Next internals, API routes, and static
+// files. The function early-returns for ordinary retail paths (a host check +
+// NextResponse.next()), so the added breadth is near-zero cost; the breadth is
+// required because host-based edu rewriting can't be expressed as a path matcher.
 export const config = {
-  matcher: ["/chat/:path*", "/research/:path*"],
+  matcher: ["/((?!_next/|api/|favicon.ico|.*\\.[^/]+$).*)"],
 };
