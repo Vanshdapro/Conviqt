@@ -472,6 +472,7 @@ export default async function Home() {
               <Link href="/about">About</Link>
               <Link href="/methodology">How it works</Link>
               <Link href="/login">Log in</Link>
+              <a href="mailto:conviqt.com@gmail.com">Contact</a>
             </div>
           </nav>
         </div>
