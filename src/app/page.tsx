@@ -451,6 +451,27 @@ export default async function Home() {
               CONVI<span className="cvq-land-wordmark-q">Q</span>T
             </span>
             <p>Your personal team of AI analysts.</p>
+            <div className="cvq-land-footer-contact">
+              <span className="cvq-land-footer-contact-label">Get in touch</span>
+              <span className="cvq-land-footer-contact-chip">
+                <svg
+                  className="cvq-land-footer-contact-icon"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2.5" />
+                  <path d="m3.5 7 8.5 6 8.5-6" />
+                </svg>
+                <span className="cvq-land-footer-contact-email">conviqt.com@gmail.com</span>
+              </span>
+            </div>
           </div>
           <nav className="cvq-land-footer-cols" aria-label="Footer">
             <div>
@@ -472,7 +493,6 @@ export default async function Home() {
               <Link href="/about">About</Link>
               <Link href="/methodology">How it works</Link>
               <Link href="/login">Log in</Link>
-              <a href="mailto:conviqt.com@gmail.com">Contact</a>
             </div>
           </nav>
         </div>
