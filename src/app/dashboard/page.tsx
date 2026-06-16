@@ -259,7 +259,7 @@ function Picks({ views, sparks }: { views: PickView[] | null; sparks: Sparks }) 
       </div>
       {stats && (
         <p className="cvq-dash-pickstats">
-          Win rate {stats.winRate}% · Average return{" "}
+          Win rate {stats.winRate}% · Total return{" "}
           <ChangePill change={stats.avgReturn} /> · {stats.total} picks ({stats.open} open)
         </p>
       )}

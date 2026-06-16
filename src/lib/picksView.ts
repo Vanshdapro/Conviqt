@@ -92,11 +92,11 @@ export function pickStats(views: PickView[]): PickStats | null {
   const scored = views.filter((v) => v.returnPct !== null);
   if (scored.length === 0) return null;
   const wins = scored.filter((v) => (v.returnPct as number) > 0).length;
-  const avg = scored.reduce((s, v) => s + (v.returnPct as number), 0) / scored.length;
+  const totalReturn = scored.reduce((s, v) => s + (v.returnPct as number), 0);
   const open = views.filter((v) => v.open).length;
   return {
     winRate: Math.round((wins / scored.length) * 100),
-    avgReturn: avg,
+    avgReturn: totalReturn,
     total: views.length,
     open,
   };
