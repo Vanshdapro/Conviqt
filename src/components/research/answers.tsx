@@ -505,6 +505,11 @@ export function HeadlineAnswer({ result, quotes }: { result: HeadlineResult; quo
         <Prose text={result.summary} />
       </Section>
       <Section title="The stocks it touches">
+        {result.impacts.length === 0 && (
+          <p className="cvq-prose" style={{ color: "var(--text-muted)" }}>
+            This story primarily affects currency or macro markets — no direct US stock plays identified.
+          </p>
+        )}
         <div className="cvq-impacts">
           {result.impacts.map((imp) => {
             const q = quotes[imp.ticker];

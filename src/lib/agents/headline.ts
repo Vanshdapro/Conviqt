@@ -290,10 +290,79 @@ export async function runHeadlineDecoder(
     });
   }
 
+  // When the first pass finds no US equity impacts (common for forex/macro
+  // headlines), retry with an explicit prompt to consider indirect plays:
+  // currency ETFs, sector funds, importers/exporters with meaningful exposure.
   if (impacts.length === 0) {
-    throw new Error(
-      `[Headline] decode produced no usable stock impacts for "${headline}".`
-    );
+    console.log(`[Headline] no impacts on first pass — retrying with macro/forex prompt`);
+    const broadenTurn = await anthropic.messages.create({
+      model: MODELS.sweep,
+      max_tokens: 1536,
+      system: [
+        { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+        ...(aud ? [{ type: "text" as const, text: aud }] : []),
+      ],
+      tools: [DECODE_TOOL],
+      tool_choice: { type: "tool", name: DECODE_TOOL.name },
+      messages: [
+        userMsg,
+        { role: "assistant", content: first.content },
+        {
+          role: "user",
+          content:
+            "The story may be macro or forex. Think broader: US-listed currency ETFs (e.g. FXA, FXY, UUP), sector ETFs, and companies with significant revenue exposure to the currencies or regions involved. Call decode_headline with any indirect US equity plays you can identify.",
+        },
+      ],
+    });
+    attemptCostUSD += estimateCallCostUSD(MODELS.sweep, broadenTurn.usage, 0);
+    const broadenContent = broadenTurn.content as unknown as ContentBlockLike[];
+    const broadenToolUse = broadenContent.find(
+      (b) => b.type === "tool_use" && b.name === DECODE_TOOL.name
+    ) as (ContentBlockLike & { input: unknown }) | undefined;
+
+    if (broadenToolUse) {
+      const broadenInput = broadenToolUse.input as DecodeInput;
+      const broadenCanonical = extractCanonicalUrls([...content, ...broadenContent]);
+      const broadenIndexRemap = new Map<number, number>();
+      const broadenModelSources = Array.isArray(broadenInput.sources) ? broadenInput.sources : [];
+      for (let i = 0; i < broadenModelSources.length; i++) {
+        const s = broadenModelSources[i];
+        const norm = normalizeUrl(s?.url ?? "");
+        const canon = norm ? broadenCanonical.get(norm) : undefined;
+        if (!canon) { rejected += 1; continue; }
+        broadenIndexRemap.set(i, sources.length);
+        sources.push({
+          url: canon.url,
+          title: (s.title?.trim() || canon.title || canon.url).slice(0, 200),
+          publisher: (s.publisher?.trim() || hostOf(canon.url) || "Unknown").slice(0, 80),
+          retrievedAt: asOf,
+        });
+      }
+      for (const raw of broadenInput.impacts ?? []) {
+        const ticker = (raw.ticker ?? "").trim().toUpperCase();
+        if (!VALID_TICKER_RE.test(ticker)) continue;
+        const direction: ImpactDirection =
+          raw.direction === "up" || raw.direction === "down" ? raw.direction : "unclear";
+        const why = (raw.why ?? "").trim();
+        if (!why) continue;
+        impacts.push({
+          ticker,
+          companyName: (raw.companyName ?? ticker).trim().slice(0, 80),
+          direction,
+          why: why.slice(0, 400),
+          sourceIndexes: (raw.sourceIndexes ?? [])
+            .map((i) => broadenIndexRemap.get(i))
+            .filter((i): i is number => i !== undefined),
+        });
+      }
+      if (broadenInput.summary && !input.summary) input.summary = broadenInput.summary;
+      if (broadenInput.takeaway && !input.takeaway) input.takeaway = broadenInput.takeaway;
+      if (broadenInput.watchFor?.length && !input.watchFor?.length) input.watchFor = broadenInput.watchFor;
+    }
+
+    if (impacts.length === 0) {
+      console.log(`[Headline] still no US equity impacts after broadening — returning macro-only result`);
+    }
   }
 
   const costUSD = attemptCostUSD + webSearchCount * WEB_SEARCH_COST_USD;
