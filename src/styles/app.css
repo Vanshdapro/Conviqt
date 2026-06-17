@@ -2737,7 +2737,25 @@
 }
 @media (max-width: 720px) { .cvq-land-pricing { grid-template-columns: 1fr; } }
 .cvq-land-plan { display: flex; flex-direction: column; gap: var(--space-4); }
-.cvq-land-plan--pro { border-color: var(--accent); border-width: 2px; }
+.cvq-land-plan--pro { border-color: var(--accent); border-width: 2px; position: relative; }
+.cvq-land-plan-offer {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--on-accent);
+  background: var(--text-2);
+  border-radius: var(--radius-pill);
+  padding: 3px 11px;
+  margin-bottom: calc(-1 * var(--space-1));
+}
+.cvq-land-plan-was {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  vertical-align: middle;
+}
 .cvq-land-plan h3 {
   font-family: var(--font-display);
   font-weight: 700;
