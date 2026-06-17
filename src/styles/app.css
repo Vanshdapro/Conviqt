@@ -3285,6 +3285,17 @@
   border-radius: var(--radius-pill);
   padding: 4px 12px;
 }
+.cvq-price-badge--offer {
+  background: var(--text-2);
+}
+.cvq-price-was {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
 .cvq-price-card h2 {
   font-family: var(--font-display);
   font-size: 20px;
