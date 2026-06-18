@@ -33,7 +33,10 @@ import {
   ScoreBar,
   Callout,
   money,
+  Reveal,
+  ForecastSection,
 } from "./primitives";
+import type { Forecast } from "@/lib/skillViewTypes";
 
 // ── Shared market chrome (real anchors) ──────────────────────────────────────
 
@@ -583,10 +586,15 @@ export function SkillViewRenderer({ data }: { data: SkillViewResponse }) {
     default:
       body = null;
   }
+  // The forward-looking layer lives on every view shape; render it once, here,
+  // so each skill's signature visual is always followed by the prediction block.
+  const forecast = (view as { forecast?: Forecast }).forecast;
+
   return (
     <div>
       <AnchorRow anchors={anchors} />
-      {body}
+      <Reveal>{body}</Reveal>
+      <ForecastSection forecast={forecast} />
       <p style={{ marginTop: "var(--space-4)", fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.5 }}>{data.disclaimer}</p>
     </div>
   );

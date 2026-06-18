@@ -29,6 +29,43 @@ export type SkillViewId =
 // "How sure" maps to CLAUDE.md's High/Medium/Low (never a raw score in UI).
 export type Sureness = "High" | "Medium" | "Low";
 
+// ── Forward-looking layer (shared by every skill) ───────────────────────────
+//
+// This is the "predict the market" layer the founder asked for, kept brand-safe
+// (CLAUDE.md): it is the analysts' RESEARCH read of what the setup implies and
+// the dated events that could move it — framed as a forward view, never an
+// imperative ("buy now") or a claim that we beat the market. Probabilistic and
+// catalyst-driven, exactly like the Barebone reference. Rendered as a dated
+// catalyst timeline + an "what the setup implies" callout under every skill.
+
+// One dated, forward-looking event the analysts are watching.
+export interface Catalyst {
+  // Plain-English date or window, e.g. "Late Aug 2026", "Next earnings",
+  // "~Q3 2026". NEVER a fabricated exact day unless it is a known event.
+  when: string;
+  // What the event is, in plain English.
+  event: string;
+  // Why it matters for this stock/theme — one line.
+  soWhat: string;
+  // Which way it would likely push things if it breaks one way.
+  lean: "bullish" | "bearish" | "pivotal";
+}
+
+export interface Forecast {
+  // The forward read: what the current setup IMPLIES for the period ahead.
+  // Plain English, probabilistic, framed as the analysts' view. 1-3 sentences.
+  setupImplies: string;
+  // The single most likely path the analysts see from here, one line.
+  likeliestPath: string;
+  // 2-4 dated catalysts ahead (the Barebone-style timeline).
+  catalysts: Catalyst[];
+  // The one number, level, or event that would confirm OR break the read.
+  watchLevel: string;
+  // What history / base rates suggest about setups like this — the "edge"
+  // that goes beyond what's already on the screen. One or two lines.
+  baseRate: string;
+}
+
 // A real market anchor we pass to the model AND show in the chrome. Sourced
 // from the free marketdata layer; null when no provider could answer.
 export interface PriceAnchor {
@@ -57,6 +94,7 @@ export interface WorthOwningView {
   sureness: Sureness;
   pillars: WorthOwningPillar[]; // exactly the 5 above, in order
   changeOurMind: string; // what fact would flip the verdict
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 2. Quick Take — 30-second read ──────────────────────────────────────────
@@ -68,6 +106,7 @@ export interface QuickTakeView {
   theRisk: string; // biggest thing that could go wrong
   theWatch: string; // the one number/event to watch next
   sureness: Sureness;
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 3. Entry & Exit Zones — price ladder ────────────────────────────────────
@@ -84,6 +123,7 @@ export interface EntryExitView {
   resistances: number[]; // price levels above
   rationale: string; // how these levels were drawn (around real anchors)
   sureness: Sureness;
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 4. Face-Off — head-to-head ──────────────────────────────────────────────
@@ -107,6 +147,7 @@ export interface FaceOffView {
   winner: "A" | "B" | "Tie";
   verdict: string; // the call, framed as the analysts' view
   sureness: Sureness;
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 5. Sector Pulse — industry heat ─────────────────────────────────────────
@@ -124,6 +165,7 @@ export interface SectorPulseView {
   leaders: SectorMover[]; // running ahead
   laggards: SectorMover[]; // falling behind
   rotationRead: string; // money rotating in or out, plain English
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 6. Headline Decoder — impact touch-map ──────────────────────────────────
@@ -140,6 +182,7 @@ export interface HeadlineDecoderView {
   impacted: HeadlineImpact[]; // the stocks it touches
   secondOrder: string; // the knock-on nobody mentions
   timeHorizon: "Today" | "This week" | "This quarter" | "Long-term";
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 7. Crowd Check — crowd-vs-data twin gauge ───────────────────────────────
@@ -161,6 +204,7 @@ export interface CrowdCheckView {
   crowdSignals: CrowdSignal[];
   dataSignals: DataSignal[];
   contrarianNote: string; // when crowd and data disagree, who's usually right
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 8. Bull & Bear Map — scenario territory ─────────────────────────────────
@@ -177,6 +221,7 @@ export interface BullBearMapView {
   axisLow: number; // map's left edge (price)
   axisHigh: number; // map's right edge (price)
   mapRead: string; // where on the map we sit today, plain English
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 9. Starter Portfolio — allocation plan ──────────────────────────────────
@@ -193,6 +238,7 @@ export interface StarterPortfolioView {
   buckets: AllocationBucket[];
   expectedSwing: string; // honest "in a bad year this could drop ~X%"
   firstSteps: string[]; // 2-3 concrete next actions
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 // ── 10. Portfolio Health Check — vitals + stress test ───────────────────────
@@ -213,6 +259,7 @@ export interface PortfolioHealthView {
   vitals: HealthVital[];
   stressTests: StressScenario[];
   fixes: string[]; // plain, non-imperative suggestions to consider
+  forecast?: Forecast; // the forward read + dated catalysts
 }
 
 export type SkillView =

@@ -3997,3 +3997,87 @@ html.lenis, html.lenis body { height: auto; }
   }
   .cvq-land [data-parallax], .cvq-land [data-magnetic] { transform: none !important; }
 }
+
+/* ── Research history ─────────────────────────────────────────────────────── */
+
+/* Home entry point — a full-width button under the featured skills. */
+.cvq-history-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+.cvq-history-entry:hover { border-color: var(--border-strong); }
+.cvq-history-entry .cvq-skill-go { margin-left: auto; color: var(--text-muted); }
+.cvq-history-entry-text { display: flex; flex-direction: column; gap: 2px; }
+.cvq-history-entry-title { font-weight: 600; color: var(--text); }
+.cvq-history-entry-sub { font-size: 0.82rem; color: var(--text-muted); }
+
+/* Runbar "History" button — compact, icon + label. */
+.cvq-runbar-history {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Saved-to-history notice above a completed answer. */
+.cvq-saved-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent-weak);
+  color: var(--text-2);
+  border-radius: var(--radius-control);
+  font-size: 0.86rem;
+}
+.cvq-saved-note svg { flex-shrink: 0; }
+.cvq-saved-note--ok { background: var(--up-weak); color: var(--up-ink); }
+.cvq-saved-note--history { background: var(--bg-sunken); color: var(--text-2); }
+.cvq-saved-note--warn { background: var(--down-weak); color: var(--down-ink); }
+.cvq-saved-note .cvq-link-btn { margin-left: auto; white-space: nowrap; }
+
+/* History sheet — note + rows. */
+.cvq-history-note {
+  margin: 0 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.cvq-history-row { display: flex; align-items: stretch; gap: var(--space-1); }
+.cvq-history-open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-3) var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+.cvq-history-open:hover { background: var(--bg-sunken); }
+.cvq-history-open .cvq-skill-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cvq-history-meta { font-size: 0.8rem; color: var(--text-muted); }
+.cvq-history-del { align-self: center; color: var(--text-muted); }
+.cvq-history-del:hover:not(:disabled) { color: var(--down-ink); }
+.cvq-history-del:disabled { opacity: 0.4; cursor: default; }

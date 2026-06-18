@@ -8,8 +8,95 @@
 // (--accent) is the one decorative accent and carries all neutral "quality"
 // fills. No 3D, no gradients-as-art — flat tonal fills only.
 
-import type { ReactNode } from "react";
-import type { Sureness } from "@/lib/skillViewTypes";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { Sureness, Forecast } from "@/lib/skillViewTypes";
+
+// ── Motion: one-time reveals (150-220ms ease-out, the only allowed motion) ────
+//
+// Fade + small rise on mount. Stagger via `delay` so a card's sections settle
+// in sequence. Respects prefers-reduced-motion (renders instantly). No 3D, no
+// parallax, no scroll-jacking — just the micro-reveal CLAUDE.md permits.
+
+export function Reveal({
+  children,
+  delay = 0,
+  as = "div",
+}: {
+  children: ReactNode;
+  delay?: number;
+  as?: "div" | "section" | "li";
+}) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      setShown(true);
+      return;
+    }
+    const id = window.setTimeout(() => setShown(true), delay);
+    return () => window.clearTimeout(id);
+  }, [delay]);
+  const Tag = as;
+  return (
+    <Tag
+      style={{
+        opacity: shown ? 1 : 0,
+        transform: shown ? "translateY(0)" : "translateY(6px)",
+        transition: "opacity 200ms var(--ease-out), transform 200ms var(--ease-out)",
+      }}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+// ── A number that counts up once on mount (a data reveal, not a hover trick) ──
+
+export function CountUp({
+  value,
+  decimals = 0,
+  prefix = "",
+  suffix = "",
+  duration = 650,
+}: {
+  value: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+  duration?: number;
+}) {
+  const [n, setN] = useState(0);
+  const raf = useRef<number | null>(null);
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !Number.isFinite(value)) {
+      setN(Number.isFinite(value) ? value : 0);
+      return;
+    }
+    const start = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      setN(value * eased);
+      if (p < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [value, duration]);
+  return (
+    <span style={{ fontVariantNumeric: "tabular-nums" }}>
+      {prefix}
+      {n.toFixed(decimals)}
+      {suffix}
+    </span>
+  );
+}
 
 // ── Layout ───────────────────────────────────────────────────────────────────
 
@@ -161,6 +248,19 @@ export function Gauge({
   centerLabel?: string;
   centerSub?: string;
 }) {
+  // Needles sweep from rest to their value once on mount (a data reveal).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      setMounted(true);
+      return;
+    }
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   const h = width * 0.62;
   const cx = width / 2;
   const cy = width * 0.52;
@@ -184,12 +284,23 @@ export function Gauge({
         return <line x1={m.x} y1={m.y} x2={mi.x} y2={mi.y} stroke="var(--border-strong)" strokeWidth={1.5} />;
       })()}
       {needles.map((n, i) => {
+        // Draw at rest (pointing left, 180°) and rotate to the value on mount,
+        // so the needle sweeps in. Tip lands at angle `toAngle(n.value)`.
         const a = toAngle(n.value);
-        const tip = polar(cx, cy, r - 6, a);
+        const baseTip = polar(cx, cy, r - 6, 180);
+        const rot = mounted ? a - 180 : 0;
         return (
-          <g key={i}>
-            <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke={n.color} strokeWidth={3.5} strokeLinecap="round" />
-            <circle cx={tip.x} cy={tip.y} r={5} fill={n.color} />
+          <g
+            key={i}
+            style={{
+              transform: `rotate(${rot}deg)`,
+              transformOrigin: `${cx}px ${cy}px`,
+              transformBox: "view-box",
+              transition: "transform 720ms var(--ease-out)",
+            } as React.CSSProperties}
+          >
+            <line x1={cx} y1={cy} x2={baseTip.x} y2={baseTip.y} stroke={n.color} strokeWidth={3.5} strokeLinecap="round" />
+            <circle cx={baseTip.x} cy={baseTip.y} r={5} fill={n.color} />
           </g>
         );
       })}
@@ -275,5 +386,133 @@ export function Callout({ label, children }: { label: string; children: ReactNod
       </div>
       <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>{children}</div>
     </div>
+  );
+}
+
+// ── Forward-looking layer (shared by every skill) ────────────────────────────
+//
+// The "predict the market" block, brand-safe: what the setup implies, a dated
+// catalyst timeline (Barebone-style), the level to watch, and the base-rate
+// edge. Lean colours follow the token rule — Pacific Blue = bullish,
+// Coral = bearish, teal = pivotal/neutral.
+
+function leanInk(lean: "bullish" | "bearish" | "pivotal"): string {
+  return lean === "bullish" ? "var(--up-ink)" : lean === "bearish" ? "var(--down-ink)" : "var(--accent-hover)";
+}
+function leanDot(lean: "bullish" | "bearish" | "pivotal"): string {
+  return lean === "bullish" ? "var(--up)" : lean === "bearish" ? "var(--down)" : "var(--accent)";
+}
+function leanGlyph(lean: "bullish" | "bearish" | "pivotal"): string {
+  return lean === "bullish" ? "▲" : lean === "bearish" ? "▼" : "◆";
+}
+
+export function CatalystTimeline({
+  catalysts,
+}: {
+  catalysts: import("@/lib/skillViewTypes").Catalyst[];
+}) {
+  if (!catalysts?.length) return null;
+  return (
+    <div style={{ position: "relative", marginTop: "var(--space-2)" }}>
+      {/* the spine */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 5,
+          top: 6,
+          bottom: 6,
+          width: 2,
+          background: "var(--border-strong)",
+          borderRadius: 2,
+        }}
+      />
+      {catalysts.map((c, i) => (
+        <Reveal key={i} delay={80 + i * 70}>
+          <div style={{ position: "relative", paddingLeft: 26, paddingBottom: i === catalysts.length - 1 ? 0 : "var(--space-4)" }}>
+            <span
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 3,
+                width: 12,
+                height: 12,
+                borderRadius: 999,
+                background: "var(--bg-surface)",
+                border: `2px solid ${leanDot(c.lean)}`,
+              }}
+            />
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: leanInk(c.lean) }}>
+                {leanGlyph(c.lean)} {c.when}
+              </span>
+            </div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.4, marginTop: 1 }}>{c.event}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5, marginTop: 2 }}>{c.soWhat}</div>
+          </div>
+        </Reveal>
+      ))}
+    </div>
+  );
+}
+
+export function ForecastSection({ forecast }: { forecast?: Forecast }) {
+  if (!forecast) return null;
+  return (
+    <Reveal delay={60}>
+      <section
+        style={{
+          marginTop: "var(--space-4)",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-card)",
+          boxShadow: "var(--shadow-card)",
+          padding: "var(--space-6)",
+          // A hairline teal edge marks this as the forward / predictive card.
+          borderLeft: "3px solid var(--accent)",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--accent-hover)",
+            marginBottom: "var(--space-3)",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M3 17l6-6 4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M21 7v5h-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          What happens next
+        </div>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text)", margin: "0 0 var(--space-2)", letterSpacing: "-0.01em" }}>
+          {forecast.setupImplies}
+        </p>
+        <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.55, margin: "0 0 var(--space-4)" }}>
+          <strong style={{ color: "var(--text)" }}>Likeliest path:</strong> {forecast.likeliestPath}
+        </p>
+
+        <SectionLabel>The road ahead</SectionLabel>
+        <CatalystTimeline catalysts={forecast.catalysts} />
+
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginTop: "var(--space-4)" }}>
+          <div style={{ flex: 1, minWidth: 200, background: "var(--accent-weak)", border: "1px solid var(--border)", borderRadius: "var(--radius-control)", padding: "var(--space-3) var(--space-4)" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--accent-hover)", marginBottom: 3 }}>The tell to watch</div>
+            <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5 }}>{forecast.watchLevel}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 200, background: "var(--bg-sunken)", border: "1px solid var(--border)", borderRadius: "var(--radius-control)", padding: "var(--space-3) var(--space-4)" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 3 }}>What history says</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>{forecast.baseRate}</div>
+          </div>
+        </div>
+      </section>
+    </Reveal>
   );
 }

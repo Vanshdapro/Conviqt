@@ -40,7 +40,10 @@ import type { HeadlineResult } from "@/lib/agents/headline";
 import type { AllocatorResult, Goal, RiskTolerance } from "@/lib/allocator/types";
 import type { PortfolioAuditResult } from "@/lib/portfolio/types";
 import { SkillLibrarySheet, SkillIcon } from "./SkillLibrarySheet";
+import { HistorySheet } from "./HistorySheet";
 import { PaywallSheet } from "@/components/PaywallSheet";
+import { SkillViewRenderer } from "@/components/skillviews/SkillViewRenderer";
+import type { SkillViewResponse } from "@/lib/skillViewTypes";
 import {
   CouncilAnswer,
   FocusedAnswer,
@@ -63,6 +66,7 @@ type Outcome =
   | { kind: "headline"; result: HeadlineResult }
   | { kind: "allocator"; result: AllocatorResult }
   | { kind: "audit"; result: PortfolioAuditResult }
+  | { kind: "skillview"; result: SkillViewResponse }
   | { kind: "text"; text: string };
 
 type TickerStageState = "pending" | "working" | "done" | "failed";
@@ -76,7 +80,16 @@ interface ProgressState {
 type Phase =
   | { name: "home" }
   | { name: "running"; asked: string; skillId: string | null; progress: ProgressState }
-  | { name: "done"; asked: string; skillId: string | null; outcome: Outcome }
+  | {
+      name: "done";
+      asked: string;
+      skillId: string | null;
+      outcome: Outcome;
+      // Set when this result was reopened from saved history (free replay) —
+      // suppresses re-saving and swaps the "saved" notice for a "reopened" one.
+      fromHistory?: boolean;
+      savedAt?: string;
+    }
   | {
       name: "error";
       asked: string;
@@ -86,6 +99,30 @@ type Phase =
     };
 
 const TICKER_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
+
+// Best-effort tickers for a saved-history row's list display / search.
+function tickersFromOutcome(outcome: Outcome): string[] {
+  switch (outcome.kind) {
+    case "council":
+    case "focused":
+      return [outcome.result.ticker];
+    case "compare":
+      return [outcome.result.tickerA, outcome.result.tickerB];
+    case "headline":
+      return outcome.result.impacts.map((i) => i.ticker);
+    default:
+      return [];
+  }
+}
+
+function formatSavedAt(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!isFinite(t)) return "";
+  const day = Math.floor((Date.now() - t) / 86_400_000);
+  if (day < 1) return "today";
+  if (day === 1) return "yesterday";
+  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 // ── Small helpers ────────────────────────────────────────────────────────────
 
@@ -123,6 +160,9 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
   const [armedSkill, setArmedSkill] = useState<Skill | null>(null);
   const [phase, setPhase] = useState<Phase>({ name: "home" });
   const [quotes, setQuotes] = useState<QuoteMap>({});
+  // History: the saved-analyses sheet + the auto-save status for the run shown.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // Guided-input state (only the armed skill's slice is used).
   const [gTicker, setGTicker] = useState("");
@@ -169,6 +209,77 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
     abortRef.current?.abort();
     setPhase({ name: "home" });
     setQuotes({});
+    setSaveState("idle");
+  }, []);
+
+  // Auto-save a completed run to the user's history. Free and best-effort: the
+  // analysis already rendered; a failed save just shows a quiet note. Reopening
+  // a saved run later (openHistoryItem) costs nothing — pure DB read.
+  const saveRun = useCallback(
+    async (asked: string, skillId: string | null, outcome: Outcome, quotesSnapshot: QuoteMap) => {
+      setSaveState("saving");
+      try {
+        const res = await fetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: outcome.kind,
+            skillId,
+            title: asked,
+            tickers: tickersFromOutcome(outcome),
+            payload: { outcome, quotes: quotesSnapshot },
+          }),
+        });
+        setSaveState(res.ok ? "saved" : "error");
+      } catch {
+        setSaveState("error");
+      }
+    },
+    []
+  );
+
+  // Reopen a saved analysis from history — renders it instantly with no run,
+  // no cost, and no slot spent (this never touches /api/chat).
+  const openHistoryItem = useCallback(async (id: string) => {
+    setHistoryOpen(false);
+    try {
+      const res = await fetch(`/api/history?id=${encodeURIComponent(id)}`);
+      const data = await res.json().catch(() => null);
+      const item = data?.item as
+        | { title?: string; skillId?: string | null; createdAt?: string; payload?: { outcome?: Outcome; quotes?: QuoteMap } }
+        | undefined;
+      const outcome = item?.payload?.outcome;
+      if (!res.ok || !outcome) {
+        setPhase({
+          name: "error",
+          asked: item?.title ?? "Saved analysis",
+          skillId: item?.skillId ?? null,
+          message: "Couldn't open that saved analysis — it may have been removed.",
+          code: "other",
+        });
+        return;
+      }
+      abortRef.current?.abort();
+      setSaveState("idle");
+      setQuotes(item.payload?.quotes ?? {});
+      setPhase({
+        name: "done",
+        asked: item.title ?? "Saved analysis",
+        skillId: item.skillId ?? null,
+        outcome,
+        fromHistory: true,
+        savedAt: item.createdAt,
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setPhase({
+        name: "error",
+        asked: "Saved analysis",
+        skillId: null,
+        message: "Couldn't open that saved analysis right now. Try again in a moment.",
+        code: "other",
+      });
+    }
   }, []);
 
   // ── Stream consumption ─────────────────────────────────────────────────────
@@ -186,6 +297,10 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
       abortRef.current = controller;
 
       setQuotes({});
+      setSaveState("idle");
+      // Snapshot the header quotes as they arrive, so the saved row re-renders
+      // with the prices the user actually saw (state can lag the stream close).
+      const collected: QuoteMap = {};
       let progress: ProgressState = { done: [], active: args.firstStage, tickerStages: [] };
       const pushProgress = () =>
         setPhase({ name: "running", asked: args.asked, skillId: args.skillId, progress: { ...progress, done: [...progress.done], tickerStages: [...progress.tickerStages] } });
@@ -205,8 +320,10 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
 
       const fail = (message: string, code: "auth" | "limit" | "other") =>
         setPhase({ name: "error", asked: args.asked, skillId: args.skillId, message, code });
-      const finish = (outcome: Outcome) =>
+      const finish = (outcome: Outcome) => {
         setPhase({ name: "done", asked: args.asked, skillId: args.skillId, outcome });
+        void saveRun(args.asked, args.skillId, outcome, collected);
+      };
 
       let specialistsDone = 0;
       let auditChecksDone = 0;
@@ -259,7 +376,9 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
             switch (ev.type) {
               case "quote": {
                 const t = ev.ticker as string;
-                setQuotes((prev) => ({ ...prev, [t]: (ev.quote as Quote | null) ?? null }));
+                const q = (ev.quote as Quote | null) ?? null;
+                collected[t] = q;
+                setQuotes((prev) => ({ ...prev, [t]: q }));
                 break;
               }
               case "council": {
@@ -371,7 +490,7 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
         fail("The connection dropped mid-run. Try again in a moment.", "other");
       }
     },
-    []
+    [saveRun]
   );
 
   // ── Submission paths ───────────────────────────────────────────────────────
@@ -392,17 +511,70 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
     [input, mode, runStream]
   );
 
-  const runChatSkill = useCallback(
+  // The ticker / pair / sector / headline skills now run the SPECIALIZED engine
+  // (/api/skill-view) instead of the generic Council, so each returns its own
+  // signature shape + visual + forward forecast — not the same verdict reworded.
+  // It's a single JSON call (the 2-step reason→structure chain runs server-side),
+  // so we drive a light staged progress card while it works.
+  const runSkillViewSkill = useCallback(
     (skill: Skill, params: Record<string, string>, asked: string) => {
-      void runStream({
-        asked,
-        skillId: skill.id,
-        url: "/api/chat",
-        body: { skill: skill.id, params, messages: [{ role: "user", content: asked }], mode },
-        firstStage: "Reading the latest…",
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setQuotes({});
+      setSaveState("idle");
+
+      const stages = [
+        "Reading the latest on it…",
+        "Reasoning through what happens next…",
+        "Drawing up the picture…",
+      ];
+      let si = 0;
+      const mk = (): ProgressState => ({
+        done: stages.slice(0, si),
+        active: stages[Math.min(si, stages.length - 1)],
+        tickerStages: [],
       });
+      setPhase({ name: "running", asked, skillId: skill.id, progress: mk() });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      const timer = window.setInterval(() => {
+        if (si < stages.length - 1) {
+          si += 1;
+          setPhase({ name: "running", asked, skillId: skill.id, progress: mk() });
+        }
+      }, 4500);
+
+      void (async () => {
+        try {
+          const res = await fetch("/api/skill-view", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ skill: skill.id, params }),
+            signal: controller.signal,
+          });
+          window.clearInterval(timer);
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            if (res.status === 401)
+              return setPhase({ name: "error", asked, skillId: skill.id, message: "Sign in to start researching.", code: "auth" });
+            if (res.status === 402) {
+              setPaywallOpen(true);
+              return setPhase({ name: "error", asked, skillId: skill.id, message: data?.error ?? "You've hit this month's limit.", code: "limit" });
+            }
+            return setPhase({ name: "error", asked, skillId: skill.id, message: data?.error ?? "That didn't work. Try again in a moment.", code: "other" });
+          }
+          const outcome: Outcome = { kind: "skillview", result: data as SkillViewResponse };
+          setPhase({ name: "done", asked, skillId: skill.id, outcome });
+          void saveRun(asked, skill.id, outcome, {});
+        } catch (err) {
+          window.clearInterval(timer);
+          if ((err as Error)?.name === "AbortError") return;
+          console.error("[research] skill-view failed:", err);
+          setPhase({ name: "error", asked, skillId: skill.id, message: "The connection dropped mid-run. Try again in a moment.", code: "other" });
+        }
+      })();
     },
-    [mode, runStream]
+    [saveRun]
   );
 
   const runAllocatorSkill = useCallback(
@@ -490,7 +662,7 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
               setGSector={setGSector}
               gHeadline={gHeadline}
               setGHeadline={setGHeadline}
-              runChatSkill={runChatSkill}
+              runSkillViewSkill={runSkillViewSkill}
               runAllocatorSkill={runAllocatorSkill}
               runAuditSkill={runAuditSkill}
             />
@@ -529,6 +701,21 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
               </button>
             </div>
           )}
+
+          <button
+            type="button"
+            className="cvq-history-entry"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <ClockIcon />
+            <span className="cvq-history-entry-text">
+              <span className="cvq-history-entry-title">Your history</span>
+              <span className="cvq-history-entry-sub">Reopen past analyses — free, anytime</span>
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className="cvq-skill-go">
+              <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </>
       )}
 
@@ -538,6 +725,14 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
             ← Ask something new
           </button>
           <span className="cvq-runbar-asked">{phase.asked}</span>
+          <button
+            type="button"
+            className="cvq-btn cvq-btn--ghost cvq-runbar-history"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <ClockIcon />
+            History
+          </button>
         </div>
       )}
 
@@ -577,6 +772,12 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
 
       {phase.name === "done" && (
         <>
+          <SavedNotice
+            fromHistory={!!phase.fromHistory}
+            savedAt={phase.savedAt}
+            saveState={saveState}
+            onViewHistory={() => setHistoryOpen(true)}
+          />
           <AnswerSwitch outcome={phase.outcome} quotes={quotes} />
           <RelatedSkills skillId={phase.skillId} outcome={phase.outcome} onPick={arm} onReset={reset} />
           <p className="cvq-disclaimer">
@@ -587,6 +788,7 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
       )}
 
       <SkillLibrarySheet open={libraryOpen} onClose={() => setLibraryOpen(false)} onPick={arm} />
+      <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onOpen={openHistoryItem} />
       <PaywallSheet open={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </div>
   );
@@ -610,9 +812,75 @@ function AnswerSwitch({ outcome, quotes }: { outcome: Outcome; quotes: QuoteMap 
       return <AllocatorAnswer result={outcome.result} />;
     case "audit":
       return <AuditAnswer result={outcome.result} />;
+    case "skillview":
+      return <SkillViewRenderer data={outcome.result} />;
     case "text":
       return <TextAnswer text={outcome.text} />;
   }
+}
+
+// ── Saved-to-history notice ──────────────────────────────────────────────────
+
+function ClockIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SavedNotice({
+  fromHistory,
+  savedAt,
+  saveState,
+  onViewHistory,
+}: {
+  fromHistory: boolean;
+  savedAt?: string;
+  saveState: "idle" | "saving" | "saved" | "error";
+  onViewHistory: () => void;
+}) {
+  if (fromHistory) {
+    return (
+      <div className="cvq-saved-note cvq-saved-note--history" role="status">
+        <ClockIcon />
+        <span>
+          From your history{savedAt ? ` · saved ${formatSavedAt(savedAt)}` : ""}. Reopened
+          free — nothing was charged.
+        </span>
+      </div>
+    );
+  }
+  if (saveState === "saving") {
+    return (
+      <div className="cvq-saved-note" role="status">
+        <ClockIcon />
+        <span>Saving to your history…</span>
+      </div>
+    );
+  }
+  if (saveState === "saved") {
+    return (
+      <div className="cvq-saved-note cvq-saved-note--ok" role="status">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="m5 13 4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span>Saved to your history — reopen it anytime, free.</span>
+        <button type="button" className="cvq-link-btn" onClick={onViewHistory}>
+          View history
+        </button>
+      </div>
+    );
+  }
+  if (saveState === "error") {
+    return (
+      <div className="cvq-saved-note cvq-saved-note--warn" role="status">
+        <span>Couldn&apos;t save this to your history — but you can still read it now.</span>
+      </div>
+    );
+  }
+  return null;
 }
 
 // ── Progress ─────────────────────────────────────────────────────────────────
@@ -658,6 +926,7 @@ const OUTCOME_DEFAULT_SKILL: Record<Outcome["kind"], string> = {
   headline: "headline-decoder",
   allocator: "starter-portfolio",
   audit: "portfolio-health-check",
+  skillview: "worth-owning",
   text: "quick-take",
 };
 
@@ -732,7 +1001,7 @@ function GuidedInput(props: {
   setGSector: (v: string) => void;
   gHeadline: string;
   setGHeadline: (v: string) => void;
-  runChatSkill: (skill: Skill, params: Record<string, string>, asked: string) => void;
+  runSkillViewSkill: (skill: Skill, params: Record<string, string>, asked: string) => void;
   runAllocatorSkill: (profile: Record<string, unknown>, asked: string) => void;
   runAuditSkill: (holdings: Array<{ ticker: string; shares: number }>, asked: string) => void;
 }) {
@@ -831,28 +1100,29 @@ function GuidedInput(props: {
     if (skill.input === "ticker") {
       const t = props.gTicker.trim().toUpperCase();
       if (!TICKER_RE.test(t)) return setError("That doesn't look like a US-listed ticker (try NVDA, AAPL…).");
-      return props.runChatSkill(skill, { ticker: t }, `${skill.name} — ${t}`);
+      return props.runSkillViewSkill(skill, { ticker: t }, `${skill.name} — ${t}`);
     }
     if (skill.input === "tickerPair") {
       const a = props.gTicker.trim().toUpperCase();
       const b = props.gTickerB.trim().toUpperCase();
       if (!TICKER_RE.test(a) || !TICKER_RE.test(b)) return setError("Both sides need a US-listed ticker (e.g. NVDA and AMD).");
       if (a === b) return setError("Pick two different stocks for a Face-Off.");
-      return props.runChatSkill(skill, { tickerA: a, tickerB: b }, `${skill.name} — ${a} vs ${b}`);
+      return props.runSkillViewSkill(skill, { tickerA: a, tickerB: b }, `${skill.name} — ${a} vs ${b}`);
     }
     if (skill.input === "sector") {
       if (!props.gSector) return setError("Pick an industry first.");
       const basket = SECTOR_BASKETS.find((bk) => bk.key === props.gSector);
-      return props.runChatSkill(
+      // The specialized engine grounds on a human sector NAME, not the basket key.
+      return props.runSkillViewSkill(
         skill,
-        { sectorKey: props.gSector },
+        { sector: basket?.label ?? props.gSector },
         `${skill.name} — ${basket?.label ?? props.gSector}`
       );
     }
     if (skill.input === "headline") {
       const h = props.gHeadline.trim();
       if (h.length < 12) return setError("Paste the full headline so there's enough to decode.");
-      return props.runChatSkill(skill, { headline: h }, `${skill.name} — “${h.slice(0, 80)}${h.length > 80 ? "…" : ""}”`);
+      return props.runSkillViewSkill(skill, { headline: h }, `${skill.name} — “${h.slice(0, 80)}${h.length > 80 ? "…" : ""}”`);
     }
     if (skill.input === "allocator") {
       const lump = Number(lumpSum);

@@ -1,17 +1,36 @@
-// POST /api/skill-view — run one specialized Skill View.
+// POST /api/skill-view — run one specialized Skill View for the Research surface.
 //
 // Body: { skill: SkillViewId, params: SkillParams }. Returns the skill's own
-// structured shape (src/lib/skillViewTypes.ts) plus the real market anchors
-// the renderer shows alongside. One forced-tool OpenAI call, grounded on the
-// free marketdata layer — no web_search, so it stays cheap and on OpenAI.
+// structured shape (src/lib/skillViewTypes.ts) plus the real market anchors the
+// renderer shows alongside, AND a forward-looking forecast block. A two-step
+// chain (reason → structure) on gpt-4.1-mini/flagship, grounded on the free
+// marketdata layer — no web_search, so it stays cheap and on OpenAI.
 //
-// This is an ADDITIVE surface for the Research skills; it does not touch the
-// existing /api/chat pipeline. Powers the /dev/skill-views playground today;
-// ready for the Research surface to call per skill.
+// This is the engine behind every ticker/pair/sector/headline skill in Research
+// (it replaced the old generic-Council path so each skill returns its OWN
+// specialized output instead of the same verdict reworded). Auth + the Phase-7
+// plan gate + caching mirror /api/chat.
 
-import { NextResponse } from "next/server";
 import { runSkillView, type SkillParams } from "@/lib/agents/skillViews";
 import type { SkillViewId, SkillViewResponse } from "@/lib/skillViewTypes";
+import { getVerifiedUser } from "@/lib/auth";
+import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
+import {
+  getExperienceLevel,
+  useDeepAnalysis,
+  FREE_DEEP_LIMIT,
+  FREE_LIMIT_MSG,
+  FREE_METER_DEGRADED_MSG,
+} from "@/lib/profile";
+import { audienceCacheSuffix } from "@/lib/agents/audience";
+import {
+  checkRateLimit,
+  ensureDailyBudget,
+  getClientIp,
+  RATE_LIMITS,
+  recordSpend,
+} from "@/lib/rate-limit";
+import { cacheGet, cacheSet, COUNCIL_CACHE_TTL_MS } from "@/lib/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +51,19 @@ const VALID: SkillViewId[] = [
   "starter-portfolio",
   "portfolio-health-check",
 ];
+
+// Skills that consume a Free monthly deep slot. Quick Take and Headline Decoder
+// stay outside the meter — they're the "Flash basics" part of the Free promise.
+const DEEP_SKILLS = new Set<SkillViewId>([
+  "worth-owning",
+  "entry-exit-zones",
+  "face-off",
+  "sector-pulse",
+  "crowd-check",
+  "bull-bear-map",
+  "starter-portfolio",
+  "portfolio-health-check",
+]);
 
 const TICKER_RE = /^[\^]?[A-Z0-9][A-Z0-9.\-]{0,9}$/;
 function cleanTicker(v: unknown): string | undefined {
@@ -72,34 +104,108 @@ function validate(skill: SkillViewId, p: SkillParams): string | null {
   }
 }
 
+function json(body: unknown, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function skillViewCacheKey(
+  skill: SkillViewId,
+  params: SkillParams,
+  audienceSuffix: string
+): string {
+  const slug = JSON.stringify({
+    t: params.ticker,
+    a: params.tickerA,
+    b: params.tickerB,
+    s: params.sector?.toLowerCase().slice(0, 40),
+    h: params.headline?.toLowerCase().replace(/\W+/g, "_").slice(0, 80),
+    bud: params.budgetUSD,
+    g: params.goals?.toLowerCase().slice(0, 60),
+    hold: params.holdings?.toLowerCase().replace(/\s+/g, "").slice(0, 80),
+  });
+  return `skillview:${skill}:${slug}${audienceSuffix}`;
+}
+
 export async function POST(req: Request) {
+  // Identity from the verified session only (never the body) — same as /api/chat.
+  const user = await getVerifiedUser();
+  if (!user) {
+    return json({ error: "Please sign in to use Conviqt.", code: "auth_required" }, 401);
+  }
+  const email = user.email;
+
+  // DDoS gate.
+  const ip = getClientIp(req);
+  const gate = checkRateLimit(ip, RATE_LIMITS.chatGeneral);
+  if (!gate.ok) {
+    return json({ error: `Rate limit hit. Retry in ${gate.retryAfterSeconds}s.` }, 429);
+  }
+
+  let body: { skill?: string; params?: SkillParams };
   try {
-    const body = (await req.json().catch(() => ({}))) as {
-      skill?: string;
-      params?: SkillParams;
-    };
+    body = (await req.json()) as { skill?: string; params?: SkillParams };
+  } catch {
+    return json({ error: "Invalid request." }, 400);
+  }
 
-    const skill = (body.skill ?? "").trim() as SkillViewId;
-    if (!VALID.includes(skill)) {
-      return NextResponse.json({ error: "Unknown skill." }, { status: 400 });
+  const skill = (body.skill ?? "").trim() as SkillViewId;
+  if (!VALID.includes(skill)) {
+    return json({ error: "Unknown skill." }, 400);
+  }
+
+  // Normalize tickers up front so grounding gets clean symbols.
+  const raw = body.params ?? {};
+  const params: SkillParams = {
+    ...raw,
+    ticker: cleanTicker(raw.ticker),
+    tickerA: cleanTicker(raw.tickerA),
+    tickerB: cleanTicker(raw.tickerB),
+  };
+
+  const invalid = validate(skill, params);
+  if (invalid) {
+    return json({ error: invalid }, 400);
+  }
+
+  const audience = await getExperienceLevel(email);
+  const cacheKey = skillViewCacheKey(skill, params, audienceCacheSuffix(audience));
+  const cached = cacheGet<SkillViewResponse>(cacheKey);
+
+  // Plan gate (Phase 7): fresh deep skills consume a Free monthly slot; cache
+  // hits are free replays. Quick Take / Headline Decoder are never metered.
+  if (!cached && DEEP_SKILLS.has(skill)) {
+    const subscriber = await getSubscriberByEmail(email);
+    if (!isPremium(subscriber)) {
+      const meter = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
+      if (!meter.allowed) {
+        if (meter.degraded) {
+          console.error(`[skill-view] usage meter degraded for ${email} — failing closed`);
+          return json({ error: FREE_METER_DEGRADED_MSG, code: "meter_unavailable" }, 503);
+        }
+        console.log(`[skill-view] free deep limit hit for ${email} (${meter.used}/${FREE_DEEP_LIMIT})`);
+        return json({ error: FREE_LIMIT_MSG, code: "plan_limit" }, 402);
+      }
     }
+  }
 
-    // Normalize tickers up front so grounding gets clean symbols.
-    const raw = body.params ?? {};
-    const params: SkillParams = {
-      ...raw,
-      ticker: cleanTicker(raw.ticker),
-      tickerA: cleanTicker(raw.tickerA),
-      tickerB: cleanTicker(raw.tickerB),
-    };
+  try {
+    ensureDailyBudget(0.05);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return json({ error: msg }, 503);
+  }
 
-    const invalid = validate(skill, params);
-    if (invalid) {
-      return NextResponse.json({ error: invalid }, { status: 400 });
-    }
+  if (cached) {
+    return json({ ...cached, cached: true }, 200);
+  }
 
+  try {
     const { view, anchors, costUSD } = await runSkillView(skill, params);
-    console.log(`[skill-view] skill=${skill} cost=$${costUSD.toFixed(4)}`);
+    recordSpend(costUSD);
+    console.log(`[skill-view] skill=${skill} cost=$${costUSD.toFixed(4)} email=${email}`);
 
     const payload: SkillViewResponse = {
       skillId: skill,
@@ -108,12 +214,13 @@ export async function POST(req: Request) {
       disclaimer: DISCLAIMER,
       costUSD,
     };
-    return NextResponse.json(payload);
+    cacheSet(cacheKey, payload, COUNCIL_CACHE_TTL_MS);
+    return json(payload, 200);
   } catch (err) {
     console.error("[skill-view] failed:", err);
-    return NextResponse.json(
+    return json(
       { error: "Couldn't run that skill right now. Try again in a moment." },
-      { status: 500 }
+      500
     );
   }
 }

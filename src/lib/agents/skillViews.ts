@@ -103,6 +103,89 @@ const ENUM = (values: string[], description: string) => ({
 
 const SURENESS = ENUM(["High", "Medium", "Low"], "How sure the analysts are.");
 
+// ─── Shared forward-looking layer ("predict the market", brand-safe) ─────────
+//
+// Injected into EVERY skill's schema + system so each signature output also
+// carries a forward read: what the setup implies next, a dated catalyst
+// timeline (Barebone-style), the level/event to watch, and the base-rate edge.
+// CLAUDE.md guardrails kept: probabilistic RESEARCH view, never an imperative,
+// never a claim to beat the market.
+
+const FORECAST_SCHEMA = {
+  type: "object",
+  description:
+    "The forward-looking read: what the setup implies next, the dated catalysts ahead, and the base-rate edge. Framed as the analysts' research view, never as advice.",
+  properties: {
+    setupImplies: STR(
+      "What the CURRENT setup implies for the period ahead — the forward read, probabilistic, plain English, 1-3 sentences. The analysts' view of what likely happens next, never a guarantee."
+    ),
+    likeliestPath: STR("The single most likely path from here, one line."),
+    catalysts: {
+      type: "array",
+      description:
+        "2-4 dated, upcoming events the analysts are watching — a forward timeline. Use plain date windows (e.g. 'Late Aug 2026', '~Q3 2026', 'Next earnings'). Never invent an exact day for an unscheduled event.",
+      items: {
+        type: "object",
+        properties: {
+          when: STR("Plain date or window, e.g. 'Late Aug 2026' or 'Next earnings'."),
+          event: STR("What the event is, plain English."),
+          soWhat: STR("Why it matters for this name, one line."),
+          lean: ENUM(["bullish", "bearish", "pivotal"], "Likely direction if it breaks one way."),
+        },
+        required: ["when", "event", "soWhat", "lean"],
+      },
+    },
+    watchLevel: STR("The one number, price level, or event that would CONFIRM or BREAK this read."),
+    baseRate: STR(
+      "What history / base rates suggest about setups like this — the edge beyond what's already on the screen. One or two lines."
+    ),
+  },
+  required: ["setupImplies", "likeliestPath", "catalysts", "watchLevel", "baseRate"],
+};
+
+const FORECAST_GUIDE = `\n\nALWAYS also fill the "forecast" object: a forward-looking, probabilistic RESEARCH read — what the current setup implies next, 2-4 DATED upcoming catalysts (a timeline), the one level/event to watch, and what base rates suggest. This is where you add a genuine forward perspective that goes BEYOND restating today's facts — the reason someone pays for this instead of reading the news. Stay brand-safe: the analysts' view of what may happen, never a promise, never "buy/sell now", never a claim to beat the market.`;
+
+// ─── Step 1: the reasoning brief (engineered reasoning, in budget) ───────────
+//
+// A cheap mini pass that THINKS before the structured call: it forces the model
+// to reason through the setup, the forward path, the dated catalysts, and the
+// base-rate edge in prose first. The structured call then renders that thinking
+// into the skill's shape. Two cheap mini calls cost far less than one reasoning-
+// model call, and the prose-then-structure chain yields a markedly sharper,
+// more forward-looking result than a single forced call (the founder's
+// "engineer reasoning harder, stay in budget" choice).
+
+const REASONING_SYSTEM = `${VOICE}\n\nYou are the analysts' private scratchpad — nobody but the team sees this. Think hard and concretely about what is REALLY going on here and, above all, what happens NEXT. Reason step by step but tersely. Cover: (1) the setup right now, one tight read; (2) the most likely path from here and why; (3) 2-4 specific DATED catalysts ahead (earnings, product, macro, lockups, index events) with plain date windows; (4) the single level or event that confirms or breaks the read; (5) what base rates / history say about situations like this — the edge most people miss. Use the real price anchors given. Never fabricate a precise stat — reason qualitatively where you lack a number. Output tight prose notes, no preamble, no headers.`;
+
+async function reasonBrief(
+  spec: SkillSpec,
+  params: SkillParams,
+  anchors: PriceAnchor[]
+): Promise<{ text: string; costUSD: number }> {
+  const ai = getOpenAI();
+  const res = await ai.messages.create({
+    model: MODELS.judge, // mini — cheap reasoning pass
+    max_tokens: 700,
+    system: [{ type: "text", text: REASONING_SYSTEM }],
+    messages: [
+      {
+        role: "user",
+        content: `Lens: ${spec.toolDescription}\n\n${spec.buildUser(params, anchors)}\n\nThink it through as scratch notes — focus hard on what happens NEXT and the dated catalysts ahead.`,
+      },
+    ],
+  });
+  const text = res.content
+    .filter((b) => b.type === "text" && typeof b.text === "string")
+    .map((b) => b.text as string)
+    .join("\n")
+    .trim();
+  const costUSD = estimateCallCostUSD(
+    MODELS.judge as keyof typeof import("../openai").PRICING_PER_TOKEN,
+    res.usage
+  );
+  return { text, costUSD };
+}
+
 export const SKILL_SPECS: Record<SkillViewId, SkillSpec> = {
   // 1 ── Worth Owning? — durability scorecard
   "worth-owning": {
@@ -439,31 +522,71 @@ export interface RunSkillViewResult {
   costUSD: number;
 }
 
-// ─── The one call ────────────────────────────────────────────────────────────
+/** Progress stages the route can stream to the Research surface. */
+export type SkillViewStage = "reading" | "reasoning" | "writing";
+
+export interface RunSkillViewOpts {
+  onStage?: (stage: SkillViewStage) => void;
+}
+
+// ─── The two-step chain: reason, then structure ──────────────────────────────
+//
+// 1. buildAnchor    — real price anchors from the free marketdata layer.
+// 2. reasonBrief    — a cheap mini "scratchpad" pass that thinks through the
+//                     setup and, above all, what happens next + dated catalysts.
+// 3. structured call — the skill's signature shape, now WITH the shared forecast
+//                     block injected, fed the reasoning notes so the output is
+//                     longer, sharper, and genuinely forward-looking.
 
 export async function runSkillView(
   skillId: SkillViewId,
-  params: SkillParams
+  params: SkillParams,
+  opts: RunSkillViewOpts = {}
 ): Promise<RunSkillViewResult> {
   const spec = SKILL_SPECS[skillId];
   if (!spec) throw new Error(`Unknown skill view: ${skillId}`);
+  const onStage = opts.onStage ?? (() => {});
 
+  onStage("reading");
   const anchors = await Promise.all(tickersFor(skillId, params).map(buildAnchor));
+
+  // Step 1 — reason in prose (engineered reasoning). Never let a flaky reasoning
+  // pass block the answer: on failure we fall back to a one-shot structured call.
+  onStage("reasoning");
+  const brief = await reasonBrief(spec, params, anchors).catch((e) => {
+    console.error(`[skill:${skillId}] reasoning pass failed, continuing one-shot:`, e);
+    return { text: "", costUSD: 0 };
+  });
+
+  // Step 2 — render the thinking into the skill's shape + the forecast block.
+  onStage("writing");
+  const inputSchema = {
+    ...spec.inputSchema,
+    properties: { ...spec.inputSchema.properties, forecast: FORECAST_SCHEMA },
+    required: [...(spec.inputSchema.required ?? []), "forecast"],
+  };
+  const system = spec.system + FORECAST_GUIDE;
+  const userBase = spec.buildUser(params, anchors);
+  const user = brief.text
+    ? `${userBase}\n\nYour private reasoning notes (render this thinking into the shape — especially the forecast; do not contradict it):\n${brief.text}`
+    : userBase;
 
   const ai = getOpenAI();
   const response = await ai.messages.create({
     model: spec.model,
-    max_tokens: spec.maxTokens,
-    system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }],
+    // Headroom for the forecast block + the longer, richer copy the founder
+    // wants (still well inside the per-call cent cap on mini/flagship).
+    max_tokens: spec.maxTokens + 550,
+    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
     tools: [
       {
         name: spec.toolName,
         description: spec.toolDescription,
-        input_schema: spec.inputSchema,
+        input_schema: inputSchema,
       },
     ],
     tool_choice: { type: "tool", name: spec.toolName },
-    messages: [{ role: "user", content: spec.buildUser(params, anchors) }],
+    messages: [{ role: "user", content: user }],
   });
 
   const toolUse = response.content.find(
@@ -475,10 +598,11 @@ export async function runSkillView(
     );
   }
 
-  const costUSD = estimateCallCostUSD(
-    spec.model as keyof typeof import("../openai").PRICING_PER_TOKEN,
-    response.usage
-  );
+  const costUSD =
+    estimateCallCostUSD(
+      spec.model as keyof typeof import("../openai").PRICING_PER_TOKEN,
+      response.usage
+    ) + brief.costUSD;
 
   // Tag the parsed shape with its `kind` so the renderer can discriminate.
   const view = { kind: skillId, ...(toolUse.input as object) } as SkillView;
