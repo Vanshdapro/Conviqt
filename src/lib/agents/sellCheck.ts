@@ -20,14 +20,17 @@ import type { AlphaPick } from "../alphaTypes";
 
 const SYSTEM = `You are a portfolio monitor for a paper trading account.
 
-Given an open position, use web_search to find the current price and any major news.
+Stop-loss and target breaches are already enforced mechanically in code against
+the desk's stored price — that is NOT your job. Your job is to catch a material
+adverse EVENT that should force an exit before price alone would.
+
+Given an open position, use web_search to find any major news and the current price.
 Then call check_sell_signal with your assessment.
 
 Rules:
-- STOP HIT: current price <= stop_loss. This is mechanical — always trigger.
-- TARGET HIT: current price >= target_price. Always trigger.
-- FUNDAMENTAL EXIT: major adverse event (fraud, bankruptcy, earnings miss + guidance cut > 20%, FDA rejection, acquisition at below-stop price). Only trigger on clear, material adverse facts — not routine analyst downgrades.
-- If none of the above, return should_sell: false.`;
+- FUNDAMENTAL EXIT (your primary job): major adverse event — fraud, bankruptcy/going-concern, earnings miss WITH a guidance cut > 20%, FDA rejection, an acquisition struck below the stop, accounting restatement. Set exit_type:"fundamental". Only trigger on clear, material adverse FACTS — never on routine analyst downgrades, normal volatility, or vibes.
+- PRICE EXIT (fallback only): if you find a hard current price and it is at/below stop_loss or at/above target_price, you may report exit_type:"stop"/"target" — but code handles this whenever a stored price exists, so this is just a backstop.
+- Otherwise return should_sell:false, exit_type:"none". When in doubt, HOLD — do not sell on uncertainty.`;
 
 const CHECK_SELL_TOOL = {
   name: "check_sell_signal",

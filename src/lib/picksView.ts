@@ -83,7 +83,13 @@ export async function loadPicks({ live = true }: { live?: boolean } = {}): Promi
 
 export interface PickStats {
   winRate: number;
-  avgReturn: number;
+  /**
+   * CUMULATIVE return — each pick's % result summed together (founder's chosen
+   * metric: "add it to the total and aggregate it; the return is not per stock").
+   * This is NOT an average and NOT the return on a fixed dollar investment, so
+   * the UI must label it as a combined/cumulative figure, never imply portfolio ROI.
+   */
+  totalReturn: number;
   total: number;
   open: number;
 }
@@ -92,11 +98,12 @@ export function pickStats(views: PickView[]): PickStats | null {
   const scored = views.filter((v) => v.returnPct !== null);
   if (scored.length === 0) return null;
   const wins = scored.filter((v) => (v.returnPct as number) > 0).length;
+  // Sum, not average — this is the cumulative result across every pick.
   const totalReturn = scored.reduce((s, v) => s + (v.returnPct as number), 0);
   const open = views.filter((v) => v.open).length;
   return {
     winRate: Math.round((wins / scored.length) * 100),
-    avgReturn: totalReturn,
+    totalReturn: Math.round(totalReturn * 10) / 10,
     total: views.length,
     open,
   };

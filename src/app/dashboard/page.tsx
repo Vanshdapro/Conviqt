@@ -258,10 +258,15 @@ function Picks({ views, sparks }: { views: PickView[] | null; sparks: Sparks }) 
         <span className="cvq-dash-fresh">Full history — losses included</span>
       </div>
       {stats && (
-        <p className="cvq-dash-pickstats">
-          Win rate {stats.winRate}% · Total return{" "}
-          <ChangePill change={stats.avgReturn} /> · {stats.total} picks ({stats.open} open)
-        </p>
+        <>
+          <p className="cvq-dash-pickstats">
+            Win rate {stats.winRate}% · Combined result{" "}
+            <ChangePill change={stats.totalReturn} /> · {stats.total} picks ({stats.open} open)
+          </p>
+          <p className="cvq-dash-fresh">
+            Combined result adds up every pick&rsquo;s % move (wins and losses) — it&rsquo;s a running total across all picks, not a per-stock average.
+          </p>
+        </>
       )}
       {views.length > 0 ? (
         <div className="cvq-dash-picks">

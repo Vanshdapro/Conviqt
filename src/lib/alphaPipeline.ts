@@ -115,6 +115,41 @@ export async function runAlphaPipeline(
 
   const store = getAlphaStore();
 
+  // Close a position: mark SOLD and (if it carried an ungraded forecast) grade
+  // the prediction in the same write — target = correct, stop/fundamental = wrong.
+  // Mutates the in-memory pick so the later horizon-resolve pass sees it closed.
+  async function closePosition(
+    pick: AlphaPick,
+    exitPrice: number,
+    reason: string,
+    exitType: "stop" | "target" | "fundamental"
+  ): Promise<void> {
+    let resolution: PredictionResolution | undefined;
+    if (typeof pick.confidence_pct === "number" && !pick.resolved) {
+      const outcome: ResolutionOutcome =
+        exitType === "target" ? "TARGET_HIT" : exitType === "stop" ? "STOP_HIT" : "FUNDAMENTAL_EXIT";
+      const realized =
+        exitPrice > 0 && pick.entry_price > 0
+          ? round1(((exitPrice - pick.entry_price) / pick.entry_price) * 100)
+          : 0;
+      resolution = {
+        outcome,
+        resolvedDate: entry_date,
+        resolvedPrice: exitPrice,
+        predictionCorrect: exitType === "target",
+        realizedReturnPct: realized,
+      };
+    }
+    await store.markSold(pick.id!, exitPrice, reason, resolution);
+    pick.status = "SOLD";
+    if (resolution) pick.resolved = true;
+    sells.push({ ticker: pick.ticker, reason });
+    console.log(
+      `[alphaPipeline] sold ${pick.ticker}: ${reason}` +
+        (resolution ? ` | prediction ${resolution.predictionCorrect ? "HIT" : "MISS"} (${resolution.outcome})` : "")
+    );
+  }
+
   // === A. Fetch active picks ===
   let activePicks: AlphaPick[] = [];
   try {
@@ -143,6 +178,11 @@ export async function runAlphaPipeline(
         const changePct = ((price - pick.entry_price) / pick.entry_price) * 100;
         try {
           await store.updatePrice(pick.id, price, changePct, entry_date);
+          // Keep the in-memory pick in sync so the mechanical stop/target pass
+          // below evaluates against the price we just stored.
+          pick.current_price = price;
+          pick.price_change_pct = changePct;
+          pick.price_last_updated = entry_date;
           console.log(`[alphaPipeline] price update ${pick.ticker}: $${price.toFixed(2)} (${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%)`);
         } catch (err) {
           console.error(`[alphaPipeline] updatePrice(${pick.ticker}) failed:`, err instanceof Error ? err.message : err);
@@ -151,14 +191,49 @@ export async function runAlphaPipeline(
     }
   }
 
-  // === B. Sell checks (parallel) ===
-  const sellCheckResults = await Promise.allSettled(
-    activePicks.map((p) => runSellCheck(p))
-  );
+  // === B. Mechanical stop / target enforcement (code, not an LLM opinion) ===
+  // Stops and targets are price rules, so we evaluate them in code against the
+  // price we just stored in A2. This is the safety net that was missing: when a
+  // model is asked to "decide" a stop it can fetch a stale quote or simply not
+  // fire, and the position bleeds past its stop. Here a breach is mechanical.
+  const mechanicallyClosed = new Set<string>();
+  for (const pick of activePicks) {
+    if (pick.status !== "ACTIVE" || !pick.id) continue;
+    const px = typeof pick.current_price === "number" ? pick.current_price : 0;
+    if (px <= 0) continue; // no fresh price — the news monitor below is the fallback
+    let exitType: "stop" | "target" | null = null;
+    if (pick.stop_loss > 0 && px <= pick.stop_loss) exitType = "stop";
+    else if (pick.target_price > 0 && px >= pick.target_price) exitType = "target";
+    if (!exitType) continue;
+    const reason =
+      exitType === "stop"
+        ? `Stop hit: $${px.toFixed(2)} at/below stop $${pick.stop_loss.toFixed(2)}`
+        : `Target hit: $${px.toFixed(2)} at/above target $${pick.target_price.toFixed(2)}`;
+    try {
+      await closePosition(pick, px, reason, exitType);
+      mechanicallyClosed.add(pick.id);
+    } catch (err) {
+      const msg = `mechanical ${exitType} exit failed for ${pick.ticker}: ${err instanceof Error ? err.message : String(err)}`;
+      console.error("[alphaPipeline]", msg);
+      errors.push(msg);
+    }
+  }
 
+  // === B2. Fundamental / news exits (LLM monitor) ===
+  // Price-based exits are handled mechanically above; the monitor now exists to
+  // catch material adverse EVENTS (fraud, bankruptcy, guidance cut, etc.) before
+  // price alone would. We honor only its fundamental verdict — unless we had no
+  // fresh price to check the code rule, in which case we still respect a
+  // stop/target it flags as a fallback.
+  const monitorTargets = activePicks.filter(
+    (p) => p.status === "ACTIVE" && p.id && !mechanicallyClosed.has(p.id)
+  );
+  const sellCheckResults = await Promise.allSettled(
+    monitorTargets.map((p) => runSellCheck(p))
+  );
   for (let i = 0; i < sellCheckResults.length; i++) {
     const res = sellCheckResults[i];
-    const pick = activePicks[i];
+    const pick = monitorTargets[i];
     if (res.status === "rejected") {
       const msg = `sell check failed for ${pick.ticker}: ${res.reason}`;
       console.error("[alphaPipeline]", msg);
@@ -166,44 +241,21 @@ export async function runAlphaPipeline(
       continue;
     }
     totalCost += res.value.costUSD;
-    if (res.value.shouldSell) {
-      // === C. Mark SOLD (+ grade the prediction) ===
-      // Grade the forecast only if the pick carried one and wasn't already
-      // resolved at horizon — target hit = correct, stop/fundamental = wrong.
-      let resolution: PredictionResolution | undefined;
-      if (typeof pick.confidence_pct === "number" && !pick.resolved) {
-        const exitPrice = res.value.currentPrice;
-        const outcome: ResolutionOutcome =
-          res.value.exitType === "target"
-            ? "TARGET_HIT"
-            : res.value.exitType === "stop"
-              ? "STOP_HIT"
-              : "FUNDAMENTAL_EXIT";
-        const realized =
-          exitPrice > 0 && pick.entry_price > 0
-            ? round1(((exitPrice - pick.entry_price) / pick.entry_price) * 100)
-            : 0;
-        resolution = {
-          outcome,
-          resolvedDate: entry_date,
-          resolvedPrice: exitPrice,
-          predictionCorrect: res.value.exitType === "target",
-          realizedReturnPct: realized,
-        };
-      }
-      try {
-        await store.markSold(pick.id!, res.value.currentPrice, res.value.reason, resolution);
-        activePicks[i] = { ...pick, status: "SOLD" };
-        sells.push({ ticker: pick.ticker, reason: res.value.reason });
-        console.log(
-          `[alphaPipeline] sold ${pick.ticker}: ${res.value.reason}` +
-            (resolution ? ` | prediction ${resolution.predictionCorrect ? "HIT" : "MISS"} (${resolution.outcome})` : "")
-        );
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[alphaPipeline] markSold failed:", msg);
-        errors.push(msg);
-      }
+    if (!res.value.shouldSell) continue;
+    const hadPrice = typeof pick.current_price === "number" && pick.current_price > 0;
+    const isFundamental = res.value.exitType === "fundamental";
+    const isPriceExit = res.value.exitType === "stop" || res.value.exitType === "target";
+    // Honor fundamental exits always; honor a price exit only as a fallback when
+    // we lacked a stored price to evaluate the code rule.
+    if (!isFundamental && !(isPriceExit && !hadPrice)) continue;
+    const exitType = isFundamental ? "fundamental" : (res.value.exitType as "stop" | "target");
+    const exitPrice = res.value.currentPrice > 0 ? res.value.currentPrice : pick.current_price ?? 0;
+    try {
+      await closePosition(pick, exitPrice, res.value.reason, exitType);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[alphaPipeline] markSold failed:", msg);
+      errors.push(msg);
     }
   }
 
@@ -400,6 +452,16 @@ export async function runAlphaPipeline(
   }
 
   // === K. Validate and write ===
+  // Don't fight the tape: the macro regime is a real gate here, not just advice
+  // to the picker. In a hostile market we demand near-max conviction, so new
+  // longs in RISK_OFF are rare by design — going quiet is the honest, protective
+  // move, not forcing a trade into a downtrend.
+  const convictionFloor =
+    regime?.stance === "RISK_OFF" ? 9 : regime?.stance === "NEUTRAL" ? 8 : 7;
+  // Cap how much a single pick can lose. With mechanical stops now enforced,
+  // bounding the stop distance bounds the worst-case drawdown per position — so
+  // no single name can bleed to -20% again.
+  const MAX_STOP_DISTANCE_PCT = 15;
   for (const draft of cioResult.drafts) {
     if (draft.sources.length < 2) {
       const msg = `skipping ${draft.ticker}: only ${draft.sources.length} source(s) — need ≥2`;
@@ -413,8 +475,26 @@ export async function runAlphaPipeline(
       errors.push(msg);
       continue;
     }
-    if (draft.conviction < 7) {
-      const msg = `skipping ${draft.ticker}: conviction=${draft.conviction} < 7`;
+    if (draft.conviction < convictionFloor) {
+      const msg = `skipping ${draft.ticker}: conviction=${draft.conviction} < ${convictionFloor} (regime ${regime?.stance ?? "NEUTRAL"})`;
+      console.error("[alphaPipeline]", msg);
+      errors.push(msg);
+      continue;
+    }
+
+    // Stop must sit below entry (it's a long) and within the max-loss cap.
+    const stopDistancePct =
+      draft.entryPrice > 0 && draft.stopLoss > 0
+        ? ((draft.entryPrice - draft.stopLoss) / draft.entryPrice) * 100
+        : -1;
+    if (stopDistancePct <= 0) {
+      const msg = `skipping ${draft.ticker}: stop $${draft.stopLoss} is not below entry $${draft.entryPrice}`;
+      console.error("[alphaPipeline]", msg);
+      errors.push(msg);
+      continue;
+    }
+    if (stopDistancePct > MAX_STOP_DISTANCE_PCT) {
+      const msg = `skipping ${draft.ticker}: stop is ${stopDistancePct.toFixed(1)}% below entry — exceeds ${MAX_STOP_DISTANCE_PCT}% max-loss cap`;
       console.error("[alphaPipeline]", msg);
       errors.push(msg);
       continue;
