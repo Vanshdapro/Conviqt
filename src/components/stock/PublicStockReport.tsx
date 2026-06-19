@@ -72,9 +72,8 @@ export default function PublicStockReport({
             </div>
             <ConvictionRing
               value={conviction}
-              max={conviction > 10 ? 100 : 10}
               color={vc}
-              label="conviction"
+              label="how sure"
               size={68}
             />
           </div>
@@ -87,7 +86,6 @@ export default function PublicStockReport({
           agents={report.agents}
           judgeVerdict={verdict}
           disagreement={disagreement}
-          disagreementMax={disagreement > 10 ? 100 : 10}
           standalone
         />
       )}

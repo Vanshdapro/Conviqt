@@ -22,7 +22,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe, getWebhookSecret, CREDITS_BY_PLAN, SUBSCRIPTION_PLANS, DEVELOPER_PLANS, PRO_PLANS, API_QUOTA_BY_PLAN, type PlanId, type DeveloperPlan } from "@/lib/stripe";
-import { upsertSubscriber, type Plan } from "@/lib/subscription";
+import { upsertSubscriber, getSubscriberByCustomerId, type Plan } from "@/lib/subscription";
 import { addCreditsOnce, resetSubscriptionCredits, MAX_PLAN_MONTHLY_CREDITS } from "@/lib/credits";
 import { setDeveloperTier, setDeveloperStatus } from "@/lib/apiKeys";
 import { recordServerEvent } from "@/lib/analytics/server";
@@ -239,18 +239,36 @@ async function handleSubscriptionChange(
     return;
   }
 
+  // Never assume Pro from missing metadata. Canceled → free. With plan metadata
+  // → that plan. Without metadata on a live subscription (legacy/manually-created
+  // sub, or an event Stripe sends without subscription_data.metadata) → preserve
+  // the existing stored plan, defaulting to free. The old `plan ?? "pro_monthly"`
+  // fallback silently upgraded any metadata-less subscriber to Pro.
+  let resolvedPlan: Plan;
+  if (sub.status === "canceled") {
+    resolvedPlan = "free";
+  } else if (plan) {
+    resolvedPlan = subscriberPlan(plan);
+  } else {
+    const existing = await getSubscriberByCustomerId(custId);
+    // Subscriber.plan is typed `string` in the store, but this table is only
+    // ever written with Plan values by this webhook, so the cast is safe.
+    resolvedPlan = (existing?.plan as Plan | undefined) ?? "free";
+    console.warn(
+      `[webhook] subscription ${sub.id} has no plan metadata — preserving "${resolvedPlan}" for ${email}`
+    );
+  }
+
   await upsertSubscriber({
     email,
     stripe_customer_id:  custId,
     subscription_id:     sub.id,
     subscription_status: sub.status,
-    plan: sub.status === "canceled"
-      ? "free"
-      : subscriberPlan(plan ?? ("pro_monthly" as PlanId)),
+    plan: resolvedPlan,
     current_period_end: periodEndFromSub(sub),
   });
 
-  console.log(`[webhook] subscription ${sub.status} for ${email}`);
+  console.log(`[webhook] subscription ${sub.status} (${resolvedPlan}) for ${email}`);
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────

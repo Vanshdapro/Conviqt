@@ -35,7 +35,7 @@ import {
 } from "@/lib/credits";
 import { getVerifiedUser } from "@/lib/auth";
 import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
-import { getExperienceLevel, useDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG, FREE_METER_DEGRADED_MSG } from "@/lib/profile";
+import { getExperienceLevel, useDeepAnalysis, refundDeepAnalysis, FREE_DEEP_LIMIT, FREE_LIMIT_MSG, FREE_METER_DEGRADED_MSG } from "@/lib/profile";
 import { audienceCacheSuffix, type ExperienceLevel } from "@/lib/agents/audience";
 
 // POST /api/chat
@@ -167,19 +167,25 @@ const DEEP_INTENTS = new Set<Intent>(["analyze", "compare", "sector_analyze", "g
 
 // (FREE_LIMIT_MSG lives in profile.ts — route files may only export handlers.)
 
+// Returns `response` (a Response to short-circuit with) when the run is blocked
+// or degraded, else null. `consumed` is true only when a Free deep slot was
+// actually taken — the caller passes the user's email into the stream helper so
+// it can refund that slot if the pipeline then fails (a failed run must cost
+// nothing; CLAUDE.md: "failed runs refund the slot").
 async function gateAndMeter(
   email:  string,
   intent: Intent,
   isCacheHit: boolean,
-): Promise<Response | null> {
+): Promise<{ response: Response | null; consumed: boolean }> {
   const effectiveIntent: Intent = isCacheHit ? "cache" : intent;
   const needed  = CREDITS_PER_INTENT[effectiveIntent];
 
   // Keep the internal ledger row provisioned (harmless, observability only).
   await grantFreeCreditsIfDue(email);
 
-  if (needed === 0) return null; // pick redirect — nothing to gate or meter
+  if (needed === 0) return { response: null, consumed: false }; // pick redirect
 
+  let consumed = false;
   if (!isCacheHit && DEEP_INTENTS.has(effectiveIntent)) {
     const subscriber = await getSubscriberByEmail(email);
     if (!isPremium(subscriber)) {
@@ -187,17 +193,24 @@ async function gateAndMeter(
       if (!gate.allowed) {
         if (gate.degraded) {
           console.error(`[chat] usage meter degraded for ${email} — failing closed`);
-          return jsonResponse(
-            { type: "error", error: FREE_METER_DEGRADED_MSG, code: "meter_unavailable" },
-            503
-          );
+          return {
+            response: jsonResponse(
+              { type: "error", error: FREE_METER_DEGRADED_MSG, code: "meter_unavailable" },
+              503
+            ),
+            consumed: false,
+          };
         }
         console.log(`[chat] free deep limit hit for ${email} (${gate.used}/${FREE_DEEP_LIMIT})`);
-        return jsonResponse(
-          { type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" },
-          402
-        );
+        return {
+          response: jsonResponse(
+            { type: "error", error: FREE_LIMIT_MSG, code: "plan_limit" },
+            402
+          ),
+          consumed: false,
+        };
       }
+      consumed = true;
       console.log(`[chat] free deep analysis ${gate.used}/${FREE_DEEP_LIMIT} for ${email}`);
     }
   }
@@ -208,7 +221,7 @@ async function gateAndMeter(
     console.log(`[chat] internal meter dry for ${email} (${effectiveIntent}) — continuing, plan-gated`);
   }
 
-  return null;
+  return { response: null, consumed };
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
@@ -331,19 +344,22 @@ export async function POST(req: Request) {
     const cached   = cacheGet<CouncilResult>(cacheKey);
     const isCached = !!cached;
 
+    let refundEmail: string | null = null;
     {
-      const blocked = await gateAndMeter(email, "analyze", isCached);
-      if (blocked) return blocked;
+      const gated = await gateAndMeter(email, "analyze", isCached);
+      if (gated.response) return gated.response;
+      if (gated.consumed) refundEmail = email;
     }
 
     try {
       ensureDailyBudget(0.07);
     } catch (err) {
+      if (refundEmail) await refundDeepAnalysis(refundEmail);
       const msg = err instanceof Error ? err.message : String(err);
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audience });
+    return streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audience, refundEmail });
   }
 
   // ── FOCUSED ─────────────────────────────────────────────────────────────
@@ -354,8 +370,10 @@ export async function POST(req: Request) {
     const isCached = !!cached;
 
     {
-      const blocked = await gateAndMeter(email, "focused", isCached);
-      if (blocked) return blocked;
+      // Focused is a Flash basic — not metered (not in DEEP_INTENTS), so no slot
+      // is ever consumed and there's nothing to refund.
+      const gated = await gateAndMeter(email, "focused", isCached);
+      if (gated.response) return gated.response;
     }
 
     try {
@@ -375,20 +393,23 @@ export async function POST(req: Request) {
     const cached   = cacheGet<CompareResult>(cacheKey);
     const isCached = !!cached;
 
+    let refundEmail: string | null = null;
     {
-      const blocked = await gateAndMeter(email, "compare", isCached);
-      if (blocked) return blocked;
+      const gated = await gateAndMeter(email, "compare", isCached);
+      if (gated.response) return gated.response;
+      if (gated.consumed) refundEmail = email;
     }
 
     try {
       // Worst case: two cold councils (~0.07 each) + comparative synthesis.
       ensureDailyBudget(0.16);
     } catch (err) {
+      if (refundEmail) await refundDeepAnalysis(refundEmail);
       const msg = err instanceof Error ? err.message : String(err);
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audience });
+    return streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audience, refundEmail });
   }
 
   // ── SECTOR — thematic snapshot across a curated basket ──────────────────
@@ -401,20 +422,23 @@ export async function POST(req: Request) {
     const cached   = cacheGet<SectorResult>(cacheKey);
     const isCached = !!cached;
 
+    let refundEmail: string | null = null;
     {
-      const blocked = await gateAndMeter(email, "sector_analyze", isCached);
-      if (blocked) return blocked;
+      const gated = await gateAndMeter(email, "sector_analyze", isCached);
+      if (gated.response) return gated.response;
+      if (gated.consumed) refundEmail = email;
     }
 
     try {
       // Worst case: every name cold (~6 × ~2.5¢ sweep+scorecard) + Sonnet synthesis.
       ensureDailyBudget(0.22);
     } catch (err) {
+      if (refundEmail) await refundDeepAnalysis(refundEmail);
       const msg = err instanceof Error ? err.message : String(err);
       return jsonResponse({ type: "error", error: msg }, 503);
     }
 
-    return streamSector({ basket, cached, cacheKey, intentCostUSD, audience });
+    return streamSector({ basket, cached, cacheKey, intentCostUSD, audience, refundEmail });
   }
 
   // ── HEADLINE — news-impact decode (Headline Decoder skill) ──────────────
@@ -425,9 +449,10 @@ export async function POST(req: Request) {
     const isCached = !!cached;
 
     {
-      // Metered under "focused" — comparable weight (Haiku + 2 searches).
-      const blocked = await gateAndMeter(email, "focused", isCached);
-      if (blocked) return blocked;
+      // Metered under "focused" — comparable weight (Haiku + 2 searches), and
+      // "focused" isn't a deep intent, so no slot is consumed (nothing to refund).
+      const gated = await gateAndMeter(email, "focused", isCached);
+      if (gated.response) return gated.response;
     }
 
     try {
@@ -454,19 +479,22 @@ export async function POST(req: Request) {
   }
 
   // ── GENERAL — Sonnet analyst ─────────────────────────────────────────────
+  let refundEmail: string | null = null;
   {
-    const blocked = await gateAndMeter(email, "general", false);
-    if (blocked) return blocked;
+    const gated = await gateAndMeter(email, "general", false);
+    if (gated.response) return gated.response;
+    if (gated.consumed) refundEmail = email;
   }
 
   try {
     ensureDailyBudget(0.10); // Sonnet + up to 3 web searches
   } catch (err) {
+    if (refundEmail) await refundDeepAnalysis(refundEmail);
     const msg = err instanceof Error ? err.message : String(err);
     return jsonResponse({ type: "error", error: msg }, 503);
   }
 
-  return streamAnalyst({ messages, intentCostUSD, audience });
+  return streamAnalyst({ messages, intentCostUSD, audience, refundEmail });
 }
 
 // ── Stream helpers ───────────────────────────────────────────────────────────
@@ -573,9 +601,10 @@ interface StreamAnalystArgs {
   messages:     Array<{ role: "user" | "assistant"; content: string }>;
   intentCostUSD: number;
   audience?:    ExperienceLevel | null;
+  refundEmail?: string | null; // set → refund the Free deep slot if the run fails
 }
 
-function streamAnalyst({ messages, intentCostUSD, audience }: StreamAnalystArgs): Response {
+function streamAnalyst({ messages, intentCostUSD, audience, refundEmail }: StreamAnalystArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -593,6 +622,7 @@ function streamAnalyst({ messages, intentCostUSD, audience }: StreamAnalystArgs)
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[chat] analyst failed:", msg);
         emit({ type: "error", error: "The answer couldn't be completed right now. Try again in a moment." });
+        if (refundEmail) await refundDeepAnalysis(refundEmail);
       } finally {
         emit({ type: "done" });
         close();
@@ -613,9 +643,10 @@ interface StreamCouncilArgs {
   cacheKey: string;
   intentCostUSD: number;
   audience?: ExperienceLevel | null;
+  refundEmail?: string | null; // set → refund the Free deep slot if the run fails
 }
 
-function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audience }: StreamCouncilArgs): Response {
+function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audience, refundEmail }: StreamCouncilArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -649,6 +680,8 @@ function streamCouncil({ ticker, focus, cached, cacheKey, intentCostUSD, audienc
         // Internal pipeline errors carry backstage vocabulary — users get
         // honest plain English, the console gets the real message.
         emit({ type: "error", error: `We couldn't pull enough verified facts on ${ticker} just now. Give it another try in a moment.` });
+        // Failed run → the user got nothing; give their Free slot back.
+        if (refundEmail) await refundDeepAnalysis(refundEmail);
       } finally {
         await quoteDone;
         emit({ type: "done" });
@@ -669,9 +702,10 @@ interface StreamSectorArgs {
   cacheKey: string;
   intentCostUSD: number;
   audience?: ExperienceLevel | null;
+  refundEmail?: string | null; // set → refund the Free deep slot if the run fails
 }
 
-function streamSector({ basket, cached, cacheKey, intentCostUSD, audience }: StreamSectorArgs): Response {
+function streamSector({ basket, cached, cacheKey, intentCostUSD, audience, refundEmail }: StreamSectorArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -704,6 +738,7 @@ function streamSector({ basket, cached, cacheKey, intentCostUSD, audience }: Str
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] sector failed for ${basket.key}:`, msg);
         emit({ type: "error", error: `Couldn't score enough names in ${basket.label} just now. Give it another try in a moment.` });
+        if (refundEmail) await refundDeepAnalysis(refundEmail);
       } finally {
         emit({ type: "done" });
         close();
@@ -724,9 +759,10 @@ interface StreamCompareArgs {
   cacheKey: string;
   intentCostUSD: number;
   audience?: ExperienceLevel | null;
+  refundEmail?: string | null; // set → refund the Free deep slot if the run fails
 }
 
-function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audience }: StreamCompareArgs): Response {
+function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audience, refundEmail }: StreamCompareArgs): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { emit, close } = ndjsonWriter(controller);
@@ -763,6 +799,7 @@ function streamCompare({ tickerA, tickerB, cached, cacheKey, intentCostUSD, audi
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[chat] compare failed for ${tickerA} vs ${tickerB}:`, msg);
         emit({ type: "error", error: `The ${tickerA} vs ${tickerB} match-up couldn't be completed just now. Give it another try in a moment.` });
+        if (refundEmail) await refundDeepAnalysis(refundEmail);
       } finally {
         await quotesDone;
         emit({ type: "done" });

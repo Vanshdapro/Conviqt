@@ -380,14 +380,12 @@ export default async function Home() {
               </Link>
             </div>
             <div className="cvq-card cvq-card--pad-lg cvq-land-plan cvq-land-plan--pro" data-reveal="up">
-              <span className="cvq-land-plan-offer">50% off · Limited time</span>
               <h3>Pro</h3>
               <p className="cvq-land-plan-price">
-                <s className="cvq-land-plan-was">$8</s>
-                <span>$4</span>
+                <span>$8</span>
                 <span className="cvq-land-plan-per">/month</span>
               </p>
-              <p className="cvq-land-plan-alt">Limited-time offer · cancel anytime · 7-day free trial</p>
+              <p className="cvq-land-plan-alt">Month to month · cancel anytime · 7-day free trial</p>
               <ul>
                 <li>Unlimited fair-use analyses</li>
                 <li>The full Academy — every track, every lesson</li>

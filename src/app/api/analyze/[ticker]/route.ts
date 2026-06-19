@@ -15,6 +15,15 @@ import {
   councilCacheKey,
 } from "@/lib/cache";
 import { persistStockReport } from "@/lib/stockReports";
+import { getVerifiedUser } from "@/lib/auth";
+import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
+import {
+  useDeepAnalysis,
+  refundDeepAnalysis,
+  FREE_DEEP_LIMIT,
+  FREE_LIMIT_MSG,
+  FREE_METER_DEGRADED_MSG,
+} from "@/lib/profile";
 import type { CouncilResult } from "@/lib/agents/types";
 
 // GET /api/analyze/:ticker?focus=...
@@ -41,6 +50,16 @@ interface RouteContext {
 }
 
 export async function GET(req: Request, ctx: RouteContext) {
+  // SECURITY: this runs the full paid Council. Without auth + metering it was an
+  // open budget-drain (and a way to bypass the Free meter that /api/chat
+  // enforces for the same pipeline). Identity comes from the verified session
+  // only — never the request.
+  const user = await getVerifiedUser();
+  if (!user) {
+    return NextResponse.json({ error: "Please sign in to use Conviqt." }, { status: 401 });
+  }
+  const email = user.email;
+
   const { ticker } = await ctx.params;
 
   if (!ticker || typeof ticker !== "string") {
@@ -76,7 +95,7 @@ export async function GET(req: Request, ctx: RouteContext) {
     );
   }
 
-  // Cache hit short-circuits before we charge the wallet check.
+  // Cache hit short-circuits before we charge the wallet check or a Free slot.
   const cacheKey = councilCacheKey(cleaned, focus);
   const cached = cacheGet<CouncilResult>(cacheKey);
   if (cached) {
@@ -84,9 +103,28 @@ export async function GET(req: Request, ctx: RouteContext) {
     return NextResponse.json({ ...cached, cached: true });
   }
 
+  // Free users spend one of their monthly deep slots on a fresh run; Pro is
+  // unlimited. Same gate as /api/chat so this endpoint can't bypass metering.
+  let consumedSlot = false;
+  const subscriber = await getSubscriberByEmail(email);
+  if (!isPremium(subscriber)) {
+    const meter = await useDeepAnalysis(email, FREE_DEEP_LIMIT);
+    if (!meter.allowed) {
+      if (meter.degraded) {
+        return NextResponse.json(
+          { error: FREE_METER_DEGRADED_MSG, code: "meter_unavailable" },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json({ error: FREE_LIMIT_MSG, code: "plan_limit" }, { status: 402 });
+    }
+    consumedSlot = true;
+  }
+
   try {
     ensureDailyBudget(0.07);
   } catch (err) {
+    if (consumedSlot) await refundDeepAnalysis(email);
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 503 });
   }
@@ -115,6 +153,8 @@ export async function GET(req: Request, ctx: RouteContext) {
     if (warnings.length) {
       console.error(`[analyze] ${cleaned} warnings:`, warnings);
     }
+    // Failed run → give the Free slot back.
+    if (consumedSlot) await refundDeepAnalysis(email);
     return NextResponse.json(
       { error: msg, ticker: cleaned, warnings },
       { status: 503 }

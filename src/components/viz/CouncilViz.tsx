@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import type { AgentOutput, Verdict } from "@/lib/agents/types";
+import { howSure, dispersionWord } from "@/lib/sureness";
 
 // ── Shared verdict palette (mirrors CouncilReport.verdictColors) ────────────
 
@@ -27,32 +28,32 @@ function verdictHue(v: Verdict): Hue {
 
 const NEUTRAL: Hue = { color: "var(--dim)", glow: "transparent" };
 
-// Agent confidence is 0-10 in the live Council and stored reports, but the type
-// nominally allows 0-100. Detect defensively so the bar never overflows.
+// Confidence / conviction / disagreement are all 0-100 internally — the
+// specialists clamp to 100 (lib/agents/_runner.ts) and the judge clamps to 100
+// (lib/agents/judge.ts); types.ts annotates every field `// 0-100`. The old
+// `conf > 10 ? /100 : /10` auto-detect was a bug: a genuine low score (a weak
+// 1-10 call on the 0-100 scale) got divided by 10 and rendered near-full.
+// Normalize against 100, and never show the raw number (CLAUDE.md / judge
+// prompt: conviction is internal, shown only as a High/Medium/Low band).
 function confFraction(conf: number): number {
-  const f = conf > 10 ? conf / 100 : conf / 10;
-  return Math.max(0, Math.min(1, f));
-}
-function confDenom(conf: number): number {
-  return conf > 10 ? 100 : 10;
+  return Math.max(0, Math.min(1, conf / 100));
 }
 
 // ── Conviction ring ─────────────────────────────────────────────────────────
 //
-// Circular progress ring with the value in the centre. Sweeps on mount. Scale
-// is explicit (max) because conviction is 0-10 in chat but 0-100 in the stored
-// public report — auto-detection would misread a "10".
+// Circular progress ring showing the "How sure" band. Sweeps on mount. `value`
+// is the internal 0-100 conviction; the arc fills value/100 and the centre
+// shows the plain band word (High/Medium/Low) — never the raw score
+// (CLAUDE.md: "Conviction is shown as 'How sure: High/Medium/Low'").
 
 export function ConvictionRing({
   value,
-  max,
   color,
   label,
   size = 64,
   stroke = 5,
 }: {
   value: number;
-  max: number;
   color: string;
   label: string;
   size?: number;
@@ -64,7 +65,8 @@ export function ConvictionRing({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const frac = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
+  const band = howSure(value);
+  const frac = Math.max(0, Math.min(1, value / 100));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const offset = c * (1 - (mounted ? frac : 0));
@@ -104,11 +106,8 @@ export function ConvictionRing({
             justifyContent: "center",
           }}
         >
-          <span className="mono font-bold leading-none" style={{ color, fontSize: size * 0.28 }}>
-            {value}
-          </span>
-          <span className="mono text-dim leading-none" style={{ fontSize: size * 0.13, marginTop: 1 }}>
-            /{max}
+          <span className="display font-bold leading-none text-center" style={{ color, fontSize: size * 0.2 }}>
+            {band}
           </span>
         </div>
       </div>
@@ -189,13 +188,11 @@ export function AgentConsensus({
   agents,
   judgeVerdict,
   disagreement,
-  disagreementMax,
   standalone = false,
 }: {
   agents: AgentOutput[];
   judgeVerdict?: Verdict;
-  disagreement?: number;
-  disagreementMax?: number;
+  disagreement?: number; // internal 0-100; shown only as a plain word
   // false: internal divider (border-b) for stacked report cards (chat).
   // true: a fully-bordered block for the public /stock page's space-y-px layout.
   standalone?: boolean;
@@ -236,8 +233,7 @@ export function AgentConsensus({
           {abstained > 0 && <span className="text-dim">{abstained} abstain</span>}
           {typeof disagreement === "number" && (
             <span className="text-dim border-l border-rule pl-3">
-              split {disagreement}
-              {disagreementMax ? `/${disagreementMax}` : ""}
+              {dispersionWord(disagreement)}
             </span>
           )}
         </div>
@@ -263,7 +259,7 @@ export function AgentConsensus({
               onClick={() => setActive((cur) => (cur === i ? null : i))}
               className="text-left focus:outline-none transition-transform duration-150"
               style={{ transform: isActive ? "translateY(-2px)" : "none" }}
-              aria-label={`${a.agent}: ${voteless ? "no data" : `${a.verdict}, confidence ${a.confidence} of ${confDenom(a.confidence)}`}`}
+              aria-label={`${a.agent}: ${voteless ? "no data" : `${a.verdict}, ${howSure(a.confidence).toLowerCase()} confidence`}`}
             >
               <div
                 className="px-2 py-2 transition-all duration-200"
@@ -308,7 +304,7 @@ export function AgentConsensus({
                   />
                 </div>
                 <div className="mono text-[8px] text-dim mt-1">
-                  {voteless ? "no data" : `${a.confidence}/${confDenom(a.confidence)}`}
+                  {voteless ? "no data" : howSure(a.confidence).toLowerCase()}
                 </div>
               </div>
             </button>
@@ -334,7 +330,7 @@ export function AgentConsensus({
               </span>
               {activeAgent.confidence > 0 && (
                 <span className="mono text-[8px] text-dim">
-                  conviction {activeAgent.confidence}/{confDenom(activeAgent.confidence)}
+                  how sure: {howSure(activeAgent.confidence).toLowerCase()}
                 </span>
               )}
             </div>

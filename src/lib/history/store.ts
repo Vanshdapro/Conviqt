@@ -162,15 +162,25 @@ export async function saveHistory(
 
 async function pruneOld(email: string): Promise<void> {
   try {
-    const { data, error } = await admin()
+    // The newest MAX_PER_USER rows are keepers. Find the boundary (the oldest
+    // keeper's timestamp) and delete everything strictly older. The previous
+    // fixed-window `.range(MAX_PER_USER, MAX_PER_USER + 100)` only ever cleared
+    // 100 rows past the cap, so a user with a larger backlog kept the tail
+    // forever — the cap was never actually enforced.
+    const { data: boundary, error: bErr } = await admin()
       .from("analysis_history")
-      .select("id")
+      .select("created_at")
       .eq("email", email)
       .order("created_at", { ascending: false })
-      .range(MAX_PER_USER, MAX_PER_USER + 100);
-    if (error || !data || data.length === 0) return;
-    const ids = (data as Array<{ id: string }>).map((r) => r.id);
-    await admin().from("analysis_history").delete().in("id", ids);
+      .range(MAX_PER_USER - 1, MAX_PER_USER - 1)
+      .maybeSingle();
+    if (bErr || !boundary) return; // fewer than MAX_PER_USER rows → nothing to prune
+    const cutoff = (boundary as { created_at: string }).created_at;
+    await admin()
+      .from("analysis_history")
+      .delete()
+      .eq("email", email)
+      .lt("created_at", cutoff);
   } catch {
     // Pruning is housekeeping — swallow failures silently.
   }

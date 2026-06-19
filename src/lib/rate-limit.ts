@@ -182,13 +182,24 @@ export function checkRateLimit(
   };
 }
 
-// Extract a stable IP from common headers. Vercel sets x-forwarded-for.
-// Falls back to "anon" so the bucket still functions when no IP is given.
+// Extract a stable IP for rate-limit keying.
+//
+// SECURITY: the LEFTMOST x-forwarded-for entry is supplied by the client and is
+// trivially spoofable — keying on it lets an attacker mint a fresh bucket per
+// request (set "X-Forwarded-For: <random>") and defeat every per-IP limit. So
+// we never trust it. On Vercel, `x-real-ip` is set by the platform to the true
+// connecting IP and cannot be overridden by the caller — prefer it. As a
+// fallback we take the RIGHTMOST x-forwarded-for entry (the one appended by the
+// closest trusted proxy), never the leftmost.
 export function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
   const real = req.headers.get("x-real-ip");
-  if (real) return real.trim();
+  if (real?.trim()) return real.trim();
+
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) {
+    const parts = fwd.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
   return "anon";
 }
 

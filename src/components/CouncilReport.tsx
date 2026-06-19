@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CouncilResult, AgentOutput, Verdict, MetricSignal } from "@/lib/agents/types";
 import { AgentConsensus, ConvictionRing } from "./viz/CouncilViz";
+import { howSure } from "@/lib/sureness";
 
 // ── Color helpers ─────────────────────────────────────────────────────────
 
@@ -71,13 +72,13 @@ function AgentRow({ a }: { a: AgentOutput }) {
             <div
               className="h-full"
               style={{
-                width: `${(a.confidence / 10) * 100}%`,
+                width: `${Math.max(0, Math.min(100, a.confidence))}%`,
                 background: color,
               }}
             />
           </div>
-          <span className="mono text-[10px] text-dim w-8 text-right">
-            {a.confidence}/10
+          <span className="mono text-[10px] text-dim text-right">
+            {a.confidence === 0 ? "—" : howSure(a.confidence).toLowerCase()}
           </span>
         </div>
       </div>
@@ -117,9 +118,6 @@ export default function CouncilReport({
   const citedSources = factSheet.sources
     .map((s, i) => ({ s, i }))
     .filter(({ i }) => citedSourceIds.has(i));
-
-  const convMax = judge.conviction > 10 ? 100 : 10;
-  const disMax = judge.disagreement > 10 ? 100 : 10;
 
   return (
     <article
@@ -164,9 +162,8 @@ export default function CouncilReport({
             </div>
             <ConvictionRing
               value={judge.conviction}
-              max={convMax}
               color={vc.dot}
-              label="conviction"
+              label="how sure"
               size={62}
             />
           </div>
@@ -178,7 +175,6 @@ export default function CouncilReport({
         agents={agents}
         judgeVerdict={judge.verdict}
         disagreement={judge.disagreement}
-        disagreementMax={disMax}
       />
 
       {/* ── Investment case ─────────────────────────────────────────── */}

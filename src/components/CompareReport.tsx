@@ -9,6 +9,7 @@ import type {
 } from "@/lib/agents/types";
 import CouncilReport from "./CouncilReport";
 import { ConvictionRing } from "./viz/CouncilViz";
+import { dispersionWord } from "@/lib/sureness";
 
 // ── Color helpers ─────────────────────────────────────────────────────────
 
@@ -31,8 +32,6 @@ function SideChip({
 }) {
   const { judge, ticker, factSheet } = result;
   const vColor = verdictColor(judge.verdict);
-  const convMax = judge.conviction > 10 ? 100 : 10;
-  const disMax = judge.disagreement > 10 ? 100 : 10;
 
   return (
     <div
@@ -69,14 +68,13 @@ function SideChip({
           </div>
           <div className="mono text-[10px] text-dim mt-1 truncate">{factSheet.companyName}</div>
           <div className="mono text-[9px] text-dim mt-2.5">
-            split {judge.disagreement}/{disMax}
+            {dispersionWord(judge.disagreement)}
           </div>
         </div>
         <ConvictionRing
           value={judge.conviction}
-          max={convMax}
           color={vColor}
-          label="conviction"
+          label="how sure"
           size={54}
         />
       </div>

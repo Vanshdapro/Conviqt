@@ -75,9 +75,8 @@ export default function SectorReport({
             </span>
             <ConvictionRing
               value={verdict.conviction}
-              max={verdict.conviction > 10 ? 100 : 10}
               color={stanceColor}
-              label="conviction"
+              label="how sure"
               size={50}
             />
           </div>

@@ -18,6 +18,7 @@ import { getSubscriberByEmail, isPremium } from "@/lib/subscription";
 import {
   getExperienceLevel,
   useDeepAnalysis,
+  refundDeepAnalysis,
   FREE_DEEP_LIMIT,
   FREE_LIMIT_MSG,
   FREE_METER_DEGRADED_MSG,
@@ -176,6 +177,8 @@ export async function POST(req: Request) {
 
   // Plan gate (Phase 7): fresh deep skills consume a Free monthly slot; cache
   // hits are free replays. Quick Take / Headline Decoder are never metered.
+  // Track whether we actually took a slot so we can refund it if the run fails.
+  let consumedSlot = false;
   if (!cached && DEEP_SKILLS.has(skill)) {
     const subscriber = await getSubscriberByEmail(email);
     if (!isPremium(subscriber)) {
@@ -188,6 +191,7 @@ export async function POST(req: Request) {
         console.log(`[skill-view] free deep limit hit for ${email} (${meter.used}/${FREE_DEEP_LIMIT})`);
         return json({ error: FREE_LIMIT_MSG, code: "plan_limit" }, 402);
       }
+      consumedSlot = true;
     }
   }
 
@@ -218,6 +222,8 @@ export async function POST(req: Request) {
     return json(payload, 200);
   } catch (err) {
     console.error("[skill-view] failed:", err);
+    // The run failed — the user got nothing, so give their Free slot back.
+    if (consumedSlot) await refundDeepAnalysis(email);
     return json(
       { error: "Couldn't run that skill right now. Try again in a moment." },
       500

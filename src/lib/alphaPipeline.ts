@@ -328,7 +328,11 @@ export async function runAlphaPipeline(
     const msg = `regime read failed: ${err instanceof Error ? err.message : String(err)}`;
     console.error("[alphaPipeline]", msg);
     errors.push(msg);
-    regime = undefined; // continue NEUTRAL — regime is advisory, not a hard gate
+    // Regime read failed → we're blind. Leave it undefined and treat that as
+    // the most hostile case at the publish gate below (near-max conviction
+    // required). Going quiet when we can't read the tape is the honest,
+    // protective move — never the permissive default.
+    regime = undefined;
   }
 
   // === F. Regime-aware scout / picker ===
@@ -456,8 +460,11 @@ export async function runAlphaPipeline(
   // to the picker. In a hostile market we demand near-max conviction, so new
   // longs in RISK_OFF are rare by design — going quiet is the honest, protective
   // move, not forcing a trade into a downtrend.
+  // A missing regime (detection failed) is treated as RISK_OFF-equivalent: when
+  // we can't read the tape we demand near-max conviction, so we publish almost
+  // nothing rather than forcing longs into an unknown market.
   const convictionFloor =
-    regime?.stance === "RISK_OFF" ? 9 : regime?.stance === "NEUTRAL" ? 8 : 7;
+    !regime || regime.stance === "RISK_OFF" ? 9 : regime.stance === "NEUTRAL" ? 8 : 7;
   // Cap how much a single pick can lose. With mechanical stops now enforced,
   // bounding the stop distance bounds the worst-case drawdown per position — so
   // no single name can bleed to -20% again.
