@@ -213,11 +213,13 @@ function PricingInner() {
 
           {/* Pro */}
           <section className="cvq-price-card cvq-price-card--pro" aria-label="Pro plan">
+            <span className="cvq-price-badge cvq-price-badge--offer">50% off · Limited time</span>
             <h2>Pro</h2>
             <p className="cvq-price-amount">
-              $8 <span>/ month</span>
+              <s className="cvq-price-was">$8</s>
+              {" "}$4 <span>/ month</span>
             </p>
-            <p className="cvq-price-tag">Billed monthly — cancel anytime.</p>
+            <p className="cvq-price-tag">Limited-time offer. Billed monthly — cancel anytime.</p>
             <ul className="cvq-price-list">
               {PRO_FEATURES.map((f) => (
                 <li key={f}>
