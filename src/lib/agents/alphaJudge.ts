@@ -354,7 +354,7 @@ ${candidates.map(renderCandidate).join("\n\n")}`;
 
   const response = await anthropic.messages.create({
     model: MODELS.cio,
-    max_tokens: 2000,
+    max_tokens: 1500,
     system: SYSTEM,
     tools: [REPORT_CIO_PICK_TOOL],
     tool_choice: { type: "any" as const },

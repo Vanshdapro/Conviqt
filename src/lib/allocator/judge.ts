@@ -205,8 +205,8 @@ ${renderStances(specialists)}
 Synthesize the final plan now via report_plan. Anchor the allocation to the deterministic skeleton's sleeves and percentages, assign a real ticker from VEHICLE FACTS to each, and keep the weights summing to ≈100%.`;
 
   const response = await anthropic.messages.create({
-    model: MODELS.cio, // Sonnet — the high-stakes synthesis
-    max_tokens: 2200,
+    model: MODELS.cio,
+    max_tokens: 1500,
     system: [
       { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
       ...(aud ? [{ type: "text" as const, text: aud }] : []),

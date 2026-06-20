@@ -173,7 +173,7 @@ export async function runMosaicScan(
 
   const response = await anthropic.messages.create({
     model: MODELS.mosaic,
-    max_tokens: 2048,
+    max_tokens: 1024,
     system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
     tools: [MOSAIC_WEB_SEARCH, REPORT_MOSAIC_TOOL],
     messages: [

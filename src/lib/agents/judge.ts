@@ -170,7 +170,7 @@ export async function runJudge(
 
   const response = await anthropic.messages.create({
     model: MODELS.judge,
-    max_tokens: 1500,
+    max_tokens: 1024,
     system: [
       { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
       ...(aud ? [{ type: "text" as const, text: aud }] : []),

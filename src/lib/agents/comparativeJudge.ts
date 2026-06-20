@@ -149,7 +149,7 @@ export async function runComparativeJudge(
 
   const response = await anthropic.messages.create({
     model: MODELS.comparativeJudge,
-    max_tokens: 1600,
+    max_tokens: 1200,
     system: [
       { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
       ...(aud ? [{ type: "text" as const, text: aud }] : []),

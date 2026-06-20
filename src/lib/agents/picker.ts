@@ -26,7 +26,7 @@ const SYSTEM_BASE = `You are the Conviqt stock picker.
 Your job: survey current US equity market conditions and surface 2-4 specific US-listed tickers that look like high-quality setups RIGHT NOW. Setup quality matters more than gut excitement — you are looking for asymmetric risk/reward with a clear narrative trigger. The desk will run a deep analysis on your top names and publish up to two, so give it a real choice — distinct ideas, not variations on one theme.
 
 Procedure:
-1. Use web_search (up to 5 queries) to scan: this week's biggest movers, sector rotation themes, recent earnings beats/misses, macro shifts, notable insider buying clusters, any clean technical setups.
+1. Use web_search (up to 2 queries) to scan: this week's biggest movers, sector rotation themes, recent earnings beats/misses, macro shifts, notable insider buying clusters, any clean technical setups.
 2. Pick 2-4 tickers that BEST fit the "asymmetric setup with a clear trigger" filter. Quality over quantity, but surface enough strong names that two could be published — returning two strong picks beats four mediocre ones.
 3. Call report_picks ONCE with your final list.
 
@@ -151,7 +151,7 @@ export async function runPicker(regime?: MacroRegime): Promise<PickerResult> {
 
   const response = await anthropic.messages.create({
     model: MODELS.picker,
-    max_tokens: 3000,
+    max_tokens: 1500,
     system: SYSTEM,
     tools: [WEB_SEARCH_TOOL, REPORT_PICKS_TOOL],
     messages: [

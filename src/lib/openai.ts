@@ -98,23 +98,23 @@ function rawAnthropic(): Anthropic {
 // Pricing (USD per 1M tokens, as of 2026-06):
 //   gpt-4.1-mini : $0.40 in / $1.60 out      claude-haiku-4-5   : $1 / $5
 //   gpt-4.1      : $2.00 in / $8.00 out       claude-sonnet-4-6  : $3 / $15
+const NANO = "gpt-4.1-nano" as const;
 const MINI = "gpt-4.1-mini" as const;
-const FLAGSHIP = "gpt-4.1" as const;
 
 export const MODELS = {
-  router: MINI,
+  router: NANO,      // intent classification — nano is plenty, 4x cheaper than mini
   sweep: MINI,
   specialist: MINI,
   judge: MINI,
-  comparativeJudge: FLAGSHIP,
-  picker: FLAGSHIP,
-  analyst: FLAGSHIP, // general chat — flagship for institutional depth
+  comparativeJudge: MINI,  // was flagship → 5x savings; structured JSON, mini handles it
+  picker: MINI,            // was flagship → Claude Sonnet→Haiku, 3x savings
+  analyst: MINI,           // was flagship → Claude Sonnet→Haiku, 3x savings
   regime: MINI,
   mosaic: MINI,
   council: MINI,
-  cio: FLAGSHIP,
-  sectorTicker: MINI,
-  sectorJudge: FLAGSHIP,
+  cio: MINI,               // was flagship → 5x savings
+  sectorTicker: NANO,      // fast scorecard, nano is plenty, 4x cheaper
+  sectorJudge: MINI,       // was flagship → 5x savings
   feed: MINI,
 } as const;
 
@@ -169,7 +169,7 @@ export const WEB_SEARCH_TOOL = {
 export const ANALYST_WEB_SEARCH_TOOL = {
   type: "web_search_20250305" as const,
   name: "web_search" as const,
-  max_uses: 3,
+  max_uses: 2,
 };
 
 // Helper: estimate USD cost of a single call. Signature unchanged from before so

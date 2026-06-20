@@ -496,7 +496,7 @@ async function attemptSweep(
 
   const response = await anthropic.messages.create({
     model: MODELS.sweep,
-    max_tokens: 3072,
+    max_tokens: 2048,
     system: [{ type: "text", text: BASE_SYSTEM, cache_control: { type: "ephemeral" } }],
     tools: [WEB_SEARCH_TOOL, REPORT_FACT_SHEET_TOOL],
     messages: [

@@ -316,7 +316,7 @@ export async function runSectorJudge(
 
   const response = await anthropic.messages.create({
     model: MODELS.sectorJudge,
-    max_tokens: 1800,
+    max_tokens: 1200,
     system: [
       { type: "text", text: SECTOR_SYSTEM, cache_control: { type: "ephemeral" } },
       ...(aud ? [{ type: "text" as const, text: aud }] : []),

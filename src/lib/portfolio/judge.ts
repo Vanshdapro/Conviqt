@@ -154,8 +154,8 @@ ${renderAgentFindings(agents)}
 Synthesize the final audit now via report_audit. Remember: exactly four scenarios (Recession, Rate Shock (+150bps), Tariff / Trade War, Tech-Led Selloff) and a ranked hedge list.`;
 
   const response = await anthropic.messages.create({
-    model: MODELS.cio, // Sonnet — the high-stakes synthesis
-    max_tokens: 2000,
+    model: MODELS.cio,
+    max_tokens: 1500,
     system: [
       { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
       ...(aud ? [{ type: "text" as const, text: aud }] : []),
