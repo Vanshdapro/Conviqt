@@ -173,10 +173,23 @@ const jsonLd = {
         "@type": "SearchAction",
         target: {
           "@type": "EntryPoint",
-          urlTemplate: `${SITE_URL}/?q={search_term_string}`,
+          urlTemplate: `${SITE_URL}/research?q={search_term_string}`,
         },
         "query-input": "required name=search_term_string",
       },
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "@id": `${SITE_URL}/#nav`,
+      name: ["Research", "Dashboard", "Headlines", "Portfolio", "Academy", "Pricing"],
+      url: [
+        `${SITE_URL}/research`,
+        `${SITE_URL}/dashboard`,
+        `${SITE_URL}/headlines`,
+        `${SITE_URL}/portfolio`,
+        `${SITE_URL}/academy`,
+        `${SITE_URL}/pricing`,
+      ],
     },
     {
       "@type": "SoftwareApplication",
