@@ -4134,3 +4134,130 @@ html.lenis, html.lenis body { height: auto; }
 .cvq-lens-holding { flex-direction: column; align-items: flex-start; gap: 4px; }
 .cvq-lens-holding-top { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .cvq-lens-hmom { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ── The Map — market node-graph (Dashboard) ────────────────────────────────
+   2D canvas graph + textual panel. Token colors only; the canvas reads
+   --accent/--up/--down/--text/--text-muted/--border at runtime. */
+.cvq-map-root {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+@media (max-width: 768px) {
+  .cvq-map-root { grid-template-columns: 1fr; }
+}
+.cvq-map-stage {
+  position: relative;
+  height: 440px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  touch-action: none; /* let the canvas own drag/pan/zoom */
+}
+@media (max-width: 768px) {
+  .cvq-map-stage { height: 320px; }
+}
+.cvq-map-canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.cvq-map-canvas:active { cursor: grabbing; }
+.cvq-map-hint {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-2);
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Tooltip — floats over the canvas, never intercepts pointer. */
+.cvq-map-tooltip {
+  position: absolute;
+  z-index: 3;
+  min-width: 150px;
+  max-width: 230px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+.cvq-map-tip-head { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: 4px; }
+.cvq-map-tip-ticker { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--text); }
+.cvq-map-tip-label { font-size: 12px; color: var(--text-muted); }
+.cvq-map-tip-rows { display: flex; flex-direction: column; gap: 2px; }
+.cvq-map-tip-row { display: flex; justify-content: space-between; gap: var(--space-3); font-size: 12px; }
+.cvq-map-tip-h { color: var(--text-muted); }
+.cvq-map-tip-ret { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-2); }
+.cvq-map-tip-fresh { margin-top: 4px; font-size: 11px; color: var(--text-muted); }
+
+/* Panel — the readable, screen-reader-true content beside the canvas. */
+.cvq-map-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow-y: auto;
+}
+.cvq-map-headline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+}
+.cvq-map-story { font-size: 14px; line-height: 1.55; color: var(--text-2); margin: 0; }
+.cvq-map-note { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+.cvq-map-rotation { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+@media (max-width: 420px) { .cvq-map-rotation { grid-template-columns: 1fr; } }
+.cvq-map-rot-col { display: flex; flex-direction: column; gap: 6px; }
+.cvq-map-rot-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 2px;
+}
+.cvq-map-rot-empty { font-size: 12px; color: var(--text-muted); }
+.cvq-map-rot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cvq-map-rot-row { display: flex; }
+.cvq-map-rot-btn {
+  display: flex; align-items: baseline; gap: var(--space-2); width: 100%;
+  padding: 4px var(--space-2);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: border-color 160ms ease-out, background 160ms ease-out;
+}
+.cvq-map-rot-btn:hover { border-color: var(--accent); }
+.cvq-map-rot-ticker { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--text); }
+.cvq-map-rot-label { font-size: 11px; color: var(--text-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvq-map-rot-ret { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
+
+/* Tone modifiers — paired with ▲▼ in markup so hue is never the only signal. */
+.cvq-map-tone-up { color: var(--up-ink); }
+.cvq-map-tone-down { color: var(--down-ink); }
+.cvq-map-tone-neutral { color: var(--text-muted); }
+
+.cvq-map-notes { display: flex; flex-direction: column; gap: 4px; }
+.cvq-map-subnote { font-size: 12px; color: var(--text-2); margin: 0; }
+
+.cvq-map-watch { display: flex; flex-direction: column; gap: 6px; }
+.cvq-map-watch-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted); margin: 0;
+}
+.cvq-map-watch-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cvq-map-watch-item { font-size: 13px; line-height: 1.45; color: var(--text-2); padding-left: var(--space-3); position: relative; }
+.cvq-map-watch-item::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+
+.cvq-map-unpriced { font-size: 11px; color: var(--text-muted); margin: 0; }
+.cvq-map-crosslink { font-size: 13px; font-weight: 600; color: var(--link); text-decoration: none; margin-top: auto; }
+.cvq-map-crosslink:hover { text-decoration: underline; }
+.cvq-map-asof { font-size: 11px; color: var(--text-muted); margin: 0; }

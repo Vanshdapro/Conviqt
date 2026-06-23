@@ -4,6 +4,8 @@ import { Card, ChangePill, EmptyState, Sparkline, StatTile, TickerChip } from "@
 import { history, quote } from "@/lib/marketdata";
 import type { Quote } from "@/lib/marketdata";
 import { readDashboard } from "@/lib/feed/store";
+import { readMarketMap } from "@/lib/map/store";
+import MarketMap from "@/components/dashboard/MarketMap";
 import { SNAPSHOT_TICKERS, timeAgo, type DashboardContent } from "@/lib/feed/types";
 import { loadPicks, pickStats, thesisLine, type PickView } from "@/lib/picksView";
 import { getVerifiedUser } from "@/lib/auth";
@@ -370,9 +372,15 @@ function Events({ content }: { content: DashboardContent | null }) {
 export default async function DashboardPage() {
   // All independent — fetch in parallel. Each section degrades on its own:
   // a dead price feed must not blank the trends, and vice versa.
-  const [content, snapshotQuotes, picks, watching] = await Promise.all([
+  const [content, marketMap, snapshotQuotes, picks, watching] = await Promise.all([
     readDashboard().catch((err) => {
       console.error("[feed] dashboard read failed:", err);
+      return null;
+    }),
+    // The Map — globally shared market read (feed_cache). Degrades on its own:
+    // a missing map must never blank the rest of the Dashboard.
+    readMarketMap().catch((err) => {
+      console.error("[map] market map read failed:", err);
       return null;
     }),
     Promise.all(
@@ -431,6 +439,29 @@ export default async function DashboardPage() {
       </header>
 
       <Snapshot quotes={snapshotQuotes} sparks={sparks} />
+
+      <section aria-label="The Map">
+        <div className="cvq-dash-sechead">
+          <h2 className="cvq-dash-h2">The Map</h2>
+          {marketMap ? (
+            <span className="cvq-dash-fresh">
+              Where the money&rsquo;s moving · updated {timeAgo(marketMap.generatedAt)}
+            </span>
+          ) : (
+            <span className="cvq-dash-fresh">Where the money&rsquo;s moving</span>
+          )}
+        </div>
+        {marketMap ? (
+          <MarketMap map={marketMap} />
+        ) : (
+          <Card>
+            <EmptyState
+              title="The Map isn't ready yet"
+              body="It draws after the next scheduled refresh. If this persists past a refresh window, something upstream broke — we show nothing rather than guess."
+            />
+          </Card>
+        )}
+      </section>
 
       <YourStocks rows={watchingRows} sparks={sparks} />
 
