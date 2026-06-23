@@ -4125,3 +4125,12 @@ html.lenis, html.lenis body { height: auto; }
 @media (max-width: 768px) {
   .cvq-thesis-cols { grid-template-columns: 1fr; }
 }
+
+/* Lens — medium-term framing */
+.cvq-lens-horizons { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.cvq-lens-horizon { display: inline-flex; align-items: center; gap: 6px; }
+.cvq-lens-hlabel { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--text-muted); }
+.cvq-lens-horizon--muted { opacity: 0.65; }
+.cvq-lens-holding { flex-direction: column; align-items: flex-start; gap: 4px; }
+.cvq-lens-holding-top { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cvq-lens-hmom { font-size: 0.78rem; color: var(--text-muted); }

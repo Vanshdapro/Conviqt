@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Card, ChangePill, ChangeText, SkeletonText } from "@/components/ui";
+import { Card, ChangePill, SkeletonText } from "@/components/ui";
 import type { LensBrief, LensThesis } from "@/lib/lens/types";
 
 type BriefState =
@@ -24,8 +24,8 @@ type ThesisState =
   | { name: "done"; thesis: LensThesis }
   | { name: "error"; message: string };
 
-function fmtMoneyAbs(n: number): string {
-  return `$${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function signedPct(n: number | null): string {
+  return n == null ? "" : `${n >= 0 ? "+" : ""}${n}%`;
 }
 
 export function LensPanel({ portfolioId, enabled }: { portfolioId: string | null; enabled: boolean }) {
@@ -121,17 +121,29 @@ export function LensPanel({ portfolioId, enabled }: { portfolioId: string | null
     <Card raised padding="lg" className="cvq-lens">
       <div className="cvq-lens-head">
         <div>
-          <h2 className="cvq-lens-title">Today</h2>
-          <span className="cvq-lens-date">
-            {b.date} · {b.dataFreshness}
-          </span>
+          <h2 className="cvq-lens-title">The trend</h2>
+          <span className="cvq-lens-date">past month · {b.dataFreshness}</span>
         </div>
-        {b.portfolioMovePct !== null && (
-          <span className="cvq-lens-move">
-            <ChangePill change={b.portfolioMovePct} />
-            {b.dayChangeUSD !== null && <ChangeText change={b.dayChangeUSD} label={fmtMoneyAbs(b.dayChangeUSD)} />}
-          </span>
-        )}
+        <div className="cvq-lens-horizons">
+          {b.move1mPct !== null && (
+            <span className="cvq-lens-horizon">
+              <span className="cvq-lens-hlabel">1M</span>
+              <ChangePill change={b.move1mPct} />
+            </span>
+          )}
+          {b.move1wPct !== null && (
+            <span className="cvq-lens-horizon">
+              <span className="cvq-lens-hlabel">1W</span>
+              <ChangePill change={b.move1wPct} />
+            </span>
+          )}
+          {b.portfolioMovePct !== null && (
+            <span className="cvq-lens-horizon cvq-lens-horizon--muted">
+              <span className="cvq-lens-hlabel">1D</span>
+              <ChangePill change={b.portfolioMovePct} />
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="cvq-lens-headline">{b.whatHappened}</p>
@@ -149,13 +161,24 @@ export function LensPanel({ portfolioId, enabled }: { portfolioId: string | null
 
       {notedHoldings.length > 0 && (
         <ul className="cvq-lens-holdings">
-          {notedHoldings.map((h) => (
-            <li key={h.ticker} className="cvq-lens-holding">
-              <span className="cvq-ticker-sym">{h.ticker}</span>
-              {h.changePct !== null && <ChangePill change={h.changePct} />}
-              <span className="cvq-lens-note">{h.note}</span>
-            </li>
-          ))}
+          {notedHoldings.map((h) => {
+            const mom = [
+              h.ret1wPct != null ? `1W ${signedPct(h.ret1wPct)}` : null,
+              h.ret3mPct != null ? `3M ${signedPct(h.ret3mPct)}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <li key={h.ticker} className="cvq-lens-holding">
+                <div className="cvq-lens-holding-top">
+                  <span className="cvq-ticker-sym">{h.ticker}</span>
+                  {h.ret1mPct !== null && <ChangePill change={h.ret1mPct} />}
+                  {mom && <span className="cvq-lens-hmom">{mom}</span>}
+                </div>
+                <span className="cvq-lens-note">{h.note}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
 

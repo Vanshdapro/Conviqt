@@ -18,12 +18,15 @@
 export interface LensHoldingMove {
   ticker: string;
   companyName?: string;
-  changePct: number | null; // today vs previous close
+  changePct: number | null; // today vs previous close (the noise — shown small)
   dayChangeUSD: number | null; // shares × (price − prevClose)
+  // Medium-term returns — the signal. Computed from price history.
+  ret1wPct: number | null; // ~1 week
+  ret1mPct: number | null; // ~1 month
+  ret3mPct: number | null; // ~3 months
   weightPct: number | null; // position weight in the portfolio
-  contribPct: number | null; // share of today's portfolio $ move this drove
   priced: boolean; // false when no provider could price it (excluded from math)
-  note: string; // one line, plain English: what moved it / why
+  note: string; // the medium-term read on this stock — its multi-week story
 }
 
 // ── What to watch (the Radar seed, personalized to this book) ────────────────
@@ -55,7 +58,10 @@ export interface LensBrief {
   portfolioName: string;
 
   // Headline numbers — deterministic, from marketdata. Never the model.
-  portfolioMovePct: number | null; // value-weighted day move of priced holdings
+  // The HEADLINE is medium-term (week/month); today is a demoted footnote.
+  move1wPct: number | null; // value-weighted ~1-week move
+  move1mPct: number | null; // value-weighted ~1-month move (the headline)
+  portfolioMovePct: number | null; // today's move — small, secondary
   dayChangeUSD: number | null; // total dollar change today across priced holdings
   pricedValueUSD: number | null; // value of holdings we could price
 
