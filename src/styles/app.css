@@ -4081,3 +4081,47 @@ html.lenis, html.lenis body { height: auto; }
 .cvq-history-del { align-self: center; color: var(--text-muted); }
 .cvq-history-del:hover:not(:disabled) { color: var(--down-ink); }
 .cvq-history-del:disabled { opacity: 0.4; cursor: default; }
+
+/* ── The Lens — daily brief + deep thesis (Portfolio Holdings tab) ──────────── */
+.cvq-lens { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
+.cvq-lens-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.cvq-lens-title { font-family: var(--font-display, inherit); font-size: 1.35rem; color: var(--text); margin: 0; }
+.cvq-lens-date { display: block; font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.cvq-lens-move { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.cvq-lens-headline { font-size: 1.05rem; line-height: 1.5; color: var(--text); margin: 0; font-weight: 500; }
+.cvq-lens-para { font-size: 0.95rem; line-height: 1.55; color: var(--text-2); margin: 0; }
+.cvq-lens-since { font-size: 0.85rem; color: var(--text-muted); font-style: italic; margin: 0; }
+.cvq-lens-label { display: inline-block; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-hover); font-weight: 600; }
+.cvq-lens-holdings { list-style: none; padding: 0; margin: var(--space-2) 0 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.cvq-lens-holding { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: 0.9rem; color: var(--text-2); }
+.cvq-lens-note { color: var(--text-2); }
+.cvq-lens-block { display: flex; flex-direction: column; gap: 4px; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.cvq-lens-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: var(--text-2); }
+.cvq-lens-flag--played_out { color: var(--up-ink); }
+.cvq-lens-flag--faded { color: var(--text-muted); }
+.cvq-lens-teasercopy { font-size: 0.95rem; line-height: 1.55; color: var(--text-2); margin: 0 0 var(--space-3); }
+.cvq-lens-deepwrap { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+
+/* Deep thesis */
+.cvq-thesis { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); padding: var(--space-5); background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 14px; }
+.cvq-thesis-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.cvq-thesis-title { font-family: var(--font-display, inherit); font-size: 1.15rem; color: var(--text); margin: 0; }
+.cvq-thesis-summary { font-size: 1rem; line-height: 1.6; color: var(--text); margin: 0; }
+.cvq-thesis-crux { padding: var(--space-3) var(--space-4); background: var(--accent-weak); border-radius: 9px; display: flex; flex-direction: column; gap: 4px; }
+.cvq-thesis-crux p { margin: 0; color: var(--text); font-weight: 500; line-height: 1.5; }
+.cvq-thesis-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+.cvq-thesis-list { display: flex; flex-direction: column; gap: 4px; }
+.cvq-thesis-holdings { display: flex; flex-direction: column; gap: var(--space-3); }
+.cvq-thesis-holding { padding: var(--space-3); background: var(--bg-surface); border: 1px solid var(--border); border-radius: 9px; display: flex; flex-direction: column; gap: 4px; }
+.cvq-thesis-holding-head { display: flex; align-items: center; gap: var(--space-2); }
+.cvq-thesis-holding p { margin: 0; font-size: 0.92rem; line-height: 1.5; color: var(--text-2); }
+.cvq-thesis-stats { font-size: 0.82rem; color: var(--text-muted); }
+.cvq-thesis-details { font-size: 0.88rem; color: var(--text-2); }
+.cvq-thesis-details summary { cursor: pointer; color: var(--link); font-weight: 500; }
+.cvq-thesis-reasoning { white-space: pre-wrap; line-height: 1.55; color: var(--text-2); margin-top: var(--space-2); }
+.cvq-thesis-sources { margin: var(--space-2) 0 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 4px; }
+.cvq-thesis-sources a { color: var(--link); }
+
+@media (max-width: 768px) {
+  .cvq-thesis-cols { grid-template-columns: 1fr; }
+}

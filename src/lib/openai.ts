@@ -89,6 +89,31 @@ function rawAnthropic(): Anthropic {
   return anthropicClient;
 }
 
+// OpenRouter client — OpenAI-compatible, but the Chat Completions API (not the
+// Responses API). Powers the low-cost DeepSeek path used by the daily brief.
+let openrouterClient: OpenAI | null = null;
+
+function rawOpenRouter(): OpenAI {
+  if (!openrouterClient) {
+    const apiKey = resolveKey("OPENROUTER_API_KEY");
+    if (!apiKey) {
+      throw new Error(
+        "OPENROUTER_API_KEY is not set. It powers the low-cost DeepSeek path (the daily brief). Add it to .env.local and restart the dev server."
+      );
+    }
+    openrouterClient = new OpenAI({
+      apiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      // OpenRouter attribution headers (optional, recommended).
+      defaultHeaders: {
+        "HTTP-Referer": "https://conviqt.com",
+        "X-Title": "Conviqt",
+      },
+    });
+  }
+  return openrouterClient;
+}
+
 // ─── Model IDs ───────────────────────────────────────────────────────────────
 //
 // Agents reference these OpenAI ids everywhere. On the Claude (web-search) path
@@ -100,6 +125,13 @@ function rawAnthropic(): Anthropic {
 //   gpt-4.1      : $2.00 in / $8.00 out       claude-sonnet-4-6  : $3 / $15
 const NANO = "gpt-4.1-nano" as const;
 const MINI = "gpt-4.1-mini" as const;
+// OpenRouter "vendor/model" slugs. Any model id containing "/" is routed to the
+// OpenRouter (Chat Completions) path by usesOpenRouter() — native OpenAI ids
+// never contain "/". Used for the cheap, data-fed daily brief (the Lens): we
+// feed it live numbers + news we already fetched, so it needs NO web_search and
+// runs on the cheapest strong model. Founder decision 2026-06-23.
+const DEEPSEEK_FLASH = "deepseek/deepseek-v4-flash" as const;
+const DEEPSEEK_PRO = "deepseek/deepseek-v4-pro" as const;
 
 export const MODELS = {
   router: NANO,      // intent classification — nano is plenty, 4x cheaper than mini
@@ -116,6 +148,11 @@ export const MODELS = {
   sectorTicker: NANO,      // fast scorecard, nano is plenty, 4x cheaper
   sectorJudge: MINI,       // was flagship → 5x savings
   feed: MINI,
+  // Low-cost, data-fed path (NO web_search) — the daily brief / Lens. Runs on
+  // DeepSeek V4 Flash via OpenRouter ($0.14/$0.28 per 1M). `lensPro` is the
+  // heavier DeepSeek V4 Pro, held in reserve for a deeper weekly synthesis.
+  lens: DEEPSEEK_FLASH,
+  lensPro: DEEPSEEK_PRO,
 } as const;
 
 // OpenAI model id → Claude model id, used only on the web-search path.
@@ -152,6 +189,20 @@ export const PRICING_PER_TOKEN = {
     output: 0.4 / 1_000_000,
     cacheWrite: 0.1 / 1_000_000,
     cacheRead: 0.025 / 1_000_000,
+  },
+  // DeepSeek V4 via OpenRouter (USD/1M, 2026-06). No prompt-cache pricing on
+  // this path, so cacheWrite/Read mirror input — the estimator never undercounts.
+  "deepseek/deepseek-v4-flash": {
+    input: 0.14 / 1_000_000,
+    output: 0.28 / 1_000_000,
+    cacheWrite: 0.14 / 1_000_000,
+    cacheRead: 0.14 / 1_000_000,
+  },
+  "deepseek/deepseek-v4-pro": {
+    input: 1.74 / 1_000_000,
+    output: 3.48 / 1_000_000,
+    cacheWrite: 1.74 / 1_000_000,
+    cacheRead: 1.74 / 1_000_000,
   },
 } as const;
 
@@ -238,6 +289,9 @@ interface CreateParams {
   tool_choice?: unknown;
   messages: ReadonlyArray<{ role: "user" | "assistant"; content: unknown }>;
   temperature?: number;
+  // OpenRouter-only: ask a reasoning model to expose its chain-of-thought.
+  // Ignored on the Anthropic / OpenAI-Responses paths.
+  reasoning?: boolean | { effort?: "low" | "medium" | "high" };
 }
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -554,6 +608,164 @@ class CitationSanitizingStream implements AIMessageStream {
 
 // ─── Public client ─────────────────────────────────────────────────────────────
 
+// ─── OpenRouter (DeepSeek) path: cheap, data-fed reasoning, NO web search ──────
+//
+// OpenRouter speaks the Chat Completions API, not OpenAI's Responses API, so
+// this path translates our shared CreateParams (Anthropic-shaped: system blocks,
+// client tools with input_schema, tool_choice {type:"tool",name}) into chat
+// messages + function tools, then maps the chat response back to AIMessage. The
+// daily brief feeds the model data we already fetched, so it never needs
+// web_search — keeping it on the cheapest strong model (DeepSeek V4 Flash).
+
+function usesOpenRouter(model: string): boolean {
+  return model.includes("/");
+}
+
+function mapChatToolChoice(
+  tc: unknown
+): OpenAI.Chat.Completions.ChatCompletionToolChoiceOption | undefined {
+  const r = asRecord(tc);
+  if (!r) return undefined;
+  if (r.type === "tool" && typeof r.name === "string") {
+    return { type: "function", function: { name: r.name } };
+  }
+  if (r.type === "any") return "required";
+  if (r.type === "auto") return "auto";
+  if (r.type === "none") return "none";
+  return undefined;
+}
+
+function buildChatRequest(
+  params: CreateParams
+): OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming {
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+  const system = flattenSystem(params.system);
+  if (system) messages.push({ role: "system", content: system });
+  for (const m of params.messages) {
+    messages.push({ role: m.role, content: flattenContent(m.content) });
+  }
+
+  const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
+  for (const raw of params.tools ?? []) {
+    const t = asRecord(raw);
+    if (t && typeof t.name === "string") {
+      tools.push({
+        type: "function",
+        function: {
+          name: t.name,
+          description: typeof t.description === "string" ? t.description : undefined,
+          parameters: (asRecord(t.input_schema) ?? { type: "object", properties: {} }) as Record<
+            string,
+            unknown
+          >,
+        },
+      });
+    }
+  }
+
+  const req: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
+    model: params.model,
+    messages,
+    max_tokens: params.max_tokens ?? 1024,
+  };
+  if (typeof params.temperature === "number") req.temperature = params.temperature;
+  if (tools.length) req.tools = tools;
+  const tc = mapChatToolChoice(params.tool_choice);
+  if (tc !== undefined) req.tool_choice = tc;
+  if (params.reasoning) {
+    // OpenRouter reasoning controls, passed through as an extra body field.
+    (req as unknown as Record<string, unknown>).reasoning =
+      typeof params.reasoning === "object" ? params.reasoning : { effort: "high" };
+  }
+  return req;
+}
+
+function mapChatResponse(res: OpenAI.Chat.Completions.ChatCompletion): AIMessage {
+  const choice = res.choices?.[0];
+  const msg = choice?.message;
+  const blocks: AIContentBlock[] = [];
+
+  // OpenRouter surfaces a reasoning model's chain-of-thought as msg.reasoning;
+  // expose it as a "reasoning" block so callers can show "how we got here".
+  const reasoning = (msg as { reasoning?: unknown } | undefined)?.reasoning;
+  if (typeof reasoning === "string" && reasoning.trim()) {
+    blocks.push({ type: "reasoning", text: reasoning });
+  }
+  if (typeof msg?.content === "string" && msg.content.trim()) {
+    blocks.push({ type: "text", text: msg.content });
+  }
+  for (const call of msg?.tool_calls ?? []) {
+    if (call.type !== "function") continue;
+    let parsed: unknown = {};
+    try {
+      parsed = JSON.parse(call.function.arguments || "{}");
+    } catch {
+      parsed = {};
+    }
+    blocks.push({ type: "tool_use", id: call.id, name: call.function.name, input: parsed });
+  }
+
+  const stop_reason = blocks.some((b) => b.type === "tool_use")
+    ? "tool_use"
+    : choice?.finish_reason === "length"
+      ? "max_tokens"
+      : "end_turn";
+
+  const u = res.usage;
+  const cached = u?.prompt_tokens_details?.cached_tokens ?? 0;
+  const usage: AIUsage = {
+    input_tokens: Math.max(0, (u?.prompt_tokens ?? 0) - cached),
+    output_tokens: u?.completion_tokens ?? 0,
+    cache_read_input_tokens: cached,
+    cache_creation_input_tokens: 0,
+  };
+
+  return {
+    id: res.id,
+    model: res.model,
+    role: "assistant",
+    stop_reason,
+    content: blocks,
+    usage,
+  };
+}
+
+// Streaming wrapper for the OpenRouter path. The brief doesn't need token
+// streaming, so this runs ONE Chat Completion and emits its text once — keeping
+// the .on("text")/.finalMessage() contract identical to the other paths. (Same
+// constructor-starts-run shape as OpenAIMessageStream: run() awaits the network
+// before emitting, so a synchronous .on() after construction always registers
+// first.)
+class OpenRouterMessageStream implements AIMessageStream {
+  private handlers: TextHandler[] = [];
+  private final: Promise<AIMessage>;
+
+  constructor(req: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming) {
+    this.final = this.run(req);
+  }
+
+  on(event: "text", handler: TextHandler): this {
+    if (event === "text") this.handlers.push(handler);
+    return this;
+  }
+
+  private async run(
+    req: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+  ): Promise<AIMessage> {
+    const res = await rawOpenRouter().chat.completions.create(req);
+    const msg = mapChatResponse(res);
+    const text = msg.content.find((b) => b.type === "text")?.text;
+    if (text) for (const h of this.handlers) h(text);
+    return msg;
+  }
+
+  finalMessage(): Promise<AIMessage> {
+    return this.final;
+  }
+}
+
+// ─── Public client ─────────────────────────────────────────────────────────────
+
 export interface AIClient {
   messages: {
     create(params: CreateParams): Promise<AIMessage>;
@@ -575,6 +787,11 @@ export function getOpenAI(): AIClient {
             );
             return sanitizeAnthropicCitations(res as unknown as AIMessage);
           }
+          if (usesOpenRouter(params.model)) {
+            // Cheap, data-fed path → DeepSeek via OpenRouter (Chat Completions).
+            const res = await rawOpenRouter().chat.completions.create(buildChatRequest(params));
+            return mapChatResponse(res);
+          }
           // Reasoning path → OpenAI Responses.
           const req = buildOpenAIRequest(params);
           const response = await rawOpenAI().responses.create({ ...req, stream: false });
@@ -588,6 +805,9 @@ export function getOpenAI(): AIClient {
               anthropicParams(params) as unknown as Anthropic.MessageStreamParams
             ) as unknown as AIMessageStream;
             return new CitationSanitizingStream(inner);
+          }
+          if (usesOpenRouter(params.model)) {
+            return new OpenRouterMessageStream(buildChatRequest(params));
           }
           return new OpenAIMessageStream(params);
         },
