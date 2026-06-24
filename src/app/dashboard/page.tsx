@@ -6,6 +6,8 @@ import type { Quote } from "@/lib/marketdata";
 import { readDashboard } from "@/lib/feed/store";
 import { readMarketMap } from "@/lib/map/store";
 import MarketMap from "@/components/dashboard/MarketMap";
+import { readMarketRadar } from "@/lib/radar/store";
+import MarketRadar from "@/components/dashboard/MarketRadar";
 import { SNAPSHOT_TICKERS, timeAgo, type DashboardContent } from "@/lib/feed/types";
 import { loadPicks, pickStats, thesisLine, type PickView } from "@/lib/picksView";
 import { getVerifiedUser } from "@/lib/auth";
@@ -372,7 +374,7 @@ function Events({ content }: { content: DashboardContent | null }) {
 export default async function DashboardPage() {
   // All independent — fetch in parallel. Each section degrades on its own:
   // a dead price feed must not blank the trends, and vice versa.
-  const [content, marketMap, snapshotQuotes, picks, watching] = await Promise.all([
+  const [content, marketMap, marketRadar, snapshotQuotes, picks, watching] = await Promise.all([
     readDashboard().catch((err) => {
       console.error("[feed] dashboard read failed:", err);
       return null;
@@ -381,6 +383,11 @@ export default async function DashboardPage() {
     // a missing map must never blank the rest of the Dashboard.
     readMarketMap().catch((err) => {
       console.error("[map] market map read failed:", err);
+      return null;
+    }),
+    // The Radar — globally shared "what's coming" (feed_cache). Same isolation.
+    readMarketRadar().catch((err) => {
+      console.error("[radar] market radar read failed:", err);
       return null;
     }),
     Promise.all(
@@ -461,6 +468,10 @@ export default async function DashboardPage() {
             />
           </Card>
         )}
+      </section>
+
+      <section aria-label="The Radar">
+        <MarketRadar radar={marketRadar} />
       </section>
 
       <YourStocks rows={watchingRows} sparks={sparks} />

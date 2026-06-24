@@ -44,6 +44,7 @@ import type {
 } from "@/lib/portfolio/live";
 import { parseHoldingsCsv } from "./csv";
 import { LensPanel } from "./LensPanel";
+import RadarPanel from "./RadarPanel";
 import { STAT_INFO, STAT_KEYS, type StatKey, type StatLessonMap } from "./statInfo";
 
 // ── Shared formatting ────────────────────────────────────────────────────────
@@ -626,6 +627,7 @@ function HoldingsTab({ lessons }: { lessons: StatLessonMap }) {
   return (
     <div className="cvq-folio-holdings">
       <LensPanel portfolioId={data?.portfolio?.id ?? null} enabled={!empty} />
+      {!empty && <RadarPanel portfolioId={data?.portfolio?.id ?? undefined} />}
       {empty ? (
         <Card padding="lg">
           <EmptyState

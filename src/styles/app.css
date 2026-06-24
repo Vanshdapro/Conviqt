@@ -4376,3 +4376,58 @@ html.lenis, html.lenis body { height: auto; }
   .cvq-flow-cap-title { font-size: 18px; }
   .cvq-flow-caption { padding: var(--space-3) var(--space-4) var(--space-6); }
 }
+
+/* ── The Radar — "what's coming, what's at stake" ──────────────────────────── */
+.cvq-radar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.cvq-radar-h2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--text); margin: 0; }
+.cvq-radar-fresh { font-size: 12px; color: var(--text-muted); }
+.cvq-radar-sub { font-size: 13px; color: var(--text-muted); margin: 0 0 var(--space-3); }
+
+.cvq-radar-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.cvq-radar-item {
+  padding: var(--space-3);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.cvq-radar-item-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: 4px; }
+.cvq-radar-kind {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-weak);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+}
+.cvq-radar-when { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.cvq-radar-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); margin: 0 0 4px; }
+.cvq-radar-link { color: var(--link); text-decoration: none; }
+.cvq-radar-link:hover { text-decoration: underline; }
+.cvq-radar-stakes { font-size: 13px; line-height: 1.5; color: var(--text-2); margin: 0 0 var(--space-2); }
+
+.cvq-radar-outcomes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cvq-radar-outcome { font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+.cvq-radar-outcome-label { font-weight: 600; color: var(--text); }
+.cvq-radar-outcome-arrow { color: var(--accent); }
+.cvq-radar-outcome-meaning { color: var(--text-muted); }
+
+/* RadarPanel (Portfolio, Pro) — card wrapper beside the Lens. */
+.cvq-radar-panel {
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  margin-bottom: var(--space-4);
+}
+.cvq-radar-panel--teaser { background: var(--bg-sunken); }
+.cvq-radar-teasercopy { font-size: 13px; line-height: 1.5; color: var(--text-2); margin: 0 0 var(--space-3); }
+.cvq-radar-matched { font-size: 12px; color: var(--text-muted); margin: 0 0 var(--space-3); display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.cvq-radar-matched-label { font-weight: 600; color: var(--text-2); }
