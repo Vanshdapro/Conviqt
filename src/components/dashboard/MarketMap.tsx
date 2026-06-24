@@ -26,6 +26,7 @@ import type {
   RotationEntry,
 } from "@/lib/map/types";
 import { retForHorizon } from "@/lib/map/types";
+import MarketMapFlow from "./MarketMapFlow";
 
 // ── Sim state ────────────────────────────────────────────────────────────────
 // SimNode extends the contract MapNode with mutable layout state. We never store
@@ -106,6 +107,9 @@ export default function MarketMap({ map }: { map: MarketMap }) {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  // Full-screen chain-reaction playback (the "See animation" button).
+  const [showFlow, setShowFlow] = useState(false);
 
   // Tooltip is the only piece of sim feedback that crosses into React render.
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -574,6 +578,7 @@ export default function MarketMap({ map }: { map: MarketMap }) {
     data.horizon === "1w" ? "1 week" : data.horizon === "3m" ? "3 months" : "1 month";
 
   return (
+    <>
     <div className="cvq-map-root">
       {/* ── Canvas stage ─────────────────────────────────────────────────── */}
       <div ref={wrapRef} className="cvq-map-stage">
@@ -643,6 +648,14 @@ export default function MarketMap({ map }: { map: MarketMap }) {
           </>
         )}
 
+        <button
+          type="button"
+          className="cvq-map-seeanim"
+          onClick={() => setShowFlow(true)}
+        >
+          ▶ See animation
+        </button>
+
         <div className="cvq-map-rotation">
           <RotationColumn
             title="Leading"
@@ -697,6 +710,8 @@ export default function MarketMap({ map }: { map: MarketMap }) {
         <p className="cvq-map-asof">{data.freshnessLabel}</p>
       </motion.aside>
     </div>
+    {showFlow && <MarketMapFlow map={map} onClose={() => setShowFlow(false)} />}
+    </>
   );
 }
 
