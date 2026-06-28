@@ -8,6 +8,7 @@ import MarketStrip from "./MarketStrip";
 import PriceChart from "./PriceChart";
 import { AgentConsensus, ConvictionRing } from "../viz/CouncilViz";
 import { howSure } from "@/lib/sureness";
+import { universeName } from "@/lib/tickers";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,16 @@ function VerdictHero({ data }: { data: StoredReport }) {
   const vbg = verdictBg(verdict);
   const sureWord = howSure(conviction);
 
+  // Prefer stored name; fall back to universe lookup; hide if still just the ticker
+  const displayName = (companyName && companyName !== ticker)
+    ? companyName
+    : (universeName(ticker) ?? null);
+  // Hide generic/bad sector values
+  const displaySector =
+    sector && sector.toLowerCase() !== "unknown" && sector.toLowerCase() !== ticker.toLowerCase()
+      ? sector
+      : null;
+
   return (
     <header
       className="px-5 py-6 border border-rule"
@@ -65,10 +76,12 @@ function VerdictHero({ data }: { data: StoredReport }) {
             </span>
           </div>
 
-          <div className="serif text-[15px] text-muted font-normal">{companyName}</div>
-          {sector && (
+          {displayName && (
+            <div className="serif text-[15px] text-muted font-normal">{displayName}</div>
+          )}
+          {displaySector && (
             <div className="mono text-[9px] text-dim mt-1.5 uppercase tracking-[0.1em]">
-              {sector}
+              {displaySector}
             </div>
           )}
 

@@ -14,16 +14,16 @@ import type { CouncilResult, AgentOutput, MetricSignal } from "@/lib/agents/type
 // never ships in the static HTML — the gate is real, not cosmetic.
 
 function signalColor(s: MetricSignal): string {
-  if (s === "bullish") return "var(--bull)";
-  if (s === "bearish") return "var(--bear)";
-  return "var(--dim)";
+  if (s === "bullish") return "var(--up-ink)";
+  if (s === "bearish") return "var(--down-ink)";
+  return "var(--text-muted)";
 }
 
 function agentColor(a: AgentOutput): string {
-  if (a.confidence === 0) return "var(--dim)";
-  if (a.verdict === "BUY") return "var(--bull)";
-  if (a.verdict === "SELL") return "var(--bear)";
-  return "var(--hold)";
+  if (a.confidence === 0) return "var(--text-muted)";
+  if (a.verdict === "BUY") return "var(--up-ink)";
+  if (a.verdict === "SELL") return "var(--down-ink)";
+  return "var(--text-2)";
 }
 
 type Status = "loading" | "locked" | "unlocked" | "error";
@@ -141,24 +141,31 @@ export default function StockReportGate({ ticker }: { ticker: string }) {
 
   return (
     <div className="space-y-px">
-      {/* Key metrics */}
-      {judge.keyMetrics.length > 0 && (
-        <section className="border border-rule px-5 py-5" style={{ background: "var(--surface)" }}>
-          <div className="caps text-[9px] text-accent mb-3">Key metrics</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {judge.keyMetrics.map((m, i) => (
-              <div key={i} className="border border-rule px-3 py-2.5" style={{ background: "var(--surface-2)" }}>
-                <div className="caps text-[9px] text-dim mb-1.5 leading-tight">{m.label}</div>
-                <div className="mono text-[15px] font-medium text-foreground mb-1.5">{m.value}</div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: signalColor(m.signal) }} />
-                  <span className="mono text-[9px]" style={{ color: signalColor(m.signal) }}>{m.signal}</span>
+      {/* Key metrics — skip price/market-cap rows (covered by live MarketStrip above) */}
+      {judge.keyMetrics.length > 0 && (() => {
+        const PRICE_LABELS = /current price|market cap|price|mkt cap/i;
+        const filtered = judge.keyMetrics.filter(
+          (m) => !PRICE_LABELS.test(m.label) && m.value && m.value !== "N/A" && m.value !== "—"
+        );
+        if (filtered.length === 0) return null;
+        return (
+          <section className="border border-rule px-5 py-5" style={{ background: "var(--surface)" }}>
+            <div className="caps text-[9px] text-accent mb-3">Key metrics</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {filtered.map((m, i) => (
+                <div key={i} className="border border-rule px-3 py-2.5" style={{ background: "var(--bg-sunken)" }}>
+                  <div className="caps text-[9px] mb-1.5 leading-tight" style={{ color: "var(--text-muted)" }}>{m.label}</div>
+                  <div className="mono text-[14px] font-semibold mb-1.5" style={{ color: "var(--text)" }}>{m.value}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: signalColor(m.signal) }} />
+                    <span className="mono text-[9px]" style={{ color: signalColor(m.signal) }}>{m.signal}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+              ))}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Catalysts */}
       {judge.catalysts.length > 0 && (
@@ -194,29 +201,45 @@ export default function StockReportGate({ ticker }: { ticker: string }) {
         <div className="mt-2">
           {agents.map((a) => {
             const color = agentColor(a);
+            const hasData = a.confidence > 0;
             return (
               <div key={a.agent} className="py-3 border-b border-rule last:border-b-0">
-                <div className="flex items-center justify-between gap-4 mb-1.5">
-                  <div className="flex items-center gap-3">
-                    <span className="mono text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color }}>
-                      {a.confidence === 0 ? "—" : a.verdict}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="mono text-[11px] font-medium uppercase tracking-[0.14em] flex-shrink-0"
+                      style={{ color: hasData ? color : "var(--dim)" }}
+                    >
+                      {hasData ? a.verdict : "—"}
                     </span>
-                    <span className="text-[13px] text-foreground/80 font-medium">{a.agent}</span>
+                    <span className="text-[13px] font-medium" style={{ color: hasData ? "var(--text)" : "var(--text-muted)", opacity: hasData ? 0.8 : 0.5 }}>
+                      {a.agent}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-[2px] bg-rule overflow-hidden">
-                      <div className="h-full" style={{ width: `${a.confidence}%`, background: color }} />
+                  {hasData ? (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-16 h-[2px] bg-rule overflow-hidden">
+                        <div className="h-full" style={{ width: `${a.confidence}%`, background: color }} />
+                      </div>
+                      <span className="mono text-[10px] text-dim w-12 text-right">{a.confidence}/100</span>
                     </div>
-                    <span className="mono text-[10px] text-dim w-12 text-right">{a.confidence}/100</span>
-                  </div>
+                  ) : (
+                    <span className="mono text-[9px] text-dim flex-shrink-0">no data this run</span>
+                  )}
                 </div>
-                <p className="serif text-[13px] text-foreground/65 leading-[1.68]">{a.reasoning}</p>
-                {a.flags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {a.flags.map((f) => (
-                      <span key={f} className="mono text-[10px] text-dim border border-rule rounded px-1.5 py-0.5">{f}</span>
-                    ))}
-                  </div>
+                {hasData && (
+                  <>
+                    <p className="serif text-[13px] leading-[1.68] mt-1.5" style={{ color: "var(--text)", opacity: 0.65 }}>
+                      {a.reasoning}
+                    </p>
+                    {a.flags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {a.flags.map((f) => (
+                          <span key={f} className="mono text-[10px] text-dim border border-rule rounded px-1.5 py-0.5">{f}</span>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );
