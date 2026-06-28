@@ -463,7 +463,7 @@ export async function generateLensBrief(
 
   const res = await getOpenAI().messages.create({
     model: MODELS.lens,
-    max_tokens: 1800,
+    max_tokens: 3000,
     system: BRIEF_SYSTEM,
     tools: [BRIEF_TOOL],
     tool_choice: { type: "tool", name: BRIEF_TOOL.name },

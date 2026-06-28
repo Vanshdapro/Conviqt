@@ -81,7 +81,7 @@ export interface PersonalRadar {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 /** ~2-week look-ahead (plan open-decision #3). */
-export const RADAR_HORIZON_DAYS = 14;
+export const RADAR_HORIZON_DAYS = 30;
 /** Cap surfaced items so the surface stays scannable, soonest first. */
 export const RADAR_MAX_ITEMS = 8;
 /** feed_cache key for the global, shared market-wide radar. */

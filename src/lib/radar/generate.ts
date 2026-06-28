@@ -188,7 +188,7 @@ async function enrichEvents(
 
   const res = await getOpenAI().messages.create({
     model: MODELS.lens,
-    max_tokens: 1800,
+    max_tokens: 3000,
     system: RADAR_SYSTEM,
     tools: [RADAR_TOOL],
     tool_choice: { type: "tool", name: RADAR_TOOL.name },
