@@ -74,7 +74,7 @@ interface FlowNode {
   id: string;
   ticker: string;
   label: string;
-  kind: "index" | "sector" | "theme";
+  kind: "index" | "sector" | "theme" | "stock" | "macro";
   tone: MomentumTone;
   ret: number | null; // horizon return, for the label
   weight: number;
