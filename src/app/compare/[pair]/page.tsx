@@ -11,6 +11,7 @@ import {
 } from "@/lib/tickers";
 import { COMPARE_UNIVERSE } from "@/lib/tickers";
 import CompareReport from "@/components/CompareReport";
+import CompareMarketStrip from "@/components/stock/CompareMarketStrip";
 import { PseoShell, ResearchCta } from "@/components/pseo/PseoShell";
 
 // ── Static generation + ISR ────────────────────────────────────────────────
@@ -145,16 +146,20 @@ export default async function ComparePage({
         <p className="serif text-[16px] text-muted mt-3">
           {nameA} versus {nameB}
         </p>
-        <div className="border border-rule mt-8 px-5 py-6 rounded-[14px]" style={{ background: "var(--surface)" }}>
-          <div className="caps mb-2" style={{ color: "var(--accent-hover)" }}>Comparison pending</div>
-          <p className="serif text-[17px] text-foreground/90 leading-snug max-w-xl">
-            No head-to-head verdict has been published for {a} vs {b} yet.
-          </p>
-          <p className="text-[14px] text-muted mt-3 max-w-xl leading-relaxed">
-            Conviqt&rsquo;s analysts research both names in full, then weigh them against each
-            other on valuation, positioning, catalysts, and risk/reward — every number cited to
-            a source URL. Run it and it&rsquo;ll publish here.
-          </p>
+        {/* Live prices even while verdict is pending */}
+        <div className="mt-8 border border-rule overflow-hidden" style={{ borderRadius: 14 }}>
+          <CompareMarketStrip tickerA={a} tickerB={b} />
+          <div className="px-5 py-5" style={{ background: "var(--surface)" }}>
+            <div className="caps mb-2" style={{ color: "var(--accent-hover)" }}>Comparison pending</div>
+            <p className="serif text-[17px] leading-snug max-w-xl" style={{ color: "var(--text)", opacity: 0.9 }}>
+              No head-to-head verdict has been published for {a} vs {b} yet.
+            </p>
+            <p className="mono text-[13px] mt-3 max-w-xl leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              Conviqt&rsquo;s analysts research both names in full, then weigh them against each
+              other on valuation, positioning, catalysts, and risk/reward — every number cited to
+              a source URL. Run it and it&rsquo;ll publish here.
+            </p>
+          </div>
         </div>
         <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 mono text-[11px] text-dim">
           <span className="text-muted">See each on its own:</span>
