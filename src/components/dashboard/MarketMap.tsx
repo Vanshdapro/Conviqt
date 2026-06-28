@@ -25,7 +25,7 @@ import type {
   MomentumTone,
   RotationEntry,
 } from "@/lib/map/types";
-import { retForHorizon } from "@/lib/map/types";
+import { retForHorizon, MAP_STOCK_PARENT } from "@/lib/map/types";
 import MarketMapFlow from "./MarketMapFlow";
 
 // ── Sim state ────────────────────────────────────────────────────────────────
@@ -51,17 +51,34 @@ interface Palette {
   border: string;
 }
 
-// Tunables for the force model. Calm by design — settles, then barely breathes.
-const REPULSION = 5200; // Coulomb-style node-node push
-const SPRING = 0.018; // base edge spring stiffness
-const SPRING_LEN = 150; // edge rest length (px, world space)
-const GRAVITY = 0.0016; // mild pull toward the canvas center
-const ANCHOR_PULL = 0.05; // how hard index nodes hold the center
-const DAMPING = 0.86; // velocity damping (smooth settle)
-const IDLE_DAMPING = 0.93; // gentler damping once settled (calm drift)
-const MIN_R = 12;
-const MAX_R = 34;
-const INDEX_BONUS = 8; // index anchors render a touch larger
+// Force tunables — 62-node graph. Repulsion is per-pair so it scales O(n²);
+// must be reduced sharply from the 14-node values or nodes scatter to the edges.
+const REPULSION = 420;
+const SPRING = 0.013;
+const SPRING_LEN = 145;       // sector↔sector / macro rest length
+const STOCK_SPRING_LEN = 55;  // stock→sector membership rest length
+const GRAVITY = 0.006;        // stronger centre-pull to keep clusters visible
+const ANCHOR_PULL = 0.09;
+const DAMPING = 0.87;
+const IDLE_DAMPING = 0.93;
+
+// Node radii by kind (px, world-space).
+const INDEX_R = 26;
+const SECTOR_MIN_R = 13;
+const SECTOR_MAX_R = 25;
+const STOCK_MIN_R = 7;
+const STOCK_MAX_R = 15;
+const MACRO_R = 10;
+
+function nodeRadius(n: MapNode): number {
+  switch (n.kind) {
+    case "index":  return INDEX_R;
+    case "sector": return SECTOR_MIN_R + n.weight * (SECTOR_MAX_R - SECTOR_MIN_R);
+    case "macro":  return MACRO_R;
+    case "stock":  return STOCK_MIN_R + n.weight * (STOCK_MAX_R - STOCK_MIN_R);
+    default:       return STOCK_MIN_R;
+  }
+}
 
 function toneColor(tone: MomentumTone, pal: Palette): string {
   if (tone === "up") return pal.up;
@@ -181,34 +198,74 @@ export default function MarketMap({ map }: { map: MarketMap }) {
     let panX = 0;
     let panY = 0;
 
-    // ── Build sim nodes. Indices anchored near center; sectors seeded on a ring.
-    const nodes: SimNode[] = data.nodes.map((n, i) => {
-      const isIndex = n.kind === "index";
-      const baseR = MIN_R + n.weight * (MAX_R - MIN_R) + (isIndex ? INDEX_BONUS : 0);
-      const cx = W / 2;
-      const cy = H / 2;
-      let x: number;
-      let y: number;
-      if (isIndex) {
-        // small cluster at the very center
-        const a = (i / Math.max(1, data.nodes.length)) * Math.PI * 2;
-        x = cx + Math.cos(a) * 26;
-        y = cy + Math.sin(a) * 26;
-      } else {
-        const a = (i / Math.max(1, data.nodes.length)) * Math.PI * 2;
-        const ring = Math.min(W, H) * 0.32;
-        x = cx + Math.cos(a) * ring;
-        y = cy + Math.sin(a) * ring;
+    // ── Build sim nodes. 4-tier placement: indices center, sectors on ring,
+    // stocks seeded near their parent sector, macro on outer ring.
+    const cx = W / 2;
+    const cy = H / 2;
+    const sectorEntries = data.nodes.filter((n) => n.kind === "sector");
+    const macroEntries  = data.nodes.filter((n) => n.kind === "macro");
+    const indexEntries  = data.nodes.filter((n) => n.kind === "index");
+
+    // Pre-compute sector positions so stocks can cluster around them.
+    const sectorInitPos = new Map<string, { x: number; y: number }>();
+    sectorEntries.forEach((s, si) => {
+      const a = (si / sectorEntries.length) * Math.PI * 2 - Math.PI / 2;
+      const ring = Math.min(W, H) * 0.24;
+      sectorInitPos.set(s.id, { x: cx + Math.cos(a) * ring, y: cy + Math.sin(a) * ring });
+    });
+
+    const macroInitPos = new Map<string, { x: number; y: number }>();
+    macroEntries.forEach((m, mi) => {
+      const a = (mi / macroEntries.length) * Math.PI * 2 - Math.PI / 6;
+      const ring = Math.min(W, H) * 0.38;
+      macroInitPos.set(m.id, { x: cx + Math.cos(a) * ring, y: cy + Math.sin(a) * ring });
+    });
+
+    const stocksBySector = new Map<string, number>();
+
+    const nodes: SimNode[] = data.nodes.map((n) => {
+      const r = nodeRadius(n);
+      let x = cx;
+      let y = cy;
+
+      switch (n.kind) {
+        case "index": {
+          const ii = indexEntries.indexOf(n);
+          const a = (ii / Math.max(1, indexEntries.length)) * Math.PI * 2;
+          x = cx + Math.cos(a) * 22;
+          y = cy + Math.sin(a) * 22;
+          break;
+        }
+        case "sector": {
+          const sp = sectorInitPos.get(n.id) ?? { x: cx, y: cy };
+          x = sp.x; y = sp.y;
+          break;
+        }
+        case "stock": {
+          const parent = MAP_STOCK_PARENT[n.ticker];
+          const sp = parent ? sectorInitPos.get(parent) : null;
+          if (sp) {
+            const idx = stocksBySector.get(parent) ?? 0;
+            stocksBySector.set(parent, idx + 1);
+            // Spread stocks evenly around the sector hub on initial placement.
+            const a = (idx / 8) * Math.PI * 2;
+            const dist = 40 + (idx % 3) * 14;
+            x = sp.x + Math.cos(a) * dist;
+            y = sp.y + Math.sin(a) * dist;
+          } else {
+            x = cx + (Math.random() - 0.5) * W * 0.4;
+            y = cy + (Math.random() - 0.5) * H * 0.4;
+          }
+          break;
+        }
+        case "macro": {
+          const mp = macroInitPos.get(n.id) ?? { x: cx, y: cy };
+          x = mp.x; y = mp.y;
+          break;
+        }
       }
-      return {
-        ...n,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        r: Math.max(MIN_R, Math.min(MAX_R + INDEX_BONUS, baseR)),
-        anchored: isIndex,
-      };
+
+      return { ...n, x, y, vx: 0, vy: 0, r, anchored: n.kind === "index" };
     });
     const idIndex = new Map<string, number>();
     nodes.forEach((n, i) => idIndex.set(n.id, i));
@@ -355,7 +412,7 @@ export default function MarketMap({ map }: { map: MarketMap }) {
       const cy = H / 2;
       const n = nodes.length;
 
-      // O(n²) repulsion — fine for ≤14 nodes.
+      // O(n²) repulsion — fine for ~68 nodes (~2300 pairs/frame).
       for (let i = 0; i < n; i++) {
         const a = nodes[i];
         for (let j = i + 1; j < n; j++) {
@@ -381,15 +438,20 @@ export default function MarketMap({ map }: { map: MarketMap }) {
         }
       }
 
-      // Edge springs — stiffer for higher weight.
+      // Edge springs — membership edges pull stocks tight to their sector hub;
+      // correlation edges use the longer rest length for sector-sector spacing.
       for (const e of edges) {
-        const a = nodes[idIndex.get(e.source)!];
-        const b = nodes[idIndex.get(e.target)!];
+        const ai = idIndex.get(e.source);
+        const bi = idIndex.get(e.target);
+        if (ai == null || bi == null) continue;
+        const a = nodes[ai];
+        const b = nodes[bi];
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
-        const k = SPRING * (0.4 + e.weight); // weight scales stiffness
-        const disp = d - SPRING_LEN;
+        const restLen = e.kind === "membership" ? STOCK_SPRING_LEN : SPRING_LEN;
+        const k = SPRING * (e.kind === "membership" ? 0.55 : 0.4 + e.weight);
+        const disp = d - restLen;
         const fx = (dx / d) * disp * k;
         const fy = (dy / d) * disp * k;
         a.vx += fx;
@@ -438,80 +500,133 @@ export default function MarketMap({ map }: { map: MarketMap }) {
       const isDimmed = (id: string) =>
         hovered != null && id !== hovered && !(neigh && neigh.has(id));
 
-      // Edges UNDER nodes.
       ctx!.lineCap = "round";
+
+      // ── 1. Membership edges (thin, warm, structural — drawn first/deepest) ──
       for (const e of edges) {
-        const a = nodes[idIndex.get(e.source)!];
-        const b = nodes[idIndex.get(e.target)!];
-        const active =
-          hovered != null && (e.source === hovered || e.target === hovered);
-        const dim = hovered != null && !active;
-        const baseAlpha = 0.1 + e.weight * 0.32;
-        const alpha = dim ? baseAlpha * 0.25 : active ? Math.min(0.8, baseAlpha + 0.3) : baseAlpha;
-        ctx!.strokeStyle = active ? withAlpha(pal.accent, alpha) : withAlpha(pal.border, alpha + 0.15);
-        ctx!.lineWidth = (0.6 + e.weight * 2.4) * (active ? 1.4 : 1);
+        if (e.kind !== "membership") continue;
+        const ai = idIndex.get(e.source);
+        const bi = idIndex.get(e.target);
+        if (ai == null || bi == null) continue;
+        const a = nodes[ai];
+        const b = nodes[bi];
+        const aDim = isDimmed(a.id);
+        const bDim = isDimmed(b.id);
+        const eitherHot = hovered != null && (a.id === hovered || b.id === hovered ||
+          (neigh && (neigh.has(a.id) || neigh.has(b.id))));
+        const alpha = (aDim && bDim) ? 0.04 : eitherHot ? 0.30 : 0.13;
+        ctx!.strokeStyle = withAlpha(pal.border, alpha);
+        ctx!.lineWidth = eitherHot ? 1.1 : 0.65;
         ctx!.beginPath();
         ctx!.moveTo(a.x, a.y);
         ctx!.lineTo(b.x, b.y);
         ctx!.stroke();
       }
 
-      // Nodes.
+      // ── 2. Correlation edges (data-driven, teal-accented) ──────────────────
+      for (const e of edges) {
+        if (e.kind !== "correlation") continue;
+        const ai = idIndex.get(e.source);
+        const bi = idIndex.get(e.target);
+        if (ai == null || bi == null) continue;
+        const a = nodes[ai];
+        const b = nodes[bi];
+        const active =
+          hovered != null && (e.source === hovered || e.target === hovered);
+        const dim = hovered != null && !active;
+        const baseAlpha = 0.10 + e.weight * 0.28;
+        const alpha = dim
+          ? baseAlpha * 0.22
+          : active
+          ? Math.min(0.82, baseAlpha + 0.35)
+          : baseAlpha;
+        ctx!.strokeStyle = active
+          ? withAlpha(pal.accent, alpha)
+          : withAlpha(pal.border, alpha + 0.12);
+        ctx!.lineWidth = (0.7 + e.weight * 2.2) * (active ? 1.5 : 1);
+        ctx!.beginPath();
+        ctx!.moveTo(a.x, a.y);
+        ctx!.lineTo(b.x, b.y);
+        ctx!.stroke();
+      }
+
+      // ── 3. Nodes ──────────────────────────────────────────────────────────
       for (const nd of nodes) {
         const dim = isDimmed(nd.id);
         const col = toneColor(nd.tone, pal);
-        const fillAlpha = dim ? 0.12 : nd.kind === "index" ? 0.9 : 0.78;
-        const ringAlpha = dim ? 0.25 : 1;
+        const isHot = nd.id === hovered || (neigh != null && neigh.has(nd.id));
 
-        // soft tonal halo (a flat tint, not a gradient-as-art)
-        if (!dim && (nd.id === hovered || (neigh && neigh.has(nd.id)))) {
+        // Fill alpha by kind
+        const fillAlpha = dim
+          ? (nd.kind === "stock" || nd.kind === "macro" ? 0.06 : 0.10)
+          : nd.kind === "index"  ? 0.90
+          : nd.kind === "sector" ? 0.80
+          : nd.kind === "macro"  ? 0.68
+          : 0.62; // stock
+
+        const ringAlpha = dim ? 0.18 : 1;
+
+        // Halo for hovered / neighbors (flat tint, not gradient-as-art)
+        if (!dim && isHot) {
+          const haloR = nd.r + (nd.kind === "index" ? 12 : nd.kind === "sector" ? 9 : 6);
           ctx!.beginPath();
-          ctx!.fillStyle = withAlpha(col, 0.16);
-          ctx!.arc(nd.x, nd.y, nd.r + 9, 0, Math.PI * 2);
+          ctx!.fillStyle = withAlpha(col, nd.kind === "index" ? 0.18 : 0.14);
+          ctx!.arc(nd.x, nd.y, haloR, 0, Math.PI * 2);
           ctx!.fill();
         }
 
-        // body
+        // Body
         ctx!.beginPath();
         ctx!.fillStyle = withAlpha(col, fillAlpha);
         ctx!.arc(nd.x, nd.y, nd.r, 0, Math.PI * 2);
         ctx!.fill();
 
-        // ring — index nodes get a heavier, accent-toned ring
-        ctx!.lineWidth = nd.kind === "index" ? 2.4 : 1.4;
+        // Ring
+        ctx!.lineWidth = nd.kind === "index" ? 2.6 : nd.kind === "sector" ? 1.8 : 1.0;
         ctx!.strokeStyle = withAlpha(
           nd.kind === "index" ? pal.text : col,
-          ringAlpha * (nd.kind === "index" ? 0.55 : 0.85)
+          ringAlpha * (nd.kind === "index" ? 0.58 : 0.88)
         );
         ctx!.beginPath();
         ctx!.arc(nd.x, nd.y, nd.r, 0, Math.PI * 2);
         ctx!.stroke();
 
-        // arrow glyph at center — meaning never relies on hue alone
-        if (!dim) {
-          ctx!.fillStyle = withAlpha(pal.text, 0.92);
-          ctx!.font = `${Math.max(10, nd.r * 0.7)}px ui-sans-serif, system-ui, sans-serif`;
+        // Direction glyph — only on nodes large enough to render clearly
+        if (!dim && nd.r >= 9) {
+          ctx!.fillStyle = withAlpha(pal.text, 0.86);
+          ctx!.font = `${Math.max(7, Math.floor(nd.r * 0.62))}px ui-sans-serif, system-ui, sans-serif`;
           ctx!.textAlign = "center";
           ctx!.textBaseline = "middle";
           ctx!.fillText(arrowFor(nd.tone), nd.x, nd.y);
         }
 
-        // Label: big nodes always; small nodes on hover only.
-        const showLabel =
+        // Labels — verbosity by kind
+        const showTicker =
           !dim &&
-          (nd.kind === "index" || nd.r >= 20 || nd.id === hovered || (neigh && neigh.has(nd.id)));
-        if (showLabel) {
-          const label = nd.ticker;
-          ctx!.font = "600 11px ui-sans-serif, system-ui, sans-serif";
+          (nd.kind === "index" ||
+            nd.kind === "sector" ||
+            nd.kind === "macro" ||
+            isHot);
+        const showFullLabel =
+          !dim &&
+          (nd.kind === "index" ||
+            (nd.kind === "sector" && nd.r >= 17) ||
+            (nd.kind === "macro" && isHot) ||
+            (nd.kind === "stock" && nd.id === hovered));
+
+        if (showTicker) {
+          ctx!.font = `600 ${nd.kind === "index" ? 11 : 10}px ui-sans-serif, system-ui, sans-serif`;
           ctx!.textAlign = "center";
           ctx!.textBaseline = "top";
-          ctx!.fillStyle = withAlpha(pal.text, 0.9);
-          ctx!.fillText(label, nd.x, nd.y + nd.r + 4);
-          if (nd.r >= 24 || nd.id === hovered) {
-            ctx!.font = "400 9.5px ui-sans-serif, system-ui, sans-serif";
-            ctx!.fillStyle = withAlpha(pal.textMuted, 0.95);
-            ctx!.fillText(nd.label, nd.x, nd.y + nd.r + 17);
-          }
+          ctx!.fillStyle = withAlpha(pal.text, 0.90);
+          ctx!.fillText(nd.ticker, nd.x, nd.y + nd.r + 3);
+        }
+        if (showFullLabel) {
+          ctx!.font = "400 9px ui-sans-serif, system-ui, sans-serif";
+          ctx!.textAlign = "center";
+          ctx!.textBaseline = "top";
+          ctx!.fillStyle = withAlpha(pal.textMuted, 0.95);
+          ctx!.fillText(nd.label, nd.x, nd.y + nd.r + 14);
         }
       }
 

@@ -18,6 +18,7 @@ import { history } from "@/lib/marketdata";
 import type { Candle, PriceHistory } from "@/lib/marketdata";
 import {
   MAP_UNIVERSE,
+  MAP_STOCK_PARENT,
   toneFromPct,
   retForHorizon,
   weightFromRet,
@@ -25,6 +26,7 @@ import {
 import type {
   MapEdge,
   MapNode,
+  MomentumTone,
   MarketMapData,
   MapHorizon,
   RotationEntry,
@@ -36,9 +38,9 @@ const SESSIONS_1W = 5;
 const SESSIONS_1M = 21;
 const SESSIONS_3M = 63;
 
-// Edge tuning — keep the graph Obsidian-clean, not a hairball.
-const CORR_MIN = 0.55; // below this, the link is noise; drop it
-const MAX_EDGES_PER_NODE = 3; // cap fan-out so dense clusters stay readable
+// Edge tuning
+const CORR_MIN = 0.55; // below this, correlation is noise; drop it
+const MAX_EDGES_PER_NODE = 5; // correlation fan-out cap (membership edges bypass this)
 const DEFAULT_HORIZON: MapHorizon = "1m";
 const FETCH_CONCURRENCY = 4; // free feeds 429 a 14-way burst; pull a few at a time
 
@@ -147,10 +149,19 @@ export async function computeMarketMap(opts?: {
 }): Promise<MarketMapData> {
   const horizon = opts?.horizon ?? DEFAULT_HORIZON;
 
-  // 1. Fetch proxies with BOUNDED concurrency; each failure → null (never throws
-  // the run). The free price feeds (Stooq/Yahoo) rate-limit a 14-way burst and
-  // start 429ing — pulling a few at a time prices far more of the universe.
-  const fetched = await mapWithLimit(MAP_UNIVERSE, FETCH_CONCURRENCY, async (e) => {
+  // 1. Only fetch price history for index + sector nodes (the 14 original data
+  // nodes). Stock and macro nodes are PURELY structural/topological — they exist
+  // in the graph for visual density but don't need live price data. This avoids
+  // sending 68 requests to the free feeds which would trigger rate-limiting and
+  // leave the important sector performance data empty.
+  const dataUniverse = MAP_UNIVERSE.filter(
+    (e) => e.kind === "index" || e.kind === "sector"
+  );
+  const topologyUniverse = MAP_UNIVERSE.filter(
+    (e) => e.kind === "stock" || e.kind === "macro"
+  );
+
+  const fetched = await mapWithLimit(dataUniverse, FETCH_CONCURRENCY, async (e) => {
     try {
       const hist = await history(e.ticker, "3mo");
       return { entry: e, hist } as { entry: typeof e; hist: PriceHistory | null };
@@ -164,7 +175,6 @@ export async function computeMarketMap(opts?: {
 
   for (const { entry, hist } of fetched) {
     const candles = hist?.candles ?? [];
-    // <2 candles can't yield even a single daily return → unpriced.
     if (!hist || candles.length < 2) {
       unpriced.push(entry.ticker);
       continue;
@@ -189,8 +199,24 @@ export async function computeMarketMap(opts?: {
     });
   }
 
+  // Structural-only nodes for stock + macro entries (topology without price data).
+  // Rendered as neutral dots in the graph; hover tooltip shows "—" for returns.
+  const structuralNodes: MapNode[] = topologyUniverse.map((entry) => ({
+    id: entry.ticker,
+    label: entry.label,
+    ticker: entry.ticker,
+    kind: entry.kind,
+    ret1wPct: null,
+    ret1mPct: null,
+    ret3mPct: null,
+    tone: "neutral" as MomentumTone,
+    weight: 0.15,
+    freshnessLabel: null,
+    sourceUrl: null,
+  }));
+
   // 3. Nodes — tone + weight keyed off the active horizon.
-  const nodes: MapNode[] = priced.map((p) => {
+  const pricedNodes: MapNode[] = priced.map((p) => {
     const hr = retForHorizon(p, horizon);
     return {
       id: p.ticker,
@@ -207,8 +233,22 @@ export async function computeMarketMap(opts?: {
     };
   });
 
-  // 4. Edges — correlation between SECTOR nodes only (indices are central
-  // anchors, not correlation targets). Undirected, deduped source<target.
+  // All nodes: priced first so they render over structural ones when coincident.
+  const nodes: MapNode[] = [...pricedNodes, ...structuralNodes];
+  const allNodeIds = new Set(nodes.map((n) => n.id));
+
+  // 4a. Membership edges — stock → parent sector (structural, bypasses cap).
+  // Every stock node gets exactly one membership edge regardless of price data.
+  const membershipEdges: MapEdge[] = [];
+  for (const n of nodes) {
+    if (n.kind !== "stock") continue;
+    const parentTicker = MAP_STOCK_PARENT[n.ticker];
+    if (!parentTicker || !allNodeIds.has(parentTicker)) continue;
+    const [src, tgt] = n.ticker < parentTicker ? [n.ticker, parentTicker] : [parentTicker, n.ticker];
+    membershipEdges.push({ source: src, target: tgt, weight: 0.8, kind: "membership" });
+  }
+
+  // 4b. Correlation edges — priced sectors only. Undirected, deduped source<target.
   const sectors = priced.filter((p) => p.kind === "sector");
   const candidates: MapEdge[] = [];
   for (let i = 0; i < sectors.length; i++) {
@@ -218,15 +258,13 @@ export async function computeMarketMap(opts?: {
       const r = pearson(a.dailyRets, b.dailyRets);
       const w = Math.abs(r);
       if (w < CORR_MIN) continue;
-      // Order endpoints by ticker so the undirected pair is canonical.
       const [source, target] = a.ticker < b.ticker ? [a.ticker, b.ticker] : [b.ticker, a.ticker];
       candidates.push({ source, target, weight: Math.min(1, Math.max(0, w)), kind: "correlation" });
     }
   }
+  const corrEdges = capEdgesPerNode(candidates, MAX_EDGES_PER_NODE);
 
-  // Cap to each node's top-3 strongest edges: keep an edge only if it survives
-  // the top-3 cut at BOTH endpoints, so neither side becomes a hairball.
-  const edges = capEdgesPerNode(candidates, MAX_EDGES_PER_NODE);
+  const edges = [...membershipEdges, ...corrEdges];
 
   // 5. Rotation — sectors only, ranked by the horizon return; skip nulls.
   const rankable = sectors
