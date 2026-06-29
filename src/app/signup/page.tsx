@@ -10,6 +10,8 @@ import {
   authInputStyle,
   authLabelStyle,
   authButtonStyle,
+  GoogleOAuthButton,
+  AuthDivider,
 } from "@/components/AuthShell";
 
 // Supabase returns terse, sometimes technical auth errors. Map the common ones
@@ -46,6 +48,15 @@ function SignupInner() {
   const [sent, setSent] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    const supabase = createSupabaseBrowserClient();
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    // Browser navigates away — no need to reset loading state
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -183,6 +194,11 @@ function SignupInner() {
         </>
       }
     >
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <GoogleOAuthButton onClick={handleGoogleSignIn} loading={googleLoading} />
+        <AuthDivider />
+      </div>
+
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <label style={authLabelStyle}>Name</label>

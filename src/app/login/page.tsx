@@ -9,6 +9,8 @@ import {
   authInputStyle,
   authLabelStyle,
   authButtonStyle,
+  GoogleOAuthButton,
+  AuthDivider,
 } from "@/components/AuthShell";
 
 function LoginInner() {
@@ -20,6 +22,14 @@ function LoginInner() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(urlError);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    const supabase = createSupabaseBrowserClient();
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,6 +75,11 @@ function LoginInner() {
         </>
       }
     >
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <GoogleOAuthButton onClick={handleGoogleSignIn} loading={googleLoading} />
+        <AuthDivider />
+      </div>
+
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <label style={authLabelStyle}>Email</label>
