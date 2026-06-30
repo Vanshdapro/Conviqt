@@ -52,7 +52,7 @@ const TICKER_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
 export function OnboardingSheet({
   onClose,
 }: {
-  onClose: (completed: boolean) => void;
+  onClose: (completed: boolean, autorunTicker?: string) => void;
 }) {
   const [step, setStep] = useState(0);
   const [style, setStyle] = useState<string | null>(null);
@@ -101,7 +101,9 @@ export function OnboardingSheet({
       ...(level ? { experienceLevel: level } : {}),
       ...(picked.length > 0 ? { watchTickers: picked } : {}),
     });
-    onClose(true);
+    // Hand the first picked stock up so the shell can land them on a live
+    // Quick Take instead of a blank Research home (first-run aha moment).
+    onClose(true, picked[0]);
   };
 
   const titles = ["How do you like to invest?", "How much have you done this before?", "Pick a few stocks you care about"];
@@ -375,13 +377,19 @@ export function FirstRun() {
     if (fetched.current) return;
     fetched.current = true;
     let alive = true;
+    // On the post-onboarding autorun load (?autorun=1) we let the first Quick
+    // Take be the whole moment — the tour waits for their next visit so two
+    // overlays don't fight for attention.
+    const autorun =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("autorun") === "1";
     fetch("/api/profile")
       .then((r) => (r.ok ? r.json() : null))
       .then((p: ProfileState | null) => {
         if (!alive || !p) return;
         setProfile(p);
         if (!p.onboarded) setShowOnboarding(true);
-        else if (!p.tourDismissed) setShowTour(true);
+        else if (!p.tourDismissed && !autorun) setShowTour(true);
       })
       .catch(() => null);
     return () => {
@@ -392,8 +400,16 @@ export function FirstRun() {
   if (showOnboarding) {
     return (
       <OnboardingSheet
-        onClose={() => {
+        onClose={(completed, autorunTicker) => {
           setShowOnboarding(false);
+          // Picked a stock → land them on a live Quick Take of it. Full-page
+          // nav so ResearchSurface remounts and its mount effect sees autorun=1.
+          if (completed && autorunTicker) {
+            window.location.assign(
+              `/research?skill=quick-take&ticker=${encodeURIComponent(autorunTicker)}&autorun=1`
+            );
+            return;
+          }
           if (profile && !profile.tourDismissed) setShowTour(true);
         }}
       />

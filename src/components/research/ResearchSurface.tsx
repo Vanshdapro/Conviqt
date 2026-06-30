@@ -190,8 +190,20 @@ export function ResearchSurface({ firstName }: { firstName: string | null }) {
         if (tb) setGTickerB(tb);
         const h = params.get("headline");
         if (h) setGHeadline(h.slice(0, 300));
+
+        // Auto-run (post-onboarding first-run): when invited with ?autorun=1 on
+        // a single-ticker skill, fire it straight away so a brand-new user lands
+        // on a live result instead of a blank "What do you want to look into?".
+        // Quick Take is the intended entry — fast and free. We pass the ticker
+        // directly (state hasn't flushed yet this tick).
+        if (params.get("autorun") === "1" && skill.input === "ticker" && TICKER_RE.test(t)) {
+          runSkillViewSkill(skill, { ticker: t }, `${skill.name} — ${t}`);
+        }
       }
     }
+    // runSkillViewSkill is stable (useCallback); the [] deps keep this a
+    // once-on-mount read of the URL so autorun never double-fires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => () => abortRef.current?.abort(), []);
