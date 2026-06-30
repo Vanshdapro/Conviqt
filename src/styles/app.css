@@ -2358,6 +2358,67 @@
   color: var(--text-muted);
   margin: var(--space-5) 0 0;
 }
+
+/* ── Track record — sample of closed calls (real picks, losses included) ───── */
+.cvq-track-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-6) 0 var(--space-5);
+}
+@media (max-width: 640px) { .cvq-track-stats { grid-template-columns: 1fr; gap: var(--space-2); } }
+.cvq-track-stat {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4) var(--space-5);
+  text-align: center;
+}
+.cvq-track-stat-num {
+  display: block;
+  font-family: var(--font-display), serif;
+  font-size: 30px;
+  line-height: 1.05;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cvq-track-stat-lab {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.cvq-track-samples {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.cvq-track-sample {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+}
+.cvq-track-sample-tk {
+  font-family: var(--font-display), serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 64px;
+}
+.cvq-track-sample-entry {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 480px) { .cvq-track-sample-entry { font-size: 12px; } }
 /* Inline links in body copy carry an underline so they don't rely on hue
    alone (WCAG link-in-text-block). */
 .cvq-land-track-note a,

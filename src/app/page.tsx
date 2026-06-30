@@ -11,20 +11,34 @@ import { RisingThread } from "@/components/landing/RisingThread";
 import { PhoneFrame } from "@/components/landing/DeviceFrame";
 import { FounderNote } from "@/components/landing/FounderNote";
 import { TrackRecordViz } from "@/components/landing/TrackRecordViz";
-import { loadPicks, type PickView } from "@/lib/picksView";
+import { loadPicks, pickStats, type PickView } from "@/lib/picksView";
+import { ChangePill } from "@/components/ui";
 import { SKILLS } from "@/lib/skills";
 import { TRACKS, TOTAL_LESSONS } from "@/lib/learn/curriculum";
 
 // The public landing (playbook Phase 6). Server-rendered with a 15-minute
-// revalidate so the TRACK RECORD section reflects the live count of public
-// calls — while the page itself stays static-fast. The picks themselves are
-// NOT enumerated here (founder call 2026-06-14): the landing shows that a real,
-// dated, permanent record exists (an abstract sealed-ledger viz + the live
-// count) but the actual calls live one tap inside the app, so visitors can't
-// lift free picks off a public page. The intro is a single 1.0s CSS wordmark
-// reveal (WordmarkIntro), once per session, no WebGL.
+// revalidate so the TRACK RECORD section reflects live data while the page
+// stays static-fast (snapshot mode, no live quotes — ISR-safe).
+//
+// Track record policy (revised 2026-06-30, supersedes the count-only 2026-06-14
+// call): we now show a SAMPLE of CLOSED calls — winners AND at least one miss,
+// exactly as they landed — plus the honest aggregate stats. This is the brand's
+// whole differentiator ("a track record we can't hide from, losses included");
+// hiding it killed conversion. The scraping concern is still respected: only
+// SETTLED picks appear (already played out — can't be front-run), the full
+// reasoning stays gated, and OPEN/live actionable calls never touch this page.
+// The complete live record opens only after signup. The intro is a single 1.0s
+// CSS wordmark reveal (WordmarkIntro), once per session, no WebGL.
 
 export const revalidate = 900;
+
+// Track-record sample toggle. OFF for now (founder call 2026-06-30): the record
+// is too thin to sell — 1 closed call (a loss) and a negative combined return
+// read as "new and losing", not as proof. The full sample machinery below
+// (stats strip + closed-call list, losses included) stays built and ready;
+// flip this to true once there's a real body of settled calls (wins AND losses)
+// so the record reads as credible. Until then the landing shows the count viz.
+const SHOW_PICK_SAMPLE = false;
 
 export const metadata: Metadata = {
   alternates: { canonical: "https://www.conviqt.com" },
@@ -116,6 +130,21 @@ export default async function Home() {
     console.error("[landing] picks load failed:", err);
     return null; // error state, not an empty track record
   });
+
+  // Honest aggregate across the WHOLE record (wins + losses, open + closed).
+  const stats = views ? pickStats(views) : null;
+  // Sample = recent CLOSED calls only (already played out → can't be front-run).
+  // Guarantee at least one real loss is shown when one exists, so the sample
+  // can never read as cherry-picked — the brand promise is "losses included".
+  const settled = (views ?? []).filter((v) => !v.open && v.returnPct !== null);
+  const sample = settled.slice(0, 5);
+  if (sample.length > 0 && !sample.some((v) => (v.returnPct as number) < 0)) {
+    const loss = settled.find((v) => (v.returnPct as number) < 0);
+    if (loss) {
+      sample[sample.length - 1] = loss;
+      sample.sort((a, b) => (b.pick.exit_date || "").localeCompare(a.pick.exit_date || ""));
+    }
+  }
 
   const gridSkills = GRID_SKILL_IDS.map((id) => SKILLS.find((s) => s.id === id)).filter(
     (s): s is NonNullable<typeof s> => Boolean(s)
@@ -276,12 +305,60 @@ export default async function Home() {
                   <span>Calls stay up for good. Never quietly edited, never deleted.</span>
                 </li>
               </ul>
-              <TrackRecordViz count={views.length} />
-              <p className="cvq-land-track-note">
-                We don&rsquo;t print the calls themselves on this page — the complete record, wins
-                and losses alike, opens the moment you&rsquo;re inside. Past results never guarantee
-                future returns. <Link href="/dashboard">Open the record →</Link>
-              </p>
+              {SHOW_PICK_SAMPLE && sample.length > 0 ? (
+                <>
+                  {stats && (
+                    <div className="cvq-track-stats" data-reveal="up" aria-label="Track record at a glance">
+                      <div className="cvq-track-stat">
+                        <span className="cvq-track-stat-num">{stats.total}</span>
+                        <span className="cvq-track-stat-lab">calls on record</span>
+                      </div>
+                      <div className="cvq-track-stat">
+                        <span className="cvq-track-stat-num">{stats.winRate}%</span>
+                        <span className="cvq-track-stat-lab">went our way</span>
+                      </div>
+                      <div className="cvq-track-stat">
+                        <span className="cvq-track-stat-num">
+                          {stats.totalReturn > 0 ? "+" : ""}
+                          {stats.totalReturn}%
+                        </span>
+                        <span className="cvq-track-stat-lab">combined, wins &amp; losses</span>
+                      </div>
+                    </div>
+                  )}
+                  <ul className="cvq-track-samples" data-reveal="up" aria-label="A sample of closed calls">
+                    {sample.map((v) => (
+                      <li key={`${v.pick.ticker}-${v.pick.entry_date ?? ""}`} className="cvq-track-sample">
+                        <span className="cvq-track-sample-tk">{v.pick.ticker}</span>
+                        <span className="cvq-track-sample-entry">
+                          entry $
+                          {v.pick.entry_price.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                          {v.pick.entry_date ? ` · ${v.pick.entry_date.slice(0, 10)}` : ""}
+                        </span>
+                        <ChangePill change={v.returnPct ?? undefined} />
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="cvq-land-track-note">
+                    A sample of closed calls — the winners and the misses, exactly as they landed.
+                    The full live record — every open call and the reasoning behind it — opens the
+                    moment you&rsquo;re inside. Past results never guarantee future returns.{" "}
+                    <Link href="/signup">See the full record →</Link>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <TrackRecordViz count={views.length} />
+                  <p className="cvq-land-track-note">
+                    The calls are published the day we make them — the complete record, wins and
+                    losses alike, opens the moment you&rsquo;re inside. Past results never guarantee
+                    future returns. <Link href="/signup">Open the record →</Link>
+                  </p>
+                </>
+              )}
             </>
           )}
         </section>
