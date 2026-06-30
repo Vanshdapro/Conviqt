@@ -53,3 +53,14 @@ jobs:
             --retry 3 --retry-delay 30 --max-time 300 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "https://www.conviqt.com/api/watchlist/sweep"
+
+      # Day-3 re-engagement nudge to users who signed up but never ran an
+      # analysis. Independent of the steps above; dedupes via
+      # lifecycle_email_log so a retry can never double-email.
+      - name: Sweep for re-engagement nudges
+        if: ${{ always() }}
+        run: |
+          curl -fsS -X POST \
+            --retry 3 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.conviqt.com/api/lifecycle/sweep"
