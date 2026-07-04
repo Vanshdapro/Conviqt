@@ -21,7 +21,7 @@ import {
   type ProfilePatch,
 } from "@/lib/profile";
 import type { ExperienceLevel } from "@/lib/agents/audience";
-import { getSubscriberByEmail, isPremium, isTrialing } from "@/lib/subscription";
+import { getSubscriberByEmail, isPremium, isTrialing, grantFreeMonthIfEligible } from "@/lib/subscription";
 import { getWatchlistStore, MAX_WATCHLIST, WatchlistFullError } from "@/lib/watchlist";
 import { VALID_TICKER_RE } from "@/lib/agents/router";
 
@@ -31,7 +31,9 @@ export const dynamic = "force-dynamic";
 const STYLES = new Set<InvestorStyle>(["steady", "balanced", "growth", "bold"]);
 const LEVELS = new Set<ExperienceLevel>(["new", "learning", "experienced"]);
 
-async function profilePayload(user: { email: string; name: string | null }) {
+async function profilePayload(user: { id: string; email: string; name: string | null; createdAt: string }) {
+  await grantFreeMonthIfEligible(user);
+
   const [profile, subscriber, usage] = await Promise.all([
     getProfile(user.email),
     getSubscriberByEmail(user.email),

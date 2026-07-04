@@ -176,11 +176,13 @@ set may appear anywhere in the UI, ever.
 
 - **Free:** 5 deep analyses/mo + Flash basics + Academy fundamentals + full
   track-record access (transparency is free, always).
-- **Pro: $8/month, MONTH-TO-MONTH ONLY · 7-day trial** — unlimited fair-use
+- **Pro: $4/month, MONTH-TO-MONTH ONLY · 7-day trial** — unlimited fair-use
   analyses, full Academy, portfolio tools, priority speed. (Founder pricing call
-  2026-06-14, supersedes the playbook 2.4 $16-annual/$25-monthly figure: price
-  dropped to $8/mo, annual billing retired, and the proposed Max tier was
-  dropped — Free + Pro are the only plans.)
+  2026-06-14 set $8/mo, superseding the playbook 2.4 $16-annual/$25-monthly
+  figure; founder then repointed the live price to $4/mo on 2026-06-19,
+  commit f622282 — that is the current real charge, UI matches it. Annual
+  billing retired, the proposed Max tier dropped — Free + Pro are the only
+  plans.)
 - **No annual billing.** `pro_annual` stays in the code only so the webhook keeps
   honoring any live legacy annual sub; checkout no longer offers it
   (`PURCHASABLE_PLANS = { pro_monthly }`). Go-live needs ONE Stripe price:

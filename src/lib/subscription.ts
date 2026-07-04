@@ -23,16 +23,57 @@ export interface Subscriber {
   current_period_end: string | null;
 }
 
-export type Plan = "free" | "pro_monthly" | "pro_annual" | "max_monthly" | "max_pro_monthly";
+export type Plan =
+  | "free"
+  | "pro_monthly"
+  | "pro_annual"
+  | "max_monthly"
+  | "max_pro_monthly"
+  | "promo_free_month";
 
 // Pro = any non-free plan with a live (active or trialing) subscription.
 // Covers the Phase-7 Pro plans AND legacy Max subscribers, who keep their
 // entitlement — we never downgrade a paying customer by renaming plans.
+// `promo_free_month` is the one plan with a hard expiry (see below) since
+// it's not backed by a real Stripe subscription that Stripe would cancel.
 export function isPremium(subscriber: Subscriber | null): boolean {
   if (!subscriber) return false;
+  if (subscriber.plan === "promo_free_month") {
+    return !!subscriber.current_period_end && new Date(subscriber.current_period_end).getTime() > Date.now();
+  }
   const active = ["active", "trialing"].includes(subscriber.subscription_status);
   const paid = !!subscriber.plan && subscriber.plan !== "free";
   return active && paid;
+}
+
+// One-off promo: accounts created 2026-07-04 → 2026-07-11 get Pro free for a
+// month, no card, no Stripe. Delete this block once the window and every
+// grantee's month have passed.
+const FREE_MONTH_SIGNUP_WINDOW_START = new Date("2026-07-04T00:00:00Z").getTime();
+const FREE_MONTH_SIGNUP_WINDOW_END   = new Date("2026-07-11T00:00:00Z").getTime();
+const FREE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Grants the signup-week free month once, idempotently. No-op outside the window or if the user already has plan state. */
+export async function grantFreeMonthIfEligible(user: {
+  id: string;
+  email: string;
+  createdAt: string;
+}): Promise<void> {
+  const createdAtMs = new Date(user.createdAt).getTime();
+  if (createdAtMs < FREE_MONTH_SIGNUP_WINDOW_START || createdAtMs >= FREE_MONTH_SIGNUP_WINDOW_END) {
+    return;
+  }
+  const existing = await getSubscriberByEmail(user.email);
+  if (existing) return;
+
+  await upsertSubscriber({
+    email: user.email,
+    stripe_customer_id: `promo_${user.id}`,
+    subscription_status: "active",
+    plan: "promo_free_month",
+    current_period_end: new Date(Date.now() + FREE_MONTH_MS).toISOString(),
+  });
+  console.log(`[subscription] granted free-month signup promo to ${user.email}`);
 }
 
 /** True while the subscription is in its 7-day trial window. */

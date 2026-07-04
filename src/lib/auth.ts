@@ -9,6 +9,7 @@ export interface SessionUser {
   email: string;
   emailVerified: boolean;
   name: string | null;
+  createdAt: string;
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -25,6 +26,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       email: user.email.toLowerCase().trim(),
       emailVerified: !!user.email_confirmed_at,
       name: (user.user_metadata?.full_name as string | undefined) ?? null,
+      createdAt: user.created_at,
     };
   } catch (err) {
     // Misconfigured env or transient Supabase failure → treat as logged out
