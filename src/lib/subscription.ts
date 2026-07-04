@@ -13,6 +13,7 @@
 // Call `getSubscriberByEmail` from API routes to gate premium features.
 
 import { getSupabaseAdmin } from "./supabase";
+import { FREE_MONTH_SIGNUP_WINDOW_START, FREE_MONTH_SIGNUP_WINDOW_END } from "./promo";
 
 export interface Subscriber {
   email: string;
@@ -47,10 +48,9 @@ export function isPremium(subscriber: Subscriber | null): boolean {
 }
 
 // One-off promo: accounts created 2026-07-04 → 2026-07-11 get Pro free for a
-// month, no card, no Stripe. Delete this block once the window and every
-// grantee's month have passed.
-const FREE_MONTH_SIGNUP_WINDOW_START = new Date("2026-07-04T00:00:00Z").getTime();
-const FREE_MONTH_SIGNUP_WINDOW_END   = new Date("2026-07-11T00:00:00Z").getTime();
+// month, no card, no Stripe. Window lives in ./promo (shared with pricing
+// page copy). Delete this block once the window and every grantee's month
+// have passed.
 const FREE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Grants the signup-week free month once, idempotently. No-op outside the window or if the user already has plan state. */

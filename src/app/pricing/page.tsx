@@ -15,6 +15,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { track } from "@/lib/analytics/track";
+import { isSignupPromoActive } from "@/lib/promo";
 
 const PRO_FEATURES = [
   "Unlimited deep analyses — fair use, no monthly cap",
@@ -153,6 +154,10 @@ function PricingInner() {
   }
 
   const isPro = plan === "pro";
+  // Signup-week promo audience: only people who haven't signed up yet — an
+  // existing free-plan user's account necessarily predates the window
+  // (otherwise the server-side grant would already show them as Pro).
+  const showSignupPromo = isSignupPromoActive() && authed === false;
 
   return (
     <div className="cvq-price-page">
@@ -213,13 +218,19 @@ function PricingInner() {
 
           {/* Pro */}
           <section className="cvq-price-card cvq-price-card--pro" aria-label="Pro plan">
-            <span className="cvq-price-badge cvq-price-badge--offer">50% off · Limited time</span>
+            <span className="cvq-price-badge cvq-price-badge--offer">
+              {showSignupPromo ? "Free first month · new signups only" : "50% off · Limited time"}
+            </span>
             <h2>Pro</h2>
             <p className="cvq-price-amount">
               <s className="cvq-price-was">$8</s>
               {" "}$4 <span>/ month</span>
             </p>
-            <p className="cvq-price-tag">Limited-time offer. Billed monthly — cancel anytime.</p>
+            <p className="cvq-price-tag">
+              {showSignupPromo
+                ? "Sign up by Jul 11 and your first month is free — no card needed."
+                : "Limited-time offer. Billed monthly — cancel anytime."}
+            </p>
             <ul className="cvq-price-list">
               {PRO_FEATURES.map((f) => (
                 <li key={f}>
@@ -228,7 +239,11 @@ function PricingInner() {
                 </li>
               ))}
             </ul>
-            {isPro ? (
+            {showSignupPromo ? (
+              <Link href="/signup?next=/research" className="cvq-btn cvq-btn--primary cvq-price-cta">
+                Sign up — first month free
+              </Link>
+            ) : isPro ? (
               <button type="button" className="cvq-btn cvq-btn--secondary cvq-price-cta" onClick={openPortal} disabled={busy}>
                 Manage subscription
               </button>
@@ -237,7 +252,11 @@ function PricingInner() {
                 {busy ? "Opening checkout…" : "Try Pro free for 7 days"}
               </button>
             )}
-            <p className="cvq-price-fine">Cancel during the trial and you won&apos;t be charged.</p>
+            <p className="cvq-price-fine">
+              {showSignupPromo
+                ? "No card needed. After your free month, Pro is $4/mo — cancel anytime."
+                : "Cancel during the trial and you won't be charged."}
+            </p>
           </section>
         </div>
 
