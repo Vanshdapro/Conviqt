@@ -154,11 +154,14 @@ function PricingInner() {
   }
 
   const isPro = plan === "pro";
-  // Promo audience: everyone who isn't already Pro. Treating the unresolved
-  // (null) auth state as "show the promo" avoids a flash of the $4 price
-  // before /api/profile resolves. Logged-in non-Pro users get granted the
-  // free month on that same profile call, so they flip to "Included in Pro".
-  const showSignupPromo = isSignupPromoActive() && !isPro;
+  // During the promo window the Pro card reads $0 for EVERYONE who views it —
+  // badge, price, tag all switch to the free-month framing regardless of auth
+  // or plan. Only the CTA below varies by who's looking.
+  const promoActive = isSignupPromoActive();
+  // Logged-out (or still-loading) visitors get the "sign up, first month free"
+  // CTA. Logged-in non-Pro users are granted the month on their /api/profile
+  // call and flip to Pro; existing Pro users see "Manage subscription".
+  const showSignupPromo = promoActive && !isPro;
 
   return (
     <div className="cvq-price-page">
@@ -220,11 +223,11 @@ function PricingInner() {
           {/* Pro */}
           <section className="cvq-price-card cvq-price-card--pro" aria-label="Pro plan">
             <span className="cvq-price-badge cvq-price-badge--offer">
-              {showSignupPromo ? "Free first month · new signups only" : "50% off · Limited time"}
+              {promoActive ? "Free first month · till Jul 12" : "50% off · Limited time"}
             </span>
             <h2>Pro</h2>
             <p className="cvq-price-amount">
-              {showSignupPromo ? (
+              {promoActive ? (
                 <>$0 <span>first month, then $4/mo</span></>
               ) : (
                 <>
@@ -234,8 +237,8 @@ function PricingInner() {
               )}
             </p>
             <p className="cvq-price-tag">
-              {showSignupPromo
-                ? "Sign up by Jul 12 and your first month is completely free — no card needed."
+              {promoActive
+                ? "Free till Jul 12 — your first month is completely free, no card needed."
                 : "Limited-time offer. Billed monthly — cancel anytime."}
             </p>
             <ul className="cvq-price-list">
@@ -260,7 +263,7 @@ function PricingInner() {
               </button>
             )}
             <p className="cvq-price-fine">
-              {showSignupPromo
+              {promoActive
                 ? "No card needed. After your free month, Pro is $4/mo — cancel anytime."
                 : "Cancel during the trial and you won't be charged."}
             </p>
