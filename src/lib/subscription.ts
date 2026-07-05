@@ -13,7 +13,7 @@
 // Call `getSubscriberByEmail` from API routes to gate premium features.
 
 import { getSupabaseAdmin } from "./supabase";
-import { FREE_MONTH_SIGNUP_WINDOW_START, FREE_MONTH_SIGNUP_WINDOW_END } from "./promo";
+import { isSignupPromoActive } from "./promo";
 
 export interface Subscriber {
   email: string;
@@ -47,22 +47,21 @@ export function isPremium(subscriber: Subscriber | null): boolean {
   return active && paid;
 }
 
-// One-off promo: accounts created 2026-07-04 → 2026-07-12 get Pro free for a
-// month, no card, no Stripe. Window lives in ./promo (shared with pricing
+// One-off promo (founder: "Pro free for everyone till 12th July"): any
+// logged-in user WITHOUT an existing subscription who is active during the
+// window gets Pro free for a month, no card, no Stripe. Covers new signups
+// AND existing free users. Window lives in ./promo (shared with pricing
 // page copy). Delete this block once the window and every grantee's month
 // have passed.
 const FREE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Grants the signup-week free month once, idempotently. No-op outside the window or if the user already has plan state. */
+/** Grants the promo free month once, idempotently. No-op outside the window or if the user already has any subscription row (never overrides a paid/legacy plan). */
 export async function grantFreeMonthIfEligible(user: {
   id: string;
   email: string;
-  createdAt: string;
 }): Promise<void> {
-  const createdAtMs = new Date(user.createdAt).getTime();
-  if (createdAtMs < FREE_MONTH_SIGNUP_WINDOW_START || createdAtMs >= FREE_MONTH_SIGNUP_WINDOW_END) {
-    return;
-  }
+  if (!isSignupPromoActive()) return;
+
   const existing = await getSubscriberByEmail(user.email);
   if (existing) return;
 
@@ -73,7 +72,7 @@ export async function grantFreeMonthIfEligible(user: {
     plan: "promo_free_month",
     current_period_end: new Date(Date.now() + FREE_MONTH_MS).toISOString(),
   });
-  console.log(`[subscription] granted free-month signup promo to ${user.email}`);
+  console.log(`[subscription] granted promo free month to ${user.email}`);
 }
 
 /** True while the subscription is in its 7-day trial window. */

@@ -154,10 +154,11 @@ function PricingInner() {
   }
 
   const isPro = plan === "pro";
-  // Signup-week promo audience: only people who haven't signed up yet — an
-  // existing free-plan user's account necessarily predates the window
-  // (otherwise the server-side grant would already show them as Pro).
-  const showSignupPromo = isSignupPromoActive() && authed === false;
+  // Promo audience: everyone who isn't already Pro. Treating the unresolved
+  // (null) auth state as "show the promo" avoids a flash of the $4 price
+  // before /api/profile resolves. Logged-in non-Pro users get granted the
+  // free month on that same profile call, so they flip to "Included in Pro".
+  const showSignupPromo = isSignupPromoActive() && !isPro;
 
   return (
     <div className="cvq-price-page">
