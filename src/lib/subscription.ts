@@ -47,7 +47,7 @@ export function isPremium(subscriber: Subscriber | null): boolean {
   return active && paid;
 }
 
-// One-off promo: accounts created 2026-07-04 → 2026-07-11 get Pro free for a
+// One-off promo: accounts created 2026-07-04 → 2026-07-12 get Pro free for a
 // month, no card, no Stripe. Window lives in ./promo (shared with pricing
 // page copy). Delete this block once the window and every grantee's month
 // have passed.

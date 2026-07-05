@@ -5,7 +5,8 @@
 // month have passed.
 
 export const FREE_MONTH_SIGNUP_WINDOW_START = new Date("2026-07-04T00:00:00Z").getTime();
-export const FREE_MONTH_SIGNUP_WINDOW_END   = new Date("2026-07-11T00:00:00Z").getTime();
+// Inclusive of all of Jul 12 (founder: "free till 12th July").
+export const FREE_MONTH_SIGNUP_WINDOW_END   = new Date("2026-07-13T00:00:00Z").getTime();
 
 export function isSignupPromoActive(now: number = Date.now()): boolean {
   return now >= FREE_MONTH_SIGNUP_WINDOW_START && now < FREE_MONTH_SIGNUP_WINDOW_END;

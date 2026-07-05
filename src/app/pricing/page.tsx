@@ -223,12 +223,18 @@ function PricingInner() {
             </span>
             <h2>Pro</h2>
             <p className="cvq-price-amount">
-              <s className="cvq-price-was">$8</s>
-              {" "}$4 <span>/ month</span>
+              {showSignupPromo ? (
+                <>$0 <span>first month, then $4/mo</span></>
+              ) : (
+                <>
+                  <s className="cvq-price-was">$8</s>
+                  {" "}$4 <span>/ month</span>
+                </>
+              )}
             </p>
             <p className="cvq-price-tag">
               {showSignupPromo
-                ? "Sign up by Jul 11 and your first month is free — no card needed."
+                ? "Sign up by Jul 12 and your first month is completely free — no card needed."
                 : "Limited-time offer. Billed monthly — cancel anytime."}
             </p>
             <ul className="cvq-price-list">
