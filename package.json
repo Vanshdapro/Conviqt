@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "tsx --test src/lib/__tests__/*.test.ts src/lib/edu/__tests__/*.test.ts src/lib/marketdata/__tests__/*.test.ts src/components/research/__tests__/*.test.ts src/components/portfolio/__tests__/*.test.ts",
-    "alpha:run": "node scripts/run-alpha.mjs"
+    "alpha:run": "node scripts/run-alpha.mjs",
+    "card": "npx tsx --env-file .env.local scripts/card.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
@@ -22,11 +23,13 @@
     "stripe": "^22.2.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "playwright-core": "^1.60.0",
+    "satori": "^0.26.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"

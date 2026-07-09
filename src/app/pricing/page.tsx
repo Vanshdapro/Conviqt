@@ -286,6 +286,13 @@ function PricingInner() {
           ))}
         </section>
 
+        <p style={{ textAlign: "center", fontSize: 14, color: "var(--text-muted)", marginTop: 8 }}>
+          Founding member of Edge?{" "}
+          <a href="/redeem" style={{ color: "var(--link)", fontWeight: 600 }}>
+            Redeem your code for Conviqt Pro, free →
+          </a>
+        </p>
+
         <p className="cvq-disclaimer" style={{ textAlign: "center" }}>
           Conviqt is a research and education tool, not a licensed financial adviser. Nothing here is
           financial advice. Markets involve risk.

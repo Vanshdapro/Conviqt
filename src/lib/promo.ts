@@ -8,6 +8,10 @@ export const FREE_MONTH_SIGNUP_WINDOW_START = new Date("2026-07-04T00:00:00Z").g
 // Inclusive of all of Jul 12 (founder: "free till 12th July").
 export const FREE_MONTH_SIGNUP_WINDOW_END   = new Date("2026-07-13T00:00:00Z").getTime();
 
-export function isSignupPromoActive(now: number = Date.now()): boolean {
-  return now >= FREE_MONTH_SIGNUP_WINDOW_START && now < FREE_MONTH_SIGNUP_WINDOW_END;
+// Free-Pro signup promo ENDED 2026-07-09 (founder call): Conviqt Pro is now
+// $4/month and EVERYONE pays. The only free path left is an Edge founding-member
+// promo code, redeemed at /redeem (see src/app/api/redeem/route.ts). Existing
+// promo_free_month grantees keep their remaining month; no new free grants.
+export function isSignupPromoActive(_now: number = Date.now()): boolean {
+  return false;
 }

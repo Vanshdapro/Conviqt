@@ -1,0 +1,228 @@
+[
+  {
+    "email": "verify+sharpen@conviqt.test",
+    "portfolioId": "3eb6366d-db1b-4a4d-82b7-71f839bb9f2d",
+    "date": "2026-06-23",
+    "brief": {
+      "date": "2026-06-23",
+      "portfolioId": "3eb6366d-db1b-4a4d-82b7-71f839bb9f2d",
+      "portfolioName": "Growth Tech",
+      "move1wPct": -1.54,
+      "move1mPct": -8.27,
+      "portfolioMovePct": -0.47,
+      "dayChangeUSD": -58.11,
+      "pricedValueUSD": 12215.74,
+      "whatHappened": "The portfolio lost 1.54% this past week and 8.27% over the last month, extending a rough stretch. The past few weeks have been a steady grind lower, not a crash — these are meaningful, not noise.",
+      "why": "A selloff in Asian chip stocks has spilled into US tech, hitting semis and the mega-cap names tied to AI spending. When the market questions how long the AI buildout lasts, it hits this whole portfolio because it's made up almost entirely of the companies that have ridden that wave highest.",
+      "whatItMeans": "This portfolio is extremely concentrated in mega-cap tech (about 84% in three stocks: Apple, Microsoft, and Amazon), so a tech-wide retreat hits every corner. Apple has held up best over the past month and is actually the leader here; Microsoft and Amazon have fallen hardest, and Nvidia's slide tracks the broader chip selloff.",
+      "sinceYesterday": "Last time the book was flat for the week; now it's given back more ground. The calm from a couple weeks ago has turned into a clear, broad-based pullback.",
+      "holdings": [
+        {
+          "ticker": "AMZN",
+          "changePct": 0.57,
+          "dayChangeUSD": 15.84,
+          "ret1wPct": -1.86,
+          "ret1mPct": -11.66,
+          "ret3mPct": 13.99,
+          "weightPct": 23,
+          "priced": true,
+          "note": "Amazon has dropped sharply over the past month (-11.66%) and is among the weaker holdings in the book. It's getting swept up in the broader tech selloff and the questions around AI spending momentum."
+        },
+        {
+          "ticker": "MSFT",
+          "changePct": 1.8,
+          "dayChangeUSD": 52.8,
+          "ret1wPct": -4.3,
+          "ret1mPct": -11.19,
+          "ret3mPct": -2.08,
+          "weightPct": 24.49,
+          "priced": true,
+          "note": "Microsoft has been the weakest of the bunch over both the past week and month (-4.3% and -11.19%). Like Amazon, it's caught in the rotation out of mega-cap tech, with some analysts openly asking where the bottom is."
+        },
+        {
+          "ticker": "NVDA",
+          "changePct": -4.13,
+          "dayChangeUSD": -86.1,
+          "ret1wPct": -2.51,
+          "ret1mPct": -10.48,
+          "ret3mPct": 15.83,
+          "weightPct": 16.38,
+          "priced": true,
+          "note": "Nvidia fell again this week (-2.51%) and is down roughly 10.5% over the month. The Asian chip selloff and questions about AI spending are the main story here, though it's still up strongly over three months."
+        },
+        {
+          "ticker": "AAPL",
+          "changePct": -0.91,
+          "dayChangeUSD": -40.65,
+          "ret1wPct": 1.09,
+          "ret1mPct": -2.63,
+          "ret3mPct": 18.67,
+          "weightPct": 36.14,
+          "priced": true,
+          "note": "Apple is the clear leader of this portfolio right now — actually positive over the past week (+1.09%) and down only modestly over the month (-2.63%). It's been more resilient than its mega-cap peers, which makes it the …"
+        }
+      ],
+      "watch": [
+        {
+          "text": "Whether the Asian chip selloff fades or deepens — it's the main external force hitting NVDA and dragging on the rest.",
+          "ticker": "NVDA"
+        },
+        {
+          "text": "Microsoft's next earnings: it's the weakest holding and a big weight on the portfolio. Signs of AI monetization or weakness will matter a lot.",
+          "ticker": "MSFT",
+          "when": "next earnings"
+        },
+        {
+          "text": "Apple's relative strength: watch if it stays resilient or eventually joins the broader selloff.",
+          "ticker": "AAPL"
+        },
+        {
+          "text": "Any shift in AI sentiment or spending commentary from major tech companies — this portfolio lives and dies on that narrative."
+        }
+      ],
+      "flagged": [
+        {
+          "id": "2026-06-23-NVDA",
+          "date": "2026-06-23",
+          "text": "Watch if the Asian chip selloff is a one-day event or the start of a broader rotation out of semiconductor stocks.",
+          "ticker": "NVDA",
+          "status": "open",
+          "outcomeNote": "The Asian chip selloff is still unfolding and now spans multiple weeks. This flag remains worth watching closely."
+        },
+        {
+          "id": "2026-06-23-n0",
+          "date": "2026-06-23",
+          "text": "Monitor mega-cap tech concentration risk — 83%+ in three stocks means single-company news drives the whole portfolio.",
+          "status": "open",
+          "outcomeNote": "Concentration risk is even more relevant now than when flagged — the selloff has been broad, but single-company hits to MSFT or AMZN have major impac…"
+        }
+      ],
+      "unpriced": [],
+      "dataFreshness": "delayed ~15 min",
+      "generatedAt": "2026-06-23T21:11:10.268Z",
+      "estCostUSD": 0.0004887400000000001
+    }
+  },
+  {
+    "email": "verify+sharpen@conviqt.test",
+    "portfolioId": "3eb6366d-db1b-4a4d-82b7-71f839bb9f2d",
+    "date": "2026-06-28",
+    "brief": {
+      "date": "2026-06-28",
+      "portfolioId": "3eb6366d-db1b-4a4d-82b7-71f839bb9f2d",
+      "portfolioName": "Growth Tech",
+      "move1wPct": null,
+      "move1mPct": null,
+      "portfolioMovePct": 2.81,
+      "dayChangeUSD": 326.63,
+      "pricedValueUSD": 11958.04,
+      "whatHappened": "The portfolio has been grinding lower over recent weeks and months, with no available medium-term return data to suggest a reversal. Today's small gain is noise against a backdrop of steady weakness in mega-cap growth stocks.",
+      "why": "Over recent weeks, the dominant story has been a rotation away from the mega-cap tech names that led the market for years. Money is moving into smaller stocks, and higher rate expectations from a hawkish new Fed chair are adding pressure on growth stocks. All four holdings are in the same boat — when the tide goes out on big tech, this whole portfolio feels it.",
+      "whatItMeans": "This portfolio is extremely concentrated — 84% of the book sits in just three stocks (Apple, Microsoft, and Amazon), with Nvidia adding another 16%. There is no diversification outside mega-cap tech. If the rotation out of Mag 7 continues, this portfolio has no other legs to stand on.",
+      "sinceYesterday": "The last brief described a steady grind lower — 8.27% over the month and 1.54% over the prior week. Since then, medium-term returns across holdings remain unavailable, and the portfolio is still fully concentrated in mega-cap tech without signs of a change in direction.",
+      "holdings": [
+        {
+          "ticker": "AAPL",
+          "changePct": 3.14,
+          "dayChangeUSD": 129.45,
+          "ret1wPct": null,
+          "ret1mPct": null,
+          "ret3mPct": null,
+          "weightPct": 35.6,
+          "priced": true,
+          "note": "Apple remains the book's largest position. Headlines about buying memory from China and rotation out of Mag 7 into DRAM suggest it's facing the same sector-wide pressures as the rest of big tech — not leading the book h…"
+        },
+        {
+          "ticker": "MSFT",
+          "changePct": 5.71,
+          "dayChangeUSD": 161.12,
+          "ret1wPct": null,
+          "ret1mPct": null,
+          "ret3mPct": null,
+          "weightPct": 24.95,
+          "priced": true,
+          "note": "Microsoft is also caught in the crosscurrents. The capex boom narrative — big tech spending heavily on AI while buybacks get squeezed — hangs over the stock. It's not outperforming the book; it's moving with the group."
+        },
+        {
+          "ticker": "AMZN",
+          "changePct": 2.5,
+          "dayChangeUSD": 68.16,
+          "ret1wPct": null,
+          "ret1mPct": null,
+          "ret3mPct": null,
+          "weightPct": 23.35,
+          "priced": true,
+          "note": "Amazon mirrors the same story: heavy capex spending, hedge fund interest, but the rotation away from mega-cap growth is a headwind. It's neither leading nor lagging the portfolio meaningfully — just part of the concentr…"
+        },
+        {
+          "ticker": "NVDA",
+          "changePct": -1.64,
+          "dayChangeUSD": -32.1,
+          "ret1wPct": null,
+          "ret1mPct": null,
+          "ret3mPct": null,
+          "weightPct": 16.1,
+          "priced": true,
+          "note": "Nvidia is the smallest position but the one drawing the most specific risk. The question from the last brief — whether the Asian chip selloff was a one-day blip or the start of a broader rotation out of semiconductors —…"
+        }
+      ],
+      "watch": [
+        {
+          "text": "Whether mega-cap tech continues to lag the broader market as money rotates into small and mid-caps.",
+          "when": "ongoing"
+        },
+        {
+          "text": "Nvidia and the Asian chip sector — is the selloff contained or spreading?",
+          "ticker": "NVDA",
+          "when": "next few weeks"
+        },
+        {
+          "text": "Fed rate path: hawkish signals from new chair Warsh could pressure growth stocks further.",
+          "when": "next FOMC"
+        },
+        {
+          "text": "Any single-company news from Apple, Microsoft, or Amazon — with 84%+ in three names, one headline moves the whole book.",
+          "when": "next earnings"
+        },
+        {
+          "text": "Capex and buyback trends: if big tech's spending squeeze worsens, it could remove a key support for these stocks.",
+          "ticker": "MSFT",
+          "when": "next earnings"
+        }
+      ],
+      "flagged": [
+        {
+          "id": "2026-06-28-n0",
+          "date": "2026-06-28",
+          "text": "Watch if the broader rotation into small/mid-caps accelerates — this portfolio is all large-cap tech and would be left out of that move.",
+          "status": "open"
+        },
+        {
+          "id": "2026-06-28-n1",
+          "date": "2026-06-28",
+          "text": "Monitor how new Fed chair Warsh's hawkish tone affects growth stock valuations — rate-sensitive tech could face additional pressure.",
+          "status": "open"
+        },
+        {
+          "id": "2026-06-23-NVDA",
+          "date": "2026-06-23",
+          "text": "Watch if the Asian chip selloff is a one-day event or the start of a broader rotation out of semiconductor stocks.",
+          "ticker": "NVDA",
+          "status": "open",
+          "outcomeNote": "The Asian chip selloff is still unfolding and now spans multiple weeks. This flag remains worth watching closely."
+        },
+        {
+          "id": "2026-06-23-n0",
+          "date": "2026-06-23",
+          "text": "Monitor mega-cap tech concentration risk — 83%+ in three stocks means single-company news drives the whole portfolio.",
+          "status": "open",
+          "outcomeNote": "Concentration risk is even more relevant now than when flagged — the selloff has been broad, but single-company hits to MSFT or AMZN have major impac…"
+        }
+      ],
+      "unpriced": [],
+      "dataFreshness": "real-time",
+      "generatedAt": "2026-06-28T11:49:09.591Z",
+      "estCostUSD": 0.00049784
+    }
+  }
+]
